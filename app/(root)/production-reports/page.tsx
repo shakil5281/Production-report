@@ -1,8 +1,15 @@
+'use client'
+
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { IconPlus } from '@tabler/icons-react'
-import { DataTable } from './component/DataTable'
-import { ProductionTabs } from './component/Tabs'
+// import { DataTable } from './component/DataTable'
+import dynamic from 'next/dynamic'
+
+const ProductionTabs = dynamic(
+  () => import('./component/Tabs').then((mod) => mod.ProductionTabs),
+  { ssr: false }
+);
 
 export default function page() {
   return (

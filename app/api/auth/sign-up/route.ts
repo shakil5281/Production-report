@@ -1,6 +1,4 @@
-import { prisma } from "@/lib/db/prisma"
 import { NextResponse } from "next/server"
-
 
 export async function POST(req: Request) {
     try {
@@ -11,6 +9,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing name or email" }, { status: 400 })
         }
 
+        // Only import Prisma at runtime, not during build
+        const { prisma } = await import("@/lib/db/prisma")
         const user = await prisma.user.create({
             data: {
                 name,

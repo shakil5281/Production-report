@@ -1,6 +1,7 @@
 "use client"
 
 import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react"
+import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -23,7 +24,8 @@ export function NavMain({
 }) {
 
   const router = useRouter()
-  const url = items.find((item) => item.title === "Dashboard")?.url || "/dashboard"
+  const pathname = usePathname()
+  // const url = items.find((item) => item.title === "Dashboard")?.url || "/dashboard"
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -47,14 +49,22 @@ export function NavMain({
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton className="cursor-pointer" onClick={()=>router.push(item.url)} tooltip={item.title}>
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          {items.map((item) => {
+            const isActive = pathname === item.url
+            return (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton 
+                  className={`cursor-pointer ${isActive ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`} 
+                  onClick={()=>router.push(item.url)} 
+                  tooltip={item.title}
+                  isActive={isActive}
+                >
+                  {item.icon && <item.icon />}
+                  <span>{item.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
