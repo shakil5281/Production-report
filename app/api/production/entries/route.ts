@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
     const lineId = searchParams.get('lineId');
     const styleId = searchParams.get('styleId');
     const stage = searchParams.get('stage') as ProductionStage | null;
@@ -22,7 +24,9 @@ export async function GET(request: NextRequest) {
 
     const where: Prisma.ProductionEntryWhereInput = {};
     
-    if (date) {
+    if (startDate && endDate) {
+      where.date = { gte: new Date(startDate), lte: new Date(endDate) };
+    } else if (date) {
       where.date = new Date(date);
     }
     if (lineId) {

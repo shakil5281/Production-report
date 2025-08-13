@@ -16,6 +16,27 @@ export interface UserWithPermissions {
   userPermissions?: unknown;
 }
 
+function extractTokenFromRequest(request: Request): string | null {
+  // 1) Authorization header: Bearer <token>
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+
+  // 2) Cookie header: auth-token=<token>
+  const cookieHeader = request.headers.get('cookie');
+  if (cookieHeader) {
+    const cookies = cookieHeader.split(';').map((c) => c.trim());
+    for (const cookie of cookies) {
+      if (cookie.startsWith('auth-token=')) {
+        return decodeURIComponent(cookie.substring('auth-token='.length));
+      }
+    }
+  }
+
+  return null;
+}
+
 export class AuthService {
   // Hash password using bcrypt (server-side only)
   async hashPassword(password: string): Promise<string> {
@@ -243,19 +264,18 @@ export class AuthService {
     }
   }
 
-  // Get current user from request headers
+  // Get current user from request headers or cookies
   async getCurrentUser(request: Request): Promise<UserWithPermissions | null> {
     if (typeof window !== 'undefined') {
       throw new Error('getCurrentUser must be called on the server');
     }
 
     try {
-      const authHeader = request.headers.get('authorization');
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      const token = extractTokenFromRequest(request);
+      if (!token) {
         return null;
       }
 
-      const token = authHeader.substring(7);
       return await this.validateSession(token);
     } catch (error) {
       console.error('Error getting current user:', error);
