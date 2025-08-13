@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import type { Prisma, StyleStatus } from '@prisma/client';
 
 // GET /api/styles - Get styles with filters
 export async function GET(request: NextRequest) {
@@ -11,17 +12,21 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const statusParam = searchParams.get('status');
     const buyer = searchParams.get('buyer');
     const poNumber = searchParams.get('poNumber');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.StyleWhereInput = {};
     
-    if (status) {
-      where.status = status;
+    if (statusParam) {
+      const statusUpper = statusParam.toUpperCase() as StyleStatus;
+      const allowedStatuses: StyleStatus[] = ['PENDING','RUNNING','WAITING','COMPLETE','CANCELLED'];
+      if (allowedStatuses.includes(statusUpper)) {
+        where.status = statusUpper;
+      }
     }
     if (buyer) {
       where.buyer = { contains: buyer, mode: 'insensitive' };
@@ -99,7 +104,15 @@ export async function POST(request: NextRequest) {
       unitPrice,
       plannedStart,
       plannedEnd
-    } = body;
+    } = body as {
+      styleNumber: string;
+      buyer: string;
+      poNumber: string;
+      orderQty: number;
+      unitPrice: number;
+      plannedStart: string;
+      plannedEnd?: string | null;
+    };
 
     // Validate required fields
     if (!styleNumber || !buyer || !poNumber || !orderQty || !unitPrice || !plannedStart) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import type { Prisma, ProductionStage } from '@prisma/client';
 
 // GET /api/production/entries - Get production entries with filters
 export async function GET(request: NextRequest) {
@@ -14,12 +15,12 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     const lineId = searchParams.get('lineId');
     const styleId = searchParams.get('styleId');
-    const stage = searchParams.get('stage');
+    const stage = searchParams.get('stage') as ProductionStage | null;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.ProductionEntryWhereInput = {};
     
     if (date) {
       where.date = new Date(date);
@@ -100,7 +101,18 @@ export async function POST(request: NextRequest) {
       defectQty,
       reworkQty,
       notes
-    } = body;
+    } = body as {
+      date: string;
+      hourIndex: number;
+      lineId: string;
+      styleId: string;
+      stage: ProductionStage;
+      inputQty?: number | null;
+      outputQty?: number | null;
+      defectQty?: number | null;
+      reworkQty?: number | null;
+      notes?: string | null;
+    };
 
     // Validate required fields
     if (!date || hourIndex === undefined || !lineId || !styleId || !stage) {

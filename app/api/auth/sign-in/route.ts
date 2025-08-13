@@ -35,18 +35,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create response with user data (excluding password)
-    const userWithoutPassword = { ...user };
-    if ('password' in userWithoutPassword) {
-      delete (userWithoutPassword as any).password;
-    }
+    const { token, ...userWithoutToken } = user;
     
     const response = NextResponse.json({
       message: 'Sign-in successful',
-      user: userWithoutPassword,
+      user: userWithoutToken,
     });
 
     // Set JWT token as an HTTP-only cookie
-    response.cookies.set('auth-token', user.token, {
+    response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

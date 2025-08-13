@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import type { Prisma, PaymentMethod } from '@prisma/client';
 
 // GET /api/expenses - Get expenses with filters
 export async function GET(request: NextRequest) {
@@ -14,12 +15,12 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     const lineId = searchParams.get('lineId');
     const categoryId = searchParams.get('categoryId');
-    const paymentMethod = searchParams.get('paymentMethod');
+    const paymentMethod = searchParams.get('paymentMethod') as PaymentMethod | null;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.ExpenseWhereInput = {};
     
     if (date) {
       where.date = new Date(date);
@@ -94,7 +95,14 @@ export async function POST(request: NextRequest) {
       amount,
       description,
       paymentMethod
-    } = body;
+    } = body as {
+      date: string;
+      lineId?: string | null;
+      categoryId: string;
+      amount: number;
+      description?: string | null;
+      paymentMethod: PaymentMethod;
+    };
 
     // Validate required fields
     if (!date || !categoryId || !amount || !paymentMethod) {
