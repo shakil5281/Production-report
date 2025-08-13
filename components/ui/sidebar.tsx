@@ -4,6 +4,7 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, VariantProps } from "class-variance-authority"
 import { PanelLeftIcon } from "lucide-react"
+import { X } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -27,9 +28,9 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
+const SIDEBAR_WIDTH = "18rem" // Increased from 16rem for better content visibility
+const SIDEBAR_WIDTH_MOBILE = "20rem" // Increased from 18rem for mobile
+const SIDEBAR_WIDTH_ICON = "3.5rem" // Slightly increased for better touch targets
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextProps = {
@@ -194,12 +195,28 @@ function Sidebar({
             } as React.CSSProperties
           }
           side={side}
+          onPointerDownOutside={() => setOpenMobile(false)}
+          onEscapeKeyDown={() => setOpenMobile(false)}
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <div className="flex h-full w-full flex-col">
+            {/* Mobile close button */}
+            <div className="flex justify-end p-2 border-b">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setOpenMobile(false)}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close sidebar</span>
+              </Button>
+            </div>
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     )

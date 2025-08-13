@@ -9,30 +9,35 @@ export const data = {
       url: "/dashboard",
       icon: IconDashboard,
       isActive: true,
+      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN"], // All users can access
     },
     {
       title: "Daily Production",
       url: "/daily-production",
       icon: IconChartBar,
       isActive: false,
+      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
     },
     {
       title: "Production Reports",
       url: "/production-reports",
       icon: IconFileText,
       isActive: false,
+      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN"], // Managers and above
     },
     {
       title: "Profit & Loss",
       url: "/profit-loss",
       icon: IconTrendingUp,
       isActive: false,
+      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN"], // Managers and above
     },
   ],
   navGroup: [
     {
       title: "Administration",
       icon: IconSettings,
+      roles: ["ADMIN", "SUPER_ADMIN"], // Only show for admin users
       items: [
         {
           title: "User Management",
@@ -51,12 +56,14 @@ export const data = {
       url: "/profile",
       icon: IconUser,
       isActive: false,
+      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
     },
     {
       title: "Help & Support",
       url: "/help",
       icon: IconHelp,
       isActive: false,
+      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
     },
   ],
   documents: [

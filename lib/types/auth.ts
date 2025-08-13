@@ -53,3 +53,16 @@ export interface PermissionCheck {
   hasAnyRole: (roles: UserRole[]) => boolean;
   hasAllRoles: (roles: UserRole[]) => boolean;
 }
+
+// Utility functions for role checking
+export const hasAdminAccess = (user: UserWithPermissions): boolean => {
+  return user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+};
+
+export const hasSuperAdminAccess = (user: UserWithPermissions): boolean => {
+  return user.role === 'SUPER_ADMIN';
+};
+
+export const hasManagerAccess = (user: UserWithPermissions): boolean => {
+  return user.role === 'MANAGER' || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+};

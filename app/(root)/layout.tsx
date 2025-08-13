@@ -74,7 +74,7 @@ export default function RootLayout({
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--sidebar-width": "calc(var(--spacing) * 80)", // Increased from 72 to 80 for better content visibility
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }
@@ -87,7 +87,7 @@ export default function RootLayout({
         <SiteHeader user={user} onSignOut={handleSignOut} />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4">
+            <div className="flex flex-col gap-3 py-3 px-3 sm:gap-4 sm:py-4 sm:px-4 md:gap-6 md:py-6 md:px-6">
               {children}
             </div>
           </div>

@@ -12,19 +12,38 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useRouter } from "next/navigation"
+import { useSidebar } from "@/components/ui/sidebar"
+import { UserWithPermissions } from "@/lib/types/auth"
 
 export function NavMain({
   items,
+  user,
 }: {
   items: {
     title: string
     url: string
     icon?: Icon
+    roles?: string[]
   }[]
+  user: UserWithPermissions
 }) {
 
   const router = useRouter()
   const pathname = usePathname()
+  const { setOpenMobile } = useSidebar()
+  
+  // Filter items based on user role
+  const filteredItems = items.filter(item => {
+    if (!item.roles) return true
+    return item.roles.includes(user.role)
+  })
+  
+  const handleNavigation = (url: string) => {
+    router.push(url)
+    // Close mobile sidebar when navigating
+    setOpenMobile(false)
+  }
+  
   // const url = items.find((item) => item.title === "Dashboard")?.url || "/dashboard"
   return (
     <SidebarGroup>
@@ -49,13 +68,13 @@ export function NavMain({
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>
-          {items.map((item) => {
+          {filteredItems.map((item) => {
             const isActive = pathname === item.url
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton 
                   className={`cursor-pointer ${isActive ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`} 
-                  onClick={()=>router.push(item.url)} 
+                  onClick={() => handleNavigation(item.url)} 
                   tooltip={item.title}
                   isActive={isActive}
                 >

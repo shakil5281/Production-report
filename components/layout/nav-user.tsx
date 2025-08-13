@@ -26,6 +26,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useSidebar } from "@/components/ui/sidebar"
 import { UserWithPermissions } from "@/lib/types/auth"
 
 export function NavUser({
@@ -33,6 +34,8 @@ export function NavUser({
 }: {
   user: UserWithPermissions
 }) {
+  const { setOpenMobile } = useSidebar()
+  
   // Generate initials from user name
   const initials = user.name
     .split(' ')
@@ -40,6 +43,11 @@ export function NavUser({
     .join('')
     .toUpperCase()
     .slice(0, 2)
+
+  const handleMenuItemClick = () => {
+    // Close mobile sidebar when clicking on menu items
+    setOpenMobile(false)
+  }
 
   return (
     <SidebarMenu>
@@ -93,21 +101,21 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleMenuItemClick}>
                 <IconUserCircle />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleMenuItemClick}>
                 <IconCreditCard />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleMenuItemClick}>
                 <IconNotification />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleMenuItemClick}>
               <IconLogout />
               Log out
             </DropdownMenuItem>

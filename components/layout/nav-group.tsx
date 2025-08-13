@@ -3,7 +3,7 @@
 import * as React from "react"
 import { ChevronRight } from "lucide-react"
 import { type Icon } from "@tabler/icons-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 import {
     Collapsible,
@@ -20,33 +20,52 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { useSidebar } from "@/components/ui/sidebar"
+import { UserWithPermissions } from "@/lib/types/auth"
 import Link from "next/link"
 
 export function NavGroup({
     items,
+    user,
 }: {
     items: {
         title: string
         url?: string
         icon?: Icon
         isActive?: boolean
+        roles?: string[]
         items?: {
             title: string
             url: string
         }[]
     }[]
+    user: UserWithPermissions
 }) {
     // Track which collapsible is open to enforce single-open behavior
     const [openKey, setOpenKey] = React.useState<string | null>(
         items.find((i) => i.isActive)?.title ?? null
     )
     const pathname = usePathname()
+    const router = useRouter()
+    const { setOpenMobile } = useSidebar()
+    
+    // Filter items based on user role using the roles array from data
+    const filteredItems = items.filter(item => {
+        if (!item.roles) return true
+        return item.roles.includes(user.role)
+    })
+    
+    const handleNavigation = (url: string) => {
+        router.push(url)
+        // Close mobile sidebar when navigating
+        setOpenMobile(false)
+    }
 
     return (
         <SidebarGroup>
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
-                {items.map((item) => (
+                {filteredItems.map((item) => (
                     <Collapsible
                         key={item.title}
                         asChild
@@ -79,7 +98,10 @@ export function NavGroup({
                                                     asChild
                                                     isActive={isSubActive}
                                                 >
-                                                    <Link href={subItem.url}>
+                                                    <Link 
+                                                        href={subItem.url}
+                                                        onClick={() => setOpenMobile(false)}
+                                                    >
                                                         <span>{subItem.title}</span>
                                                     </Link>
                                                 </SidebarMenuSubButton>
