@@ -28,36 +28,37 @@ export async function GET(request: NextRequest) {
     if (type) {
       where.type = type;
     }
-    if (category) {
-      where.category = { contains: category, mode: 'insensitive' };
-    }
     if (lineId) {
       where.lineId = lineId;
     }
 
-    const [entries, total] = await Promise.all([
-      prisma.cashbookEntry.findMany({
-        where,
-        include: {
-          line: {
-            include: {
-              factory: true
-            }
-          }
+    // Fetch base entries first (without category contains filter if provided)
+    let entries = await prisma.cashbookEntry.findMany({
+      where,
+      include: {
+        line: {
+          include: {
+            factory: true,
+          },
         },
-        orderBy: [
-          { date: 'desc' },
-          { createdAt: 'desc' }
-        ],
-        skip,
-        take: limit
-      }),
-      prisma.cashbookEntry.count({ where })
-    ]);
+      },
+      orderBy: [
+        { date: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      skip,
+      take: limit,
+    });
+
+    // Apply case-insensitive category filter in memory if provided (SQLite lacks mode)
+    if (category) {
+      const q = category.toLowerCase();
+      entries = entries.filter((e) => e.category.toLowerCase().includes(q));
+    }
 
     // Calculate running balance
     let runningBalance = 0;
-    const entriesWithBalance = entries.map(entry => {
+    const entriesWithBalance = entries.map((entry) => {
       if (entry.type === 'CREDIT') {
         runningBalance += Number(entry.amount);
       } else {
@@ -67,9 +68,17 @@ export async function GET(request: NextRequest) {
         ...entry,
         date: entry.date.toISOString().split('T')[0],
         amount: Number(entry.amount),
-        runningBalance
+        runningBalance,
       };
     });
+
+    // Get total count for pagination using same base where; if category provided, adjust count in-memory
+    const totalBase = await prisma.cashbookEntry.count({ where });
+    const total = category
+      ? (await prisma.cashbookEntry.findMany({ where })).filter((e) =>
+          e.category.toLowerCase().includes(category.toLowerCase())
+        ).length
+      : totalBase;
 
     return NextResponse.json({
       entries: entriesWithBalance,
@@ -77,8 +86,8 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error('Error fetching cashbook entries:', error);
@@ -111,7 +120,7 @@ export async function POST(request: NextRequest) {
       referenceType,
       referenceId,
       lineId,
-      description
+      description,
     } = body as {
       date: string;
       type: CashbookType;
@@ -150,7 +159,7 @@ export async function POST(request: NextRequest) {
     // Check if line exists (if provided)
     if (lineId) {
       const line = await prisma.line.findUnique({
-        where: { id: lineId }
+        where: { id: lineId },
       });
 
       if (!line) {
@@ -171,15 +180,15 @@ export async function POST(request: NextRequest) {
         referenceType: referenceType || null,
         referenceId: referenceId || null,
         lineId: lineId || null,
-        description
+        description,
       },
       include: {
         line: {
           include: {
-            factory: true
-          }
-        }
-      }
+            factory: true,
+          },
+        },
+      },
     });
 
     const normalizedEntry = {

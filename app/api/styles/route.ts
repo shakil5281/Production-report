@@ -29,10 +29,10 @@ export async function GET(request: NextRequest) {
       }
     }
     if (buyer) {
-      where.buyer = { contains: buyer, mode: 'insensitive' };
+      where.buyer = { contains: buyer };
     }
     if (poNumber) {
-      where.poNumber = { contains: poNumber, mode: 'insensitive' };
+      where.poNumber = { contains: poNumber };
     }
 
     const [styles, total] = await Promise.all([

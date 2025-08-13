@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
       where.styleId = styleId;
     }
     if (poNumber) {
-      where.style = { poNumber: { contains: poNumber, mode: 'insensitive' } };
+      where.style = { poNumber: { contains: poNumber } };
     }
     if (destination) {
-      where.destination = { contains: destination, mode: 'insensitive' };
+      where.destination = { contains: destination };
     }
 
     const [shipments, total] = await Promise.all([
