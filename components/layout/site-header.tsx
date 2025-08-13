@@ -1,15 +1,34 @@
+'use client'
+
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { UserWithPermissions } from "@/lib/types/auth"
 import { LogOut, User } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useCallback } from "react"
 
 interface SiteHeaderProps {
   user: UserWithPermissions;
-  onSignOut: () => void;
 }
 
-export function SiteHeader({ user, onSignOut }: SiteHeaderProps) {
+export function SiteHeader({ user }: SiteHeaderProps) {
+  const router = useRouter()
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await fetch('/api/auth/sign-out', {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } catch (error) {
+      // no-op
+    } finally {
+      router.push('/login')
+      router.refresh()
+    }
+  }, [router])
+
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-3 sm:px-4 lg:gap-2 lg:px-6">
@@ -30,7 +49,7 @@ export function SiteHeader({ user, onSignOut }: SiteHeaderProps) {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={onSignOut}
+            onClick={handleSignOut}
             className="flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3"
           >
             <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />

@@ -49,7 +49,11 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table"
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+import dynamic from 'next/dynamic'
+const Area = dynamic(() => import('recharts').then(m => m.Area), { ssr: false })
+const AreaChart = dynamic(() => import('recharts').then(m => m.AreaChart), { ssr: false })
+const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid), { ssr: false })
+const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false })
 import { toast } from "sonner"
 import { z } from "zod"
 
