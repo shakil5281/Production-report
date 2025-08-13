@@ -1,6 +1,6 @@
 'use client';
 
-import { ProductionDataTable } from '@/components/production-data-table';
+import { ProductionListDataTable } from '@/components/production-list/data-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IconList, IconFilter, IconPlus, IconX } from '@tabler/icons-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -145,7 +145,7 @@ export default function ProductionListPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ProductionDataTable statusFilter={statusFilter} />
+          <ProductionListDataTable statusFilter={statusFilter} />
         </CardContent>
       </Card>
 
