@@ -7,14 +7,124 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  USER
+}
+
+enum PermissionType {
+  // User management
+  CREATE_USER
+  READ_USER
+  UPDATE_USER
+  DELETE_USER
+  
+  // Production management
+  CREATE_PRODUCTION
+  READ_PRODUCTION
+  UPDATE_PRODUCTION
+  DELETE_PRODUCTION
+  
+  // Reports
+  CREATE_REPORT
+  READ_REPORT
+  UPDATE_REPORT
+  DELETE_REPORT
+  
+  // System settings
+  MANAGE_SYSTEM
+  MANAGE_ROLES
+  MANAGE_PERMISSIONS
+}
 
 model User {
   id            String   @id @default(uuid())
   name          String
   email         String   @unique
   password      String
+  role          UserRole @default(USER)
+  isActive      Boolean  @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  userPermissions UserPermission[]
+  sessions        Session[]
+  
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        UserRole @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  rolePermissions RolePermission[]
+  
+  @@map("roles")
+}
+
+model PermissionModel {
+  id          String         @id @default(uuid())
+  name        PermissionType @unique
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  // Relations
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+  
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  role       Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission PermissionModel @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String   @id @default(uuid())
+  userId       String
+  permissionId String
+  granted      Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  
+  // Relations
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission PermissionModel @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  token        String   @unique
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
 }
 
 

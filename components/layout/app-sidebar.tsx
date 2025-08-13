@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { IconInnerShadowTop } from "@tabler/icons-react"
+import { UserWithPermissions } from "@/lib/types/auth"
 
 // import { NavDocuments } from "@/components/layout/nav-documents"
 import { NavMain } from "@/components/layout/nav-main"
@@ -20,9 +21,11 @@ import { NavGroup } from "./nav-group"
 // import { SquareTerminal } from "lucide-react"
 import { data } from './data'
 
+interface AppSidebarProps {
+  user: UserWithPermissions;
+}
 
-
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, ...props }: AppSidebarProps & React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -32,9 +35,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
+              <a href="/dashboard">
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-semibold">Production System</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -47,7 +50,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )
