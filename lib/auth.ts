@@ -2,7 +2,7 @@ import { PrismaClient, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-interface UserWithPermissions {
+export interface UserWithPermissions {
   id: string;
   name: string;
   email: string;
@@ -109,10 +109,22 @@ export class AuthService {
       // Create session
       await this.createSession(user.id, token);
 
-      // Transform user data
+      // Pick only allowed fields and transform
+      const userCore = (({ id, name, email, role, isActive, lastLogin, createdAt, updatedAt }) => ({
+        id,
+        name,
+        email,
+        role,
+        isActive,
+        lastLogin,
+        createdAt,
+        updatedAt,
+      }))(user);
+      const userPermissionsRelation = user.userPermissions;
+
       const userWithPermissions: UserWithPermissions = {
-        ...user,
-        permissions: user.userPermissions.map(up => up.permission.name),
+        ...userCore,
+        permissions: userPermissionsRelation.map(up => up.permission.name),
         token,
         userPermissions: undefined,
       };
@@ -174,10 +186,22 @@ export class AuthService {
         return null;
       }
 
-      // Transform user data
+      // Pick only allowed fields and transform
+      const userCore = (({ id, name, email, role, isActive, lastLogin, createdAt, updatedAt }) => ({
+        id,
+        name,
+        email,
+        role,
+        isActive,
+        lastLogin,
+        createdAt,
+        updatedAt,
+      }))(session.user);
+      const userPermissionsRelation = session.user.userPermissions;
+
       const userWithPermissions: UserWithPermissions = {
-        ...session.user,
-        permissions: session.user.userPermissions.map(up => up.permission.name),
+        ...userCore,
+        permissions: userPermissionsRelation.map(up => up.permission.name),
         token,
         userPermissions: undefined,
       };

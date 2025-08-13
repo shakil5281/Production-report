@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import type { Prisma } from '@prisma/client';
 
 // GET /api/shipments - Get shipment reports with filters
 export async function GET(request: NextRequest) {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.ShipmentWhereInput = {};
     
     if (startDate && endDate) {
       where.date = {
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
       totalValue: shipments.reduce((sum, shipment) => {
         return sum + (shipment.quantity * Number(shipment.style.unitPrice));
       }, 0),
-      byDestination: shipments.reduce((acc, shipment) => {
+      byDestination: shipments.reduce<Record<string, { destination: string; count: number; quantity: number; value: number }>>((acc, shipment) => {
         const dest = shipment.destination;
         if (!acc[dest]) {
           acc[dest] = { destination: dest, count: 0, quantity: 0, value: 0 };
@@ -75,8 +76,8 @@ export async function GET(request: NextRequest) {
         acc[dest].quantity += shipment.quantity;
         acc[dest].value += shipment.quantity * Number(shipment.style.unitPrice);
         return acc;
-      }, {} as any),
-      byStyle: shipments.reduce((acc, shipment) => {
+      }, {}),
+      byStyle: shipments.reduce<Record<string, { styleNumber: string; buyer: string; poNumber: string; count: number; quantity: number; value: number }>>((acc, shipment) => {
         const styleKey = shipment.style.styleNumber;
         if (!acc[styleKey]) {
           acc[styleKey] = {
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
         acc[styleKey].quantity += shipment.quantity;
         acc[styleKey].value += shipment.quantity * Number(shipment.style.unitPrice);
         return acc;
-      }, {} as any)
+      }, {})
     };
 
     return NextResponse.json({
@@ -135,7 +136,14 @@ export async function POST(request: NextRequest) {
       destination,
       awbOrContainer,
       remarks
-    } = body;
+    } = body as {
+      date: string;
+      styleId: string;
+      quantity: number;
+      destination: string;
+      awbOrContainer?: string | null;
+      remarks?: string | null;
+    };
 
     // Validate required fields
     if (!date || !styleId || !quantity || !destination) {

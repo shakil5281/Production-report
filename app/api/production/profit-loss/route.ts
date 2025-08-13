@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import type { Prisma } from '@prisma/client';
 
 // GET /api/production/profit-loss - Get Profit & Loss data
 export async function GET(request: NextRequest) {
@@ -11,12 +12,12 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period') || 'daily'; // daily, weekly, monthly
+    const period = (searchParams.get('period') || 'daily') as 'daily' | 'weekly' | 'monthly';
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const lineId = searchParams.get('lineId');
 
-    let dateFilter: any = {};
+    let dateFilter: Prisma.DateTimeFilter = {};
     
     if (startDate && endDate) {
       dateFilter = {
@@ -27,17 +28,18 @@ export async function GET(request: NextRequest) {
       // Default to current period
       const now = new Date();
       let start: Date;
-      let end: Date = now;
+      const end: Date = now;
 
       switch (period) {
         case 'daily':
           start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           break;
-        case 'weekly':
+        case 'weekly': {
           const dayOfWeek = now.getDay();
           const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
           start = new Date(now.getFullYear(), now.getMonth(), diff);
           break;
+        }
         case 'monthly':
           start = new Date(now.getFullYear(), now.getMonth(), 1);
           break;
@@ -48,7 +50,7 @@ export async function GET(request: NextRequest) {
       dateFilter = { gte: start, lte: end };
     }
 
-    const whereClause: any = { date: dateFilter };
+    const whereClause: Prisma.ProductionEntryWhereInput = { date: dateFilter };
     if (lineId) {
       whereClause.lineId = lineId;
     }
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     // Get expenses for the period
     const expenses = await prisma.expense.findMany({
-      where: whereClause,
+      where: { date: dateFilter, ...(lineId ? { lineId } : {}) },
       include: {
         line: true,
         category: true
@@ -72,7 +74,16 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate earned production (revenue)
-    const productionByStyle = new Map();
+    type StyleRevenue = {
+      styleId: string;
+      lineId: string | null;
+      style: typeof productionData[number]['style'];
+      line: typeof productionData[number]['line'];
+      totalOutput: number;
+      totalRevenue: number;
+    };
+
+    const productionByStyle = new Map<string, StyleRevenue>();
     
     productionData.forEach(entry => {
       if (entry.stage === 'FINISHING' && entry.outputQty > 0) {
@@ -88,7 +99,7 @@ export async function GET(request: NextRequest) {
           });
         }
         
-        const styleData = productionByStyle.get(key);
+        const styleData = productionByStyle.get(key)!;
         styleData.totalOutput += entry.outputQty;
         styleData.totalRevenue += entry.outputQty * Number(entry.style.unitPrice);
       }
@@ -104,7 +115,8 @@ export async function GET(request: NextRequest) {
     const profit = totalEarnedProduction - totalExpenses;
 
     // Group expenses by category
-    const expensesByCategory = expenses.reduce((acc, expense) => {
+    type ExpensesByCategory = Record<string, { category: typeof expenses[number]['category']; total: number; count: number }>;
+    const expensesByCategory: ExpensesByCategory = expenses.reduce((acc, expense) => {
       const category = expense.category.name;
       if (!acc[category]) {
         acc[category] = {
@@ -116,10 +128,11 @@ export async function GET(request: NextRequest) {
       acc[category].total += Number(expense.amount);
       acc[category].count += 1;
       return acc;
-    }, {} as any);
+    }, {} as ExpensesByCategory);
 
     // Group expenses by line
-    const expensesByLine = expenses.reduce((acc, expense) => {
+    type ExpensesByLine = Record<string, { line: typeof expenses[number]['line']; total: number; count: number }>;
+    const expensesByLine: ExpensesByLine = expenses.reduce((acc, expense) => {
       const lineName = expense.line ? expense.line.name : 'General';
       if (!acc[lineName]) {
         acc[lineName] = {
@@ -131,7 +144,7 @@ export async function GET(request: NextRequest) {
       acc[lineName].total += Number(expense.amount);
       acc[lineName].count += 1;
       return acc;
-    }, {} as any);
+    }, {} as ExpensesByLine);
 
     // Calculate production efficiency metrics
     const totalInput = productionData.reduce((sum, entry) => sum + entry.inputQty, 0);
@@ -146,8 +159,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       period,
       dateRange: {
-        start: dateFilter.gte,
-        end: dateFilter.lte
+        start: (dateFilter as Prisma.DateTimeFilter).gte ?? null,
+        end: (dateFilter as Prisma.DateTimeFilter).lte ?? null
       },
       summary: {
         totalEarnedProduction,

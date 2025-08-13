@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import type { Prisma } from '@prisma/client';
 
 // GET /api/lines - Get all production lines
 export async function GET(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     const factoryId = searchParams.get('factoryId');
     const isActive = searchParams.get('isActive');
 
-    const where: any = {};
+    const where: Prisma.LineWhereInput = {};
     
     if (factoryId) {
       where.factoryId = factoryId;
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { factoryId, name, code } = body;
+    const { factoryId, name, code } = body as { factoryId: string; name: string; code: string };
 
     if (!factoryId || !name || !code) {
       return NextResponse.json(

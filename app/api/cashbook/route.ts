@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import type { Prisma, CashbookType } from '@prisma/client';
 
 // GET /api/cashbook - Get cashbook entries with filters
 export async function GET(request: NextRequest) {
@@ -12,14 +13,14 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
-    const type = searchParams.get('type');
+    const type = searchParams.get('type') as CashbookType | null;
     const category = searchParams.get('category');
     const lineId = searchParams.get('lineId');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.CashbookEntryWhereInput = {};
     
     if (date) {
       where.date = new Date(date);
@@ -109,7 +110,16 @@ export async function POST(request: NextRequest) {
       referenceId,
       lineId,
       description
-    } = body;
+    } = body as {
+      date: string;
+      type: CashbookType;
+      amount: number;
+      category: string;
+      referenceType?: string | null;
+      referenceId?: string | null;
+      lineId?: string | null;
+      description?: string | null;
+    };
 
     // Validate required fields
     if (!date || !type || !amount || !category) {
