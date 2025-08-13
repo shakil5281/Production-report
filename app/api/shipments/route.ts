@@ -60,14 +60,23 @@ export async function GET(request: NextRequest) {
       prisma.shipment.count({ where })
     ]);
 
+    const normalizedShipments = shipments.map((s) => ({
+      ...s,
+      date: s.date.toISOString().split('T')[0],
+      style: {
+        ...s.style,
+        unitPrice: Number(s.style.unitPrice),
+      },
+    }));
+
     // Calculate summary statistics
     const summary = {
-      totalShipments: shipments.length,
-      totalQuantity: shipments.reduce((sum, shipment) => sum + shipment.quantity, 0),
-      totalValue: shipments.reduce((sum, shipment) => {
+      totalShipments: normalizedShipments.length,
+      totalQuantity: normalizedShipments.reduce((sum, shipment) => sum + shipment.quantity, 0),
+      totalValue: normalizedShipments.reduce((sum, shipment) => {
         return sum + (shipment.quantity * Number(shipment.style.unitPrice));
       }, 0),
-      byDestination: shipments.reduce<Record<string, { destination: string; count: number; quantity: number; value: number }>>((acc, shipment) => {
+      byDestination: normalizedShipments.reduce<Record<string, { destination: string; count: number; quantity: number; value: number }>>((acc, shipment) => {
         const dest = shipment.destination;
         if (!acc[dest]) {
           acc[dest] = { destination: dest, count: 0, quantity: 0, value: 0 };
@@ -77,7 +86,7 @@ export async function GET(request: NextRequest) {
         acc[dest].value += shipment.quantity * Number(shipment.style.unitPrice);
         return acc;
       }, {}),
-      byStyle: shipments.reduce<Record<string, { styleNumber: string; buyer: string; poNumber: string; count: number; quantity: number; value: number }>>((acc, shipment) => {
+      byStyle: normalizedShipments.reduce<Record<string, { styleNumber: string; buyer: string; poNumber: string; count: number; quantity: number; value: number }>>((acc, shipment) => {
         const styleKey = shipment.style.styleNumber;
         if (!acc[styleKey]) {
           acc[styleKey] = {
@@ -97,7 +106,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json({
-      shipments,
+      shipments: normalizedShipments,
       summary,
       pagination: {
         page,
@@ -204,7 +213,16 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(shipment, { status: 201 });
+    const normalizedShipment = {
+      ...shipment,
+      date: shipment.date.toISOString().split('T')[0],
+      style: {
+        ...shipment.style,
+        unitPrice: Number(shipment.style.unitPrice),
+      },
+    };
+
+    return NextResponse.json(normalizedShipment, { status: 201 });
   } catch (error) {
     console.error('Error creating shipment:', error);
     return NextResponse.json(

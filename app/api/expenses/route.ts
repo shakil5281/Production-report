@@ -56,8 +56,14 @@ export async function GET(request: NextRequest) {
       prisma.expense.count({ where })
     ]);
 
+    const normalizedExpenses = expenses.map((expense) => ({
+      ...expense,
+      date: expense.date.toISOString().split('T')[0],
+      amount: Number(expense.amount),
+    }));
+
     return NextResponse.json({
-      expenses,
+      expenses: normalizedExpenses,
       pagination: {
         page,
         limit,
@@ -166,7 +172,13 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(expense, { status: 201 });
+    const normalizedExpense = {
+      ...expense,
+      date: expense.date.toISOString().split('T')[0],
+      amount: Number(expense.amount),
+    };
+
+    return NextResponse.json(normalizedExpense, { status: 201 });
   } catch (error) {
     console.error('Error creating expense:', error);
     return NextResponse.json(

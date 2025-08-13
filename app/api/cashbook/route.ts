@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
       }
       return {
         ...entry,
+        date: entry.date.toISOString().split('T')[0],
+        amount: Number(entry.amount),
         runningBalance
       };
     });
@@ -180,7 +182,13 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(entry, { status: 201 });
+    const normalizedEntry = {
+      ...entry,
+      date: entry.date.toISOString().split('T')[0],
+      amount: Number(entry.amount),
+    };
+
+    return NextResponse.json(normalizedEntry, { status: 201 });
   } catch (error) {
     console.error('Error creating cashbook entry:', error);
     return NextResponse.json(
