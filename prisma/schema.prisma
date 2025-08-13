@@ -2,8 +2,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Switch datasource to SQLite for local development
+// Postgres-native @db.* field attributes removed below
+
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -195,7 +198,7 @@ model Style {
   buyer        String
   poNumber     String
   orderQty     Int
-  unitPrice    Decimal    @db.Decimal(10, 2)
+  unitPrice    Decimal    
   plannedStart DateTime
   plannedEnd   DateTime
   status       StyleStatus @default(PENDING)
@@ -230,7 +233,7 @@ model StyleAssignment {
 // Production
 model ProductionEntry {
   id         String         @id @default(uuid())
-  date       DateTime       @db.Date
+  date       DateTime       
   hourIndex  Int            // 0-23
   lineId     String
   styleId    String
@@ -268,10 +271,10 @@ model ExpenseCategory {
 
 model Expense {
   id             String        @id @default(uuid())
-  date           DateTime      @db.Date
+  date           DateTime      
   lineId         String?
   categoryId     String
-  amount         Decimal       @db.Decimal(10, 2)
+  amount         Decimal       
   description    String?
   paymentMethod  PaymentMethod
   createdAt      DateTime      @default(now())
@@ -286,10 +289,10 @@ model Expense {
 
 model SalaryEntry {
   id          String   @id @default(uuid())
-  date        DateTime @db.Date
+  date        DateTime 
   lineId      String?
   employeeId  String?
-  amount      Decimal  @db.Decimal(10, 2)
+  amount      Decimal  
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
@@ -303,9 +306,9 @@ model SalaryEntry {
 // Cashbook
 model CashbookEntry {
   id            String        @id @default(uuid())
-  date          DateTime      @db.Date
+  date          DateTime      
   type          CashbookType
-  amount        Decimal       @db.Decimal(10, 2)
+  amount        Decimal       
   category      String
   referenceType String?
   referenceId   String?
@@ -323,7 +326,7 @@ model CashbookEntry {
 // Shipments
 model Shipment {
   id              String   @id @default(uuid())
-  date            DateTime @db.Date
+  date            DateTime 
   styleId         String
   quantity        Int
   destination     String

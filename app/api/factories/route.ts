@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     // Check if factory with same name already exists
     const existingFactory = await prisma.factory.findFirst({
-      where: { name: { equals: name, mode: 'insensitive' } }
+      where: { name: { equals: name } }
     });
 
     if (existingFactory) {
