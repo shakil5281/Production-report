@@ -218,4 +218,30 @@ export class AuthService {
       console.error('Session deletion error:', error);
     }
   }
+
+  // Get current user from request headers
+  async getCurrentUser(request: Request): Promise<UserWithPermissions | null> {
+    if (typeof window !== 'undefined') {
+      throw new Error('getCurrentUser must be called on the server');
+    }
+
+    try {
+      const authHeader = request.headers.get('authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+      }
+
+      const token = authHeader.substring(7);
+      return await this.validateSession(token);
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+  }
+}
+
+// Export standalone getCurrentUser function for API routes
+export async function getCurrentUser(request: Request): Promise<UserWithPermissions | null> {
+  const authService = new AuthService();
+  return await authService.getCurrentUser(request);
 }

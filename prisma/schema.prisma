@@ -39,6 +39,33 @@ enum PermissionType {
   MANAGE_PERMISSIONS
 }
 
+enum StyleStatus {
+  PENDING
+  RUNNING
+  WAITING
+  COMPLETE
+  CANCELLED
+}
+
+enum ProductionStage {
+  CUTTING
+  SEWING
+  FINISHING
+}
+
+enum PaymentMethod {
+  CASH
+  MFS
+  BANK
+  OTHER
+}
+
+enum CashbookType {
+  DEBIT
+  CREDIT
+}
+
+// Users & RBAC
 model User {
   id            String   @id @default(uuid())
   name          String
@@ -53,6 +80,8 @@ model User {
   // Relations
   userPermissions UserPermission[]
   sessions        Session[]
+  createdBy       AuditLog[]       @relation("CreatedBy")
+  updatedBy       AuditLog[]       @relation("UpdatedBy")
   
   @@map("users")
 }
@@ -102,9 +131,7 @@ model UserPermission {
   id           String   @id @default(uuid())
   userId       String
   permissionId String
-  granted      Boolean  @default(true)
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
   
   // Relations
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -115,16 +142,219 @@ model UserPermission {
 }
 
 model Session {
-  id           String   @id @default(uuid())
-  userId       String
-  token        String   @unique
-  expires      DateTime
-  createdAt    DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
   
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("sessions")
+}
+
+// Factory & Lines
+model Factory {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  lines Line[]
+  
+  @@map("factories")
+}
+
+model Line {
+  id         String   @id @default(uuid())
+  factoryId  String
+  name       String
+  code       String   @unique
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+  
+  // Relations
+  factory           Factory           @relation(fields: [factoryId], references: [id], onDelete: Cascade)
+  styleAssignments  StyleAssignment[]
+  productionEntries ProductionEntry[]
+  expenses         Expense[]
+  salaryEntries    SalaryEntry[]
+  cashbookEntries  CashbookEntry[]
+  
+  @@map("lines")
+}
+
+// Style & Assignments
+model Style {
+  id           String     @id @default(uuid())
+  styleNumber  String     @unique
+  buyer        String
+  poNumber     String
+  orderQty     Int
+  unitPrice    Decimal    @db.Decimal(10, 2)
+  plannedStart DateTime
+  plannedEnd   DateTime
+  status       StyleStatus @default(PENDING)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now())
+  
+  // Relations
+  styleAssignments StyleAssignment[]
+  productionEntries ProductionEntry[]
+  shipments        Shipment[]
+  
+  @@map("styles")
+}
+
+model StyleAssignment {
+  id           String    @id @default(uuid())
+  lineId       String
+  styleId      String
+  startDate    DateTime
+  endDate      DateTime?
+  targetPerHour Int?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now())
+  
+  // Relations
+  line  Line  @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  style Style @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  
+  @@map("style_assignments")
+}
+
+// Production
+model ProductionEntry {
+  id         String         @id @default(uuid())
+  date       DateTime       @db.Date
+  hourIndex  Int            // 0-23
+  lineId     String
+  styleId    String
+  stage      ProductionStage
+  inputQty   Int            @default(0)
+  outputQty  Int            @default(0)
+  defectQty  Int            @default(0)
+  reworkQty  Int            @default(0)
+  notes      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @default(now())
+  
+  // Relations
+  line  Line  @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  style Style @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  
+  @@unique([date, hourIndex, lineId, styleId, stage])
+  @@map("production_entries")
+}
+
+// Expenses & Salary
+model ExpenseCategory {
+  id           String @id @default(uuid())
+  name         String @unique
+  isSalaryFlag Boolean @default(false)
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+  
+  // Relations
+  expenses Expense[]
+  
+  @@map("expense_categories")
+}
+
+model Expense {
+  id             String        @id @default(uuid())
+  date           DateTime      @db.Date
+  lineId         String?
+  categoryId     String
+  amount         Decimal       @db.Decimal(10, 2)
+  description    String?
+  paymentMethod  PaymentMethod
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now())
+  
+  // Relations
+  line     Line?          @relation(fields: [lineId], references: [id], onDelete: SetNull)
+  category ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  @@map("expenses")
+}
+
+model SalaryEntry {
+  id          String   @id @default(uuid())
+  date        DateTime @db.Date
+  lineId      String?
+  employeeId  String?
+  amount      Decimal  @db.Decimal(10, 2)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+  
+  // Relations
+  line Line? @relation(fields: [lineId], references: [id], onDelete: SetNull)
+  
+  @@map("salary_entries")
+}
+
+// Cashbook
+model CashbookEntry {
+  id            String        @id @default(uuid())
+  date          DateTime      @db.Date
+  type          CashbookType
+  amount        Decimal       @db.Decimal(10, 2)
+  category      String
+  referenceType String?
+  referenceId   String?
+  lineId        String?
+  description   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now())
+  
+  // Relations
+  line Line? @relation(fields: [lineId], references: [id], onDelete: SetNull)
+  
+  @@map("cashbook_entries")
+}
+
+// Shipments
+model Shipment {
+  id              String   @id @default(uuid())
+  date            DateTime @db.Date
+  styleId         String
+  quantity        Int
+  destination     String
+  awbOrContainer  String?
+  remarks         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  // Relations
+  style Style @relation(fields: [styleId], references: [id], onDelete: Cascade)
+  
+  @@map("shipments")
+}
+
+// Audit Log
+model AuditLog {
+  id        String   @id @default(uuid())
+  tableName String
+  recordId  String
+  action    String   // CREATE, UPDATE, DELETE
+  oldValues Json?
+  newValues Json?
+  createdBy String
+  updatedBy String?
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user      User    @relation("CreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  updatedByUser User? @relation("UpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  
+  @@map("audit_logs")
 }
 
 
