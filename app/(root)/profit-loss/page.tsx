@@ -73,13 +73,15 @@ interface Line {
 export default function ProfitLossPage() {
   const [pnlData, setPnLData] = useState<PnLData | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
+  const [linesLoading, setLinesLoading] = useState(true);
+  const [linesError, setLinesError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     period: 'daily',
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
-    lineId: ''
+    lineId: 'all'
   });
 
   useEffect(() => {
@@ -92,13 +94,23 @@ export default function ProfitLossPage() {
 
   const fetchLines = async () => {
     try {
+      setLinesLoading(true);
+      setLinesError(null);
+      
       const response = await fetch('/api/lines');
-      if (response.ok) {
-        const data = await response.json();
-        setLines(data || []);
+      if (!response.ok) {
+        throw new Error('Failed to fetch lines');
       }
+      
+      const data = await response.json();
+      setLines(data || []);
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch lines';
+      setLinesError(errorMessage);
       console.error('Failed to fetch lines:', err);
+      toast.error(errorMessage);
+    } finally {
+      setLinesLoading(false);
     }
   };
 
@@ -111,7 +123,7 @@ export default function ProfitLossPage() {
           startDate: filters.startDate,
           endDate: filters.endDate
         }),
-        ...(filters.lineId && { lineId: filters.lineId })
+        ...(filters.lineId && filters.lineId !== 'all' && { lineId: filters.lineId })
       });
 
       const response = await fetch(`/api/production/profit-loss?${queryParams}`);
@@ -291,12 +303,13 @@ export default function ProfitLossPage() {
               <Select
                 value={filters.lineId}
                 onValueChange={(value) => setFilters({ ...filters, lineId: value })}
+                disabled={linesLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All lines" />
+                  <SelectValue placeholder={linesLoading ? "Loading..." : "All lines"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All lines</SelectItem>
+                  <SelectItem value="all">All lines</SelectItem>
                   {lines.map((line) => (
                     <SelectItem key={line.id} value={line.id}>
                       {line.name} ({line.code})
@@ -304,6 +317,9 @@ export default function ProfitLossPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {linesError && (
+                <p className="text-xs text-red-500 mt-1">Failed to load lines</p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -500,9 +516,9 @@ export default function ProfitLossPage() {
                 </TableHeader>
                 <TableBody>
                   {Object.values(pnlData.expenses.byCategory).map((category) => (
-                    <TableRow key={category.category.name}>
+                    <TableRow key={category.category?.name || 'Uncategorized'}>
                       <TableCell className="font-medium">
-                        {category.category.name}
+                        {category.category?.name || 'Uncategorized'}
                       </TableCell>
                       <TableCell className="text-right">
                         {category.count}

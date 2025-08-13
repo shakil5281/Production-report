@@ -29,10 +29,10 @@ export async function GET(request: NextRequest) {
       }
     }
     if (buyer) {
-      where.buyer = { contains: buyer };
+      where.buyer = { contains: buyer, mode: 'insensitive' };
     }
     if (poNumber) {
-      where.poNumber = { contains: poNumber };
+      where.poNumber = { contains: poNumber, mode: 'insensitive' };
     }
 
     const [styles, total] = await Promise.all([
@@ -168,8 +168,8 @@ export async function POST(request: NextRequest) {
         poNumber,
         orderQty,
         unitPrice,
-        plannedStart: new Date(plannedStart),
-        plannedEnd: plannedEnd ? new Date(plannedEnd) : new Date(plannedStart) // Default to plannedStart if no end date
+        plannedStart: new Date(plannedStart + 'T00:00:00Z'),
+        plannedEnd: plannedEnd ? new Date(plannedEnd + 'T00:00:00Z') : new Date(plannedStart + 'T00:00:00Z') // Default to plannedStart if no end date
       },
       include: {
         styleAssignments: true

@@ -68,29 +68,40 @@ export default function ProductionReportsPage() {
   const [lines, setLines] = useState<Line[]>([]);
   const [styles, setStyles] = useState<Style[]>([]);
   const [loading, setLoading] = useState(false);
+  const [masterDataLoading, setMasterDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [masterDataError, setMasterDataError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
-    lineId: '',
-    styleId: '',
-    stage: ''
+    lineId: 'all',
+    styleId: 'all',
+    stage: 'all'
   });
   const [summary, setSummary] = useState<ReportSummary | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 50,
+    total: 0,
+    pages: 0
+  });
 
   useEffect(() => {
-    fetchData();
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchData(1);
   }, [filters]);
 
-  const fetchData = async () => {
+  const fetchData = async (page = 1) => {
     try {
       setLoading(true);
       const queryParams = new URLSearchParams({
         startDate: filters.startDate,
         endDate: filters.endDate,
-        ...(filters.lineId && { lineId: filters.lineId }),
-        ...(filters.styleId && { styleId: filters.styleId }),
-        ...(filters.stage && { stage: filters.stage })
+        page: page.toString(),
+        limit: pagination.limit.toString(),
+        ...(filters.lineId && filters.lineId !== 'all' && { lineId: filters.lineId }),
+        ...(filters.styleId && filters.styleId !== 'all' && { styleId: filters.styleId }),
+        ...(filters.stage && filters.stage !== 'all' && { stage: filters.stage })
       });
 
       const response = await fetch(`/api/production/entries?${queryParams}`);
@@ -100,6 +111,7 @@ export default function ProductionReportsPage() {
 
       const data = await response.json();
       setEntries(data.entries || []);
+      setPagination(data.pagination || { page: 1, limit: 50, total: 0, pages: 0 });
       calculateSummary(data.entries || []);
       setError(null);
     } catch (err) {
@@ -112,6 +124,9 @@ export default function ProductionReportsPage() {
 
   const fetchMasterData = async () => {
     try {
+      setMasterDataLoading(true);
+      setMasterDataError(null);
+      
       const [linesRes, stylesRes] = await Promise.all([
         fetch('/api/lines'),
         fetch('/api/styles')
@@ -129,7 +144,12 @@ export default function ProductionReportsPage() {
       setLines(linesData || []);
       setStyles(stylesData.styles || []);
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch master data';
+      setMasterDataError(errorMessage);
       console.error('Failed to fetch master data:', err);
+      toast.error(errorMessage);
+    } finally {
+      setMasterDataLoading(false);
     }
   };
 
@@ -229,6 +249,23 @@ export default function ProductionReportsPage() {
     return `${hour.toString().padStart(2, '0')}:00`;
   };
 
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+    fetchData(newPage);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -278,12 +315,13 @@ export default function ProductionReportsPage() {
               <Select
                 value={filters.lineId}
                 onValueChange={(value) => setFilters({ ...filters, lineId: value })}
+                disabled={masterDataLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All lines" />
+                  <SelectValue placeholder={masterDataLoading ? "Loading..." : "All lines"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All lines</SelectItem>
+                  <SelectItem value="all">All lines</SelectItem>
                   {lines.map((line) => (
                     <SelectItem key={line.id} value={line.id}>
                       {line.name} ({line.code})
@@ -291,18 +329,22 @@ export default function ProductionReportsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {masterDataError && (
+                <p className="text-xs text-red-500 mt-1">Failed to load lines</p>
+              )}
             </div>
             <div>
               <Label htmlFor="styleId">Style</Label>
               <Select
                 value={filters.styleId}
                 onValueChange={(value) => setFilters({ ...filters, styleId: value })}
+                disabled={masterDataLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All styles" />
+                  <SelectValue placeholder={masterDataLoading ? "Loading..." : "All styles"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All styles</SelectItem>
+                  <SelectItem value="all">All styles</SelectItem>
                   {styles.map((style) => (
                     <SelectItem key={style.id} value={style.id}>
                       {style.styleNumber}
@@ -310,6 +352,9 @@ export default function ProductionReportsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {masterDataError && (
+                <p className="text-xs text-red-500 mt-1">Failed to load styles</p>
+              )}
             </div>
             <div>
               <Label htmlFor="stage">Stage</Label>
@@ -321,7 +366,7 @@ export default function ProductionReportsPage() {
                   <SelectValue placeholder="All stages" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All stages</SelectItem>
+                  <SelectItem value="all">All stages</SelectItem>
                   <SelectItem value="CUTTING">Cutting</SelectItem>
                   <SelectItem value="SEWING">Sewing</SelectItem>
                   <SelectItem value="FINISHING">Finishing</SelectItem>
@@ -410,7 +455,7 @@ export default function ProductionReportsPage() {
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <p className="text-red-600 mb-4">{error}</p>
-              <Button onClick={fetchData}>Retry</Button>
+              <Button onClick={() => fetchData(1)}>Retry</Button>
             </div>
           ) : entries.length === 0 ? (
             <div className="text-center py-8">
@@ -437,7 +482,7 @@ export default function ProductionReportsPage() {
                 <TableBody>
                   {entries.map((entry) => (
                     <TableRow key={entry.id}>
-                      <TableCell>{entry.date}</TableCell>
+                      <TableCell>{formatDate(entry.date)}</TableCell>
                       <TableCell>{getHourLabel(entry.hourIndex)}</TableCell>
                       <TableCell>
                         {entry.line.name} ({entry.line.code})
@@ -462,6 +507,50 @@ export default function ProductionReportsPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {pagination.pages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page <= 1}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                    const pageNum = Math.max(1, Math.min(pagination.pages - 4, pagination.page - 2)) + i;
+                    if (pageNum > pagination.pages) return null;
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pagination.page === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page >= pagination.pages}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

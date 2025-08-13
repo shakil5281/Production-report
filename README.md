@@ -43,7 +43,7 @@ A comprehensive production management system built with Next.js 15, Prisma, and 
 
 - Node.js 18+ 
 - PostgreSQL database
-- npm or yarn package manager
+- Yarn package manager
 
 ## Installation
 
@@ -55,8 +55,6 @@ A comprehensive production management system built with Next.js 15, Prisma, and 
 
 2. **Install dependencies**
    ```bash
-   npm install
-   # or
    yarn install
    ```
 
@@ -71,19 +69,17 @@ A comprehensive production management system built with Next.js 15, Prisma, and 
 4. **Set up the database**
    ```bash
    # Generate Prisma client
-   npx prisma generate
+   yarn db:generate
    
    # Run database migrations
-   npx prisma migrate dev
+   yarn db:migrate
    
    # Seed the database with initial data
-   npx prisma db seed
+   yarn db:seed
    ```
 
 5. **Start the development server**
    ```bash
-   npm run dev
-   # or
    yarn dev
    ```
 
@@ -179,20 +175,20 @@ The middleware automatically protects routes based on user roles and permissions
 ### Database Changes
 ```bash
 # Create a new migration
-npx prisma migrate dev --name description
+yarn db:migrate --name description
 
 # Reset database (development only)
-npx prisma migrate reset
+yarn db:push --force-reset
 
 # View database in Prisma Studio
-npx prisma studio
+yarn db:studio
 ```
 
 ### Adding New Permissions
 1. Add the permission to the `PermissionType` enum in `prisma/schema.prisma`
 2. Update the seed file to include the new permission
 3. Assign permissions to appropriate roles
-4. Run `npx prisma migrate dev` and `npx prisma db seed`
+4. Run `yarn db:migrate` and `yarn db:seed`
 
 ## Default Super Admin Account
 

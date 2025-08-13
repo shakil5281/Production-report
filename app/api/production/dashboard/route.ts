@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
+    const dateParam = searchParams.get('date') || new Date().toISOString().split('T')[0];
+    const date = new Date(dateParam);
 
     // Get all active lines
     const lines = await prisma.line.findMany({
@@ -20,10 +21,10 @@ export async function GET(request: NextRequest) {
         factory: true,
         styleAssignments: {
           where: {
-            startDate: { lte: new Date(date) },
+            startDate: { lte: date },
             OR: [
               { endDate: null },
-              { endDate: { gte: new Date(date) } }
+              { endDate: { gte: date } }
             ]
           },
           include: {
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     // Get production data for the date
     const productionData = await prisma.productionEntry.findMany({
       where: {
-        date: new Date(date)
+        date: date
       },
       include: {
         line: true,
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
             }
           } else if (sewingOutput > 0 || cuttingOutput > 0) {
             status = 'RUNNING';
-          } else if (new Date() > assignment.startDate) {
+          } else if (date > assignment.startDate) {
             status = 'WAITING';
           }
 
@@ -142,7 +143,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      date,
+      date: dateParam,
       summary,
       lines: dashboardData
     });

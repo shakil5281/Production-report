@@ -2,11 +2,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Switch datasource to SQLite for local development
-// Postgres-native @db.* field attributes removed below
-
+// PostgreSQL database configuration
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -54,6 +52,13 @@ enum ProductionStage {
   CUTTING
   SEWING
   FINISHING
+}
+
+enum ProductionStatus {
+  PENDING
+  RUNNING
+  COMPLETE
+  CANCELLED
 }
 
 enum PaymentMethod {
@@ -250,8 +255,25 @@ model ProductionEntry {
   line  Line  @relation(fields: [lineId], references: [id], onDelete: Cascade)
   style Style @relation(fields: [styleId], references: [id], onDelete: Cascade)
   
-  @@unique([date, hourIndex, lineId, styleId, stage])
   @@map("production_entries")
+}
+
+// Production List
+model ProductionList {
+  id           String           @id @default(uuid())
+  programCode  String           @unique
+  buyer        String
+  quantity     Int
+  item         String
+  price        Decimal
+  status       ProductionStatus @default(PENDING)
+  startDate    DateTime?
+  endDate      DateTime?
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  
+  @@map("production_list")
 }
 
 // Expenses & Salary

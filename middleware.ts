@@ -10,6 +10,19 @@ const protectedRoutes = [
   '/super-admin'
 ];
 
+// Define protected API routes
+const protectedApiRoutes = [
+  '/api/production',
+  '/api/admin',
+  '/api/cashbook',
+  '/api/expenses',
+  '/api/factories',
+  '/api/lines',
+  '/api/styles',
+  '/api/shipments',
+  '/api/user'
+];
+
 // Define public routes that don't require authentication
 const publicRoutes = ['/login', '/signup', '/api/auth/sign-in', '/api/auth/sign-up'];
 
@@ -21,8 +34,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if it's a protected route
-  if (isProtectedRoute(pathname)) {
+  // Check if it's a protected route or API route
+  if (isProtectedRoute(pathname) || isProtectedApiRoute(pathname)) {
     return await handleProtectedRoute(request);
   }
 
@@ -55,6 +68,10 @@ function extractToken(request: NextRequest): string | null {
 
 function isProtectedRoute(pathname: string): boolean {
   return protectedRoutes.some(route => pathname.startsWith(route));
+}
+
+function isProtectedApiRoute(pathname: string): boolean {
+  return protectedApiRoutes.some(route => pathname.startsWith(route));
 }
 
 function redirectToLogin(request: NextRequest): NextResponse {
