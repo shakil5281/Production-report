@@ -40,14 +40,14 @@ interface PrismaUpdateData {
 
 // Helper function to convert Decimal to number
 function convertDecimalToNumber(value: unknown): number | unknown {
-  if (value && typeof value === 'object' && 'toNumber' in value && typeof (value as any).toNumber === 'function') {
-    return (value as any).toNumber();
+  if (value && typeof value === 'object' && 'toNumber' in value && typeof (value as { toNumber: () => number }).toNumber === 'function') {
+    return (value as { toNumber: () => number }).toNumber();
   }
   return value;
 }
 
 // Helper function to transform production item data
-function transformProductionItem(item: any) {
+function transformProductionItem(item: Record<string, unknown>) {
   return {
     ...item,
     price: convertDecimalToNumber(item.price)
