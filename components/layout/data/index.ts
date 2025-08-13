@@ -1,95 +1,82 @@
-import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings } from "@tabler/icons-react"
+import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings, IconChartBar, IconFileText, IconTrendingUp, IconUsers, IconUser, IconBook, IconCode } from "@tabler/icons-react"
 import { Book, ShieldCheck } from "lucide-react"
 
 
 export const data = {
-    user: {
-      name: "shadcn",
-      email: "m@example.com",
-      avatar: "/avatars/shadcn.jpg",
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: IconDashboard,
+      isActive: true,
     },
-    navMain: [
-      {
-        title: "Dashboard",
-        url: "/",
-        icon: IconDashboard,
-      }
-    ],
-    navGroup: [
-      {
-        title: "Production Reports",
-        url: "#",
-        icon: ShieldCheck,
-        isActive: true,
-        items: [
-          {
-            title: "List",
-            url: "/production-reports",
-          },
-          {
-            title: "Daily Production",
-            url: "/daily-production",
-          },
-          {
-            title: "Profit & Loss",
-            url: "/profit-loss",
-          },
-        ],
-      },
-      {
-        title: "Daily Expense",
-        url: "#",
-        icon: Book,
-        isActive: false,
-        items: [
-          {
-            title: "List",
-            url: "/production-reports",
-          },
-          {
-            title: "Daily Production",
-            url: "/daily-production",
-          },
-          {
-            title: "Profit & Loss",
-            url: "/profit-loss",
-          },
-        ],
-      },
-    ],
-  
-    navSecondary: [
-      {
-        title: "Settings",
-        url: "#",
-        icon: IconSettings,
-      },
-      {
-        title: "Get Help",
-        url: "#",
-        icon: IconHelp,
-      },
-      {
-        title: "Search",
-        url: "#",
-        icon: IconSearch,
-      },
-    ],
-    documents: [
-      {
-        name: "Data Library",
-        url: "#",
-        icon: IconDatabase,
-      },
-      {
-        name: "Reports",
-        url: "#",
-        icon: IconReport,
-      },
-      {
-        name: "Word Assistant",
-        url: "#",
-        icon: IconFileWord,
-      },
-    ],
-  }
+    {
+      title: "Daily Production",
+      url: "/daily-production",
+      icon: IconChartBar,
+      isActive: false,
+    },
+    {
+      title: "Production Reports",
+      url: "/production-reports",
+      icon: IconFileText,
+      isActive: false,
+    },
+    {
+      title: "Profit & Loss",
+      url: "/profit-loss",
+      icon: IconTrendingUp,
+      isActive: false,
+    },
+  ],
+  navGroup: [
+    {
+      title: "Administration",
+      icon: IconSettings,
+      items: [
+        {
+          title: "User Management",
+          url: "/admin/users",
+        },
+        {
+          title: "System Settings",
+          url: "/admin/settings",
+        },
+      ],
+    },
+  ],
+  navSecondary: [
+    {
+      title: "Profile",
+      url: "/profile",
+      icon: IconUser,
+      isActive: false,
+    },
+    {
+      title: "Help & Support",
+      url: "/help",
+      icon: IconHelp,
+      isActive: false,
+    },
+  ],
+  documents: [
+    {
+      title: "Getting Started",
+      url: "/docs/getting-started",
+      icon: IconBook,
+      isActive: false,
+    },
+    {
+      title: "API Reference",
+      url: "/docs/api",
+      icon: IconCode,
+      isActive: false,
+    },
+    {
+      title: "User Guide",
+      url: "/docs/user-guide",
+      icon: IconFileText,
+      isActive: false,
+    },
+  ],
+}

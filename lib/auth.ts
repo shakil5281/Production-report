@@ -1,57 +1,94 @@
-import { PrismaClient, UserRole, PermissionType } from '@prisma/client';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { UserWithPermissions, PermissionCheck } from './types/auth';
+import { PrismaClient, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_EXPIRES_IN = '7d';
+interface UserWithPermissions {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  lastLogin: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  permissions: string[];
+  token: string;
+  userPermissions?: unknown;
+}
 
 export class AuthService {
-  // Password hashing
-  static async hashPassword(password: string): Promise<string> {
+  // Hash password using bcrypt (server-side only)
+  async hashPassword(password: string): Promise<string> {
+    if (typeof window !== 'undefined') {
+      throw new Error('Password hashing must be done on the server');
+    }
+    
+    const bcrypt = await import('bcrypt');
     const saltRounds = 12;
     return bcrypt.hash(password, saltRounds);
   }
 
-  static async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+  // Compare password using bcrypt (server-side only)
+  async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+    if (typeof window !== 'undefined') {
+      throw new Error('Password comparison must be done on the server');
+    }
+    
+    const bcrypt = await import('bcrypt');
     return bcrypt.compare(password, hashedPassword);
   }
 
-  // JWT token management
-  static generateToken(userId: string, role: UserRole): string {
+  // Generate JWT token (server-side only)
+  async generateToken(userId: string, role: UserRole): Promise<string> {
+    if (typeof window !== 'undefined') {
+      throw new Error('Token generation must be done on the server');
+    }
+    
+    const jwt = await import('jsonwebtoken');
+    const secret = process.env.JWT_SECRET || 'your-secret-key';
+    
     return jwt.sign(
       { userId, role },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
+      secret,
+      { expiresIn: '7d' }
     );
   }
 
-  static verifyToken(token: string): { userId: string; role: UserRole } | null {
+  // Validate JWT token (server-side only)
+  async validateToken(token: string): Promise<{ userId: string; role: UserRole } | null> {
+    if (typeof window !== 'undefined') {
+      throw new Error('Token validation must be done on the server');
+    }
+    
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; role: UserRole };
-      return decoded;
+      const jwt = await import('jsonwebtoken');
+      const secret = process.env.JWT_SECRET || 'your-secret-key';
+      
+      return jwt.verify(token, secret) as { userId: string; role: UserRole };
     } catch {
       return null;
     }
   }
 
-  // User authentication
-  static async authenticateUser(email: string, password: string): Promise<UserWithPermissions | null> {
+  // Authenticate user (server-side only)
+  async authenticateUser(email: string, password: string): Promise<UserWithPermissions | null> {
+    if (typeof window !== 'undefined') {
+      throw new Error('User authentication must be done on the server');
+    }
+
     try {
       const user = await prisma.user.findUnique({
-        where: { email, isActive: true },
+        where: { email },
         include: {
           userPermissions: {
             include: {
-              permission: true
-            }
-          }
-        }
+              permission: true,
+            },
+          },
+        },
       });
 
-      if (!user) {
+      if (!user || !user.isActive) {
         return null;
       }
 
@@ -60,25 +97,25 @@ export class AuthService {
         return null;
       }
 
-      // Get user permissions
-      const permissions = user.userPermissions
-        .filter(up => up.granted)
-        .map(up => up.permission.name);
-
-      // Add role-based permissions
-      const rolePermissions = await this.getRolePermissions(user.role);
-      const allPermissions = [...new Set([...permissions, ...rolePermissions])];
-
-      const userWithPermissions: UserWithPermissions = {
-        ...user,
-        permissions: allPermissions
-      };
-
       // Update last login
       await prisma.user.update({
         where: { id: user.id },
-        data: { lastLogin: new Date() }
+        data: { lastLogin: new Date() },
       });
+
+      // Generate token
+      const token = await this.generateToken(user.id, user.role);
+
+      // Create session
+      await this.createSession(user.id, token);
+
+      // Transform user data
+      const userWithPermissions: UserWithPermissions = {
+        ...user,
+        permissions: user.userPermissions.map(up => up.permission.name),
+        token,
+        userPermissions: undefined,
+      };
 
       return userWithPermissions;
     } catch (error) {
@@ -87,36 +124,34 @@ export class AuthService {
     }
   }
 
-  // Get role-based permissions
-  static async getRolePermissions(role: UserRole): Promise<PermissionType[]> {
-    const rolePermissions = await prisma.rolePermission.findMany({
-      where: {
-        role: { name: role }
-      },
-      include: {
-        permission: true
-      }
-    });
+  // Create session (server-side only)
+  async createSession(userId: string, token: string): Promise<void> {
+    if (typeof window !== 'undefined') {
+      throw new Error('Session creation must be done on the server');
+    }
 
-    return rolePermissions.map(rp => rp.permission.name);
+    try {
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 7); // 7 days
+
+      await prisma.session.create({
+        data: {
+          userId,
+          token,
+          expires,
+        },
+      });
+    } catch (error) {
+      console.error('Session creation error:', error);
+    }
   }
 
-  // Create user session
-  static async createSession(userId: string, token: string): Promise<void> {
-    const expires = new Date();
-    expires.setDate(expires.getDate() + 7); // 7 days
+  // Validate session (server-side only)
+  async validateSession(token: string): Promise<UserWithPermissions | null> {
+    if (typeof window !== 'undefined') {
+      throw new Error('Session validation must be done on the server');
+    }
 
-    await prisma.session.create({
-      data: {
-        userId,
-        token,
-        expires
-      }
-    });
-  }
-
-  // Validate session
-  static async validateSession(token: string): Promise<UserWithPermissions | null> {
     try {
       const session = await prisma.session.findUnique({
         where: { token },
@@ -125,93 +160,62 @@ export class AuthService {
             include: {
               userPermissions: {
                 include: {
-                  permission: true
-                }
-              }
-            }
-          }
-        }
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       if (!session || session.expires < new Date()) {
+        // Delete expired session
+        await this.deleteSession(token);
         return null;
       }
 
-      // Get user permissions
-      const permissions = session.user.userPermissions
-        .filter(up => up.granted)
-        .map(up => up.permission.name);
-
-      // Add role-based permissions
-      const rolePermissions = await this.getRolePermissions(session.user.role);
-      const allPermissions = [...new Set([...permissions, ...rolePermissions])];
-
-      return {
+      // Transform user data
+      const userWithPermissions: UserWithPermissions = {
         ...session.user,
-        permissions: allPermissions
+        permissions: session.user.userPermissions.map(up => up.permission.name),
+        token,
+        userPermissions: undefined,
       };
+
+      return userWithPermissions;
     } catch (error) {
       console.error('Session validation error:', error);
       return null;
     }
   }
 
-  // Delete session
-  static async deleteSession(token: string): Promise<void> {
-    await prisma.session.delete({
-      where: { token }
-    });
+  // Delete session (server-side only)
+  async deleteSession(token: string): Promise<void> {
+    if (typeof window !== 'undefined') {
+      throw new Error('Session deletion must be done on the server');
+    }
+
+    try {
+      await prisma.session.delete({
+        where: { token },
+      });
+    } catch (error) {
+      console.error('Session deletion error:', error);
+    }
   }
 
-  // Clean expired sessions
-  static async cleanExpiredSessions(): Promise<void> {
-    await prisma.session.deleteMany({
-      where: {
-        expires: {
-          lt: new Date()
-        }
-      }
-    });
-  }
-}
+  // Delete all sessions for a user (server-side only)
+  async deleteAllUserSessions(userId: string): Promise<void> {
+    if (typeof window !== 'undefined') {
+      throw new Error('Session deletion must be done on the server');
+    }
 
-export class PermissionService implements PermissionCheck {
-  constructor(private user: UserWithPermissions) {}
-
-  hasPermission(permission: PermissionType): boolean {
-    return this.user.permissions.includes(permission);
-  }
-
-  hasRole(role: UserRole): boolean {
-    return this.user.role === role;
-  }
-
-  hasAnyRole(roles: UserRole[]): boolean {
-    return roles.includes(this.user.role);
-  }
-
-  hasAllRoles(roles: UserRole[]): boolean {
-    return roles.every(role => this.user.role === role);
-  }
-
-  // Check if user can access a specific resource
-  canAccessResource(resource: string, action: string): boolean {
-    const permission = `${action.toUpperCase()}_${resource.toUpperCase()}` as PermissionType;
-    return this.hasPermission(permission);
-  }
-
-  // Get user's effective permissions
-  getEffectivePermissions(): PermissionType[] {
-    return this.user.permissions;
-  }
-
-  // Check if user is admin or higher
-  isAdminOrHigher(): boolean {
-    return this.hasAnyRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
-  }
-
-  // Check if user is manager or higher
-  isManagerOrHigher(): boolean {
-    return this.hasAnyRole([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]);
+    try {
+      await prisma.session.deleteMany({
+        where: { userId },
+      });
+    } catch (error) {
+      console.error('Session deletion error:', error);
+    }
   }
 }

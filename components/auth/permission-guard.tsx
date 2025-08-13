@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { UserRole, PermissionType, UserWithPermissions } from '@/lib/types/auth';
-import { PermissionService } from '@/lib/auth';
+import { PermissionService } from '@/lib/permissions';
 
 interface PermissionGuardProps {
   children: ReactNode;
@@ -27,26 +27,24 @@ export function PermissionGuard({
     return fallback;
   }
 
-  const permissionService = new PermissionService(user);
-
   // Check permission if specified
-  if (requiredPermission && !permissionService.hasPermission(requiredPermission)) {
+  if (requiredPermission && !PermissionService.hasPermission(user.permissions, requiredPermission)) {
     return fallback;
   }
 
   // Check single role if specified
-  if (requiredRole && !permissionService.hasRole(requiredRole)) {
+  if (requiredRole && !PermissionService.hasRole(user.role, requiredRole)) {
     return fallback;
   }
 
   // Check multiple roles if specified
   if (requiredRoles && requiredRoles.length > 0) {
     if (mode === 'all') {
-      if (!permissionService.hasAllRoles(requiredRoles)) {
+      if (!requiredRoles.every(role => PermissionService.hasRole(user.role, role))) {
         return fallback;
       }
     } else {
-      if (!permissionService.hasAnyRole(requiredRoles)) {
+      if (!requiredRoles.some(role => PermissionService.hasRole(user.role, role))) {
         return fallback;
       }
     }

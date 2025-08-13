@@ -3,40 +3,26 @@ import { AuthService } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from cookies
     const token = request.cookies.get('auth-token')?.value;
-    
+
     if (!token) {
-      return NextResponse.json(
-        { error: 'No authentication token found' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Validate session and get user
-    const user = await AuthService.validateSession(token);
-    
+    const authService = new AuthService();
+    const user = await authService.validateSession(token);
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Invalid or expired token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
     }
 
-    // Return user data (excluding password)
-    const { password: _password, ...userWithoutPassword } = user;
+    // Return user data (excluding password if it exists)
+    const userWithoutPassword = { ...user };
+    delete (userWithoutPassword as any).password;
     
-    return NextResponse.json({
-      success: true,
-      user: userWithoutPassword,
-    });
-
+    return NextResponse.json({ user: userWithoutPassword }, { status: 200 });
   } catch (error) {
-    console.error('Get current user error:', error);
-    
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error fetching user data:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

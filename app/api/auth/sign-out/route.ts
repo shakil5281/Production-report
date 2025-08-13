@@ -8,7 +8,8 @@ export async function POST(request: NextRequest) {
     
     if (token) {
       // Delete session from database
-      await AuthService.deleteSession(token);
+      const authService = new AuthService();
+      await authService.deleteSession(token);
     }
 
     const response = NextResponse.json({

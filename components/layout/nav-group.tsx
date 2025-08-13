@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { ChevronRight, type LucideIcon } from "lucide-react"
+import { ChevronRight } from "lucide-react"
+import { type Icon } from "@tabler/icons-react"
 import { usePathname } from "next/navigation"
 
 import {
@@ -26,8 +27,8 @@ export function NavGroup({
 }: {
     items: {
         title: string
-        url: string
-        icon?: LucideIcon
+        url?: string
+        icon?: Icon
         isActive?: boolean
         items?: {
             title: string

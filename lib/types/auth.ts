@@ -18,6 +18,10 @@ export interface UserWithPermissions extends User {
   password?: string; // Optional for when we need to handle password from database
 }
 
+export interface UserWithPassword extends UserWithPermissions {
+  password: string; // Required when we have password from database
+}
+
 export interface LoginRequest {
   email: string;
   password: string;

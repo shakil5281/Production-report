@@ -5,8 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { SiteHeader } from '@/components/layout/site-header';
 import { UserWithPermissions } from '@/lib/types/auth';
-import { Loader2 } from 'lucide-react';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { LoadingSection } from '@/components/ui/loading';
 
 export default function RootLayout({
   children,
@@ -53,7 +53,7 @@ export default function RootLayout({
         method: 'POST',
         credentials: 'include',
       });
-
+ 
       setUser(null);
       setIsAuthenticated(false);
       router.push('/login');
@@ -63,14 +63,7 @@ export default function RootLayout({
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSection  text="Authenticating..." />;
   }
 
   if (!isAuthenticated || !user) {
