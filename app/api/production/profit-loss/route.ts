@@ -20,10 +20,27 @@ export async function GET(request: NextRequest) {
     let dateFilter: Prisma.DateTimeFilter = {};
     
     if (startDate && endDate) {
-      dateFilter = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
-      };
+      try {
+        const startDateTime = new Date(startDate + 'T00:00:00Z');
+        const endDateTime = new Date(endDate + 'T23:59:59Z');
+        
+        if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+          return NextResponse.json(
+            { error: 'Invalid date format' },
+            { status: 400 }
+          );
+        }
+        
+        dateFilter = {
+          gte: startDateTime,
+          lte: endDateTime
+        };
+      } catch (error) {
+        return NextResponse.json(
+          { error: 'Invalid date format' },
+          { status: 400 }
+        );
+      }
     } else {
       // Default to current period
       const now = new Date();
@@ -51,7 +68,7 @@ export async function GET(request: NextRequest) {
     }
 
     const whereClause: Prisma.ProductionEntryWhereInput = { date: dateFilter };
-    if (lineId) {
+    if (lineId && lineId !== 'all') {
       whereClause.lineId = lineId;
     }
 
@@ -66,7 +83,10 @@ export async function GET(request: NextRequest) {
 
     // Get expenses for the period
     const expenses = await prisma.expense.findMany({
-      where: { date: dateFilter, ...(lineId ? { lineId } : {}) },
+      where: { 
+        date: dateFilter, 
+        ...(lineId && lineId !== 'all' ? { lineId } : {}) 
+      },
       include: {
         line: true,
         category: true
@@ -100,8 +120,8 @@ export async function GET(request: NextRequest) {
         }
         
         const styleData = productionByStyle.get(key)!;
-        styleData.totalOutput += entry.outputQty;
-        styleData.totalRevenue += entry.outputQty * Number(entry.style.unitPrice);
+        styleData.totalOutput += entry.outputQty || 0;
+        styleData.totalRevenue += (entry.outputQty || 0) * Number(entry.style.unitPrice || 0);
       }
     });
 
@@ -109,7 +129,7 @@ export async function GET(request: NextRequest) {
       .reduce((sum, style) => sum + style.totalRevenue, 0);
 
     // Calculate total expenses
-    const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+    const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
 
     // Calculate profit
     const profit = totalEarnedProduction - totalExpenses;
@@ -117,7 +137,7 @@ export async function GET(request: NextRequest) {
     // Group expenses by category
     type ExpensesByCategory = Record<string, { category: typeof expenses[number]['category']; total: number; count: number }>;
     const expensesByCategory: ExpensesByCategory = expenses.reduce((acc, expense) => {
-      const category = expense.category.name;
+      const category = expense.category?.name || 'Uncategorized';
       if (!acc[category]) {
         acc[category] = {
           category: expense.category,
@@ -125,7 +145,7 @@ export async function GET(request: NextRequest) {
           count: 0
         };
       }
-      acc[category].total += Number(expense.amount);
+      acc[category].total += Number(expense.amount || 0);
       acc[category].count += 1;
       return acc;
     }, {} as ExpensesByCategory);
@@ -133,7 +153,7 @@ export async function GET(request: NextRequest) {
     // Group expenses by line
     type ExpensesByLine = Record<string, { line: typeof expenses[number]['line']; total: number; count: number }>;
     const expensesByLine: ExpensesByLine = expenses.reduce((acc, expense) => {
-      const lineName = expense.line ? expense.line.name : 'General';
+      const lineName = expense.line?.name || 'General';
       if (!acc[lineName]) {
         acc[lineName] = {
           line: expense.line,
@@ -141,16 +161,16 @@ export async function GET(request: NextRequest) {
           count: 0
         };
       }
-      acc[lineName].total += Number(expense.amount);
+      acc[lineName].total += Number(expense.amount || 0);
       acc[lineName].count += 1;
       return acc;
     }, {} as ExpensesByLine);
 
     // Calculate production efficiency metrics
-    const totalInput = productionData.reduce((sum, entry) => sum + entry.inputQty, 0);
-    const totalOutput = productionData.reduce((sum, entry) => sum + entry.outputQty, 0);
-    const totalDefects = productionData.reduce((sum, entry) => sum + entry.defectQty, 0);
-    const totalRework = productionData.reduce((sum, entry) => sum + entry.reworkQty, 0);
+    const totalInput = productionData.reduce((sum, entry) => sum + (entry.inputQty || 0), 0);
+    const totalOutput = productionData.reduce((sum, entry) => sum + (entry.outputQty || 0), 0);
+    const totalDefects = productionData.reduce((sum, entry) => sum + (entry.defectQty || 0), 0);
+    const totalRework = productionData.reduce((sum, entry) => sum + (entry.reworkQty || 0), 0);
 
     const efficiency = totalInput > 0 ? (totalOutput / totalInput) * 100 : 0;
     const defectRate = totalOutput > 0 ? (totalDefects / totalOutput) * 100 : 0;

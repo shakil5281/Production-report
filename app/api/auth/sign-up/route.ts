@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { AuthService } from '@/lib/auth';
-import { PrismaClient, UserRole, PermissionType } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { UserRole, PermissionType } from '@prisma/client';
+import { prisma } from '@/lib/db/prisma';
 
 // Validation schema for sign-up
 const signUpSchema = z.object({
@@ -74,7 +73,6 @@ export async function POST(request: NextRequest) {
       data: defaultPermissions.map((perm) => ({
         userId: newUser.id,
         permissionId: perm.id,
-        granted: true,
       })),
     });
 
@@ -88,7 +86,5 @@ export async function POST(request: NextRequest) {
       { error: 'An unexpected error occurred during sign-up.' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

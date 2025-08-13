@@ -1,4 +1,4 @@
-import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings, IconChartBar, IconFileText, IconTrendingUp, IconUsers, IconUser, IconBook, IconCode } from "@tabler/icons-react"
+import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings, IconChartBar, IconFileText, IconTrendingUp, IconUsers, IconUser, IconBook, IconCode, IconApps } from "@tabler/icons-react"
 import { Book, ShieldCheck } from "lucide-react"
 
 
@@ -10,6 +10,13 @@ export const data = {
       icon: IconDashboard,
       isActive: true,
       roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN"], // All users can access
+    },
+    {
+      title: "Platform",
+      url: "/platform",
+      icon: IconApps,
+      isActive: false,
+      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
     },
     {
       title: "Daily Production",
@@ -34,6 +41,25 @@ export const data = {
     },
   ],
   navGroup: [
+    {
+      title: "Production",
+      icon: IconChartBar,
+      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
+      items: [
+        {
+          title: "Production List",
+          url: "/production-list",
+        },
+        {
+          title: "Target",
+          url: "/target",
+        },
+        {
+          title: "Daily Production",
+          url: "/daily-production",
+        },
+      ],
+    },
     {
       title: "Administration",
       icon: IconSettings,
