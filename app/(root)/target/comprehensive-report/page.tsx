@@ -113,12 +113,12 @@ export default function ComprehensiveTargetReportPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Comprehensive Target Report</h1>
+      <div className="container mx-auto p-4 sm:p-6 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl sm:text-3xl font-bold">Comprehensive Target Report</h1>
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid gap-6 md:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
@@ -143,17 +143,17 @@ export default function ComprehensiveTargetReportPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Comprehensive Target Report</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Comprehensive Target Report</h1>
           <p className="text-muted-foreground">
             View all target details with actual hourly production data
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Date Picker */}
           <Popover>
             <PopoverTrigger asChild>
@@ -187,7 +187,7 @@ export default function ComprehensiveTargetReportPage() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid gap-6 md:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
