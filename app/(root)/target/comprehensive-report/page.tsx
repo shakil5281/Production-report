@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { IconCalendar, IconRefresh, IconDownload } from '@tabler/icons-react';
 import { toast } from 'sonner';
-import { ComprehensiveReportTable } from '@/components/target/comprehensive-report-table';
+import { ComprehensiveDataTable } from '@/components/target/comprehensive-data-table';
 import { ComprehensiveTargetData, SummaryData, ComprehensiveReportResponse } from '@/components/target/types';
 
 export default function ComprehensiveTargetReportPage() {
@@ -261,7 +261,7 @@ export default function ComprehensiveTargetReportPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ComprehensiveReportTable 
+          <ComprehensiveDataTable 
             data={reportData}
             timeSlotHeaders={timeSlotHeaders}
             timeSlotTotals={timeSlotTotals}
