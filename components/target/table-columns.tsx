@@ -20,7 +20,7 @@ export const columns: ColumnDef<Target>[] = [
   {
     accessorKey: 'lineTarget',
     header: 'Line Target',
-    cell: ({ row }) => <div className="text-right">{Number(row.getValue('lineTarget')).toLocaleString()}</div>,
+    cell: ({ row }) => <div className="text-left">{Number(row.getValue('lineTarget')).toLocaleString()}</div>,
   },
   {
     accessorKey: 'date',
@@ -40,7 +40,7 @@ export const columns: ColumnDef<Target>[] = [
   {
     accessorKey: 'hourlyProduction',
     header: 'Hourly Production',
-    cell: ({ row }) => <div className="text-right">{Number(row.getValue('hourlyProduction')).toLocaleString()}</div>,
+    cell: ({ row }) => <div className="text-left">{Number(row.getValue('hourlyProduction')).toLocaleString()}</div>,
   },
   {
     id: 'actions',

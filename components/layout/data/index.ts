@@ -54,6 +54,14 @@ export const data = {
           title: "Target",
           url: "/target",
         },
+            {
+      title: "Daily Target Report",
+      url: "/target/daily-report",
+    },
+    {
+      title: "Comprehensive Target Report",
+      url: "/target/comprehensive-report",
+    },
         {
           title: "Lines",
           url: "/lines",

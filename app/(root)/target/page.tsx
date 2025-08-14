@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { IconTarget, IconPlus, IconX } from '@tabler/icons-react';
+import { IconTarget, IconPlus, IconX, IconChartBar } from '@tabler/icons-react';
 import { TargetForm } from '@/components/target/target-form';
 import { TargetDataTable } from '@/components/target/target-data-table';
 import { useTarget } from '@/hooks/use-target';
@@ -194,6 +194,36 @@ export default function TargetPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Quick Actions</CardTitle>
+          <CardDescription>
+            Access common target management functions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+                              <Button 
+                    variant="outline" 
+                    onClick={() => router.push('/target/daily-report')}
+                    className="flex items-center gap-2"
+                  >
+                    <IconChartBar className="h-4 w-4" />
+                    View Daily Target Report
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => router.push('/target/comprehensive-report')}
+                    className="flex items-center gap-2"
+                  >
+                    <IconChartBar className="h-4 w-4" />
+                    View Comprehensive Report
+                  </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Target Data Table */}
 			<Card>

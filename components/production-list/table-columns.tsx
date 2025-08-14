@@ -4,17 +4,35 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { IconDotsVertical, IconEye, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconDotsVertical, IconEye, IconEdit, IconTrash, IconCircleCheckFilled, IconCircleX, IconLoader } from '@tabler/icons-react';
 import type { ProductionItem } from './schema';
 
 function StatusBadge({ status }: { status: ProductionItem['status'] }) {
   const config = {
-    RUNNING: { className: 'bg-green-100 text-green-800', label: 'Running' },
+    RUNNING: { className: 'bg-gray-100 text-gray-800', label: 'Running' },
     PENDING: { className: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
     COMPLETE: { className: 'bg-blue-100 text-blue-800', label: 'Complete' },
     CANCELLED: { className: 'bg-red-100 text-red-800', label: 'Cancelled' },
   }[status];
-  return <Badge className={config.className}>{config.label}</Badge>;
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'RUNNING':
+        return <IconLoader className={config.className} />
+      case 'PENDING':
+        return <IconCircleX className={config.className} />
+      case 'COMPLETE':
+        return <IconCircleCheckFilled className={config.className} />
+      case 'CANCELLED':
+        return <IconCircleX className={config.className} />
+      default:
+        return <IconLoader className={config.className} />
+    }
+  };
+
+  return <Badge variant='outline'>
+    {getStatusIcon()}
+    {config.label}
+  </Badge>;
 }
 
 export const columns: ColumnDef<ProductionItem>[] = [
@@ -41,17 +59,17 @@ export const columns: ColumnDef<ProductionItem>[] = [
   {
     accessorKey: 'quantity',
     header: 'Quantity',
-    cell: ({ row }) => <div className="text-right">{Number(row.getValue('quantity')).toLocaleString()}</div>,
+    cell: ({ row }) => <div className="text-left">{Number(row.getValue('quantity')).toLocaleString()}</div>,
   },
   {
     accessorKey: 'price',
     header: 'Price',
-    cell: ({ row }) => <div className="text-right">${Number(row.getValue('price')).toFixed(2)}</div>,
+    cell: ({ row }) => <div className="text-left">${Number(row.getValue('price')).toFixed(2)}</div>,
   },
   {
     accessorKey: 'percentage',
     header: '%',
-    cell: ({ row }) => <div className="text-right">{Number(row.getValue('percentage')).toFixed(1)}%</div>,
+    cell: ({ row }) => <div className="text-left">{Number(row.getValue('percentage')).toFixed(1)}%</div>,
   },
   {
     accessorKey: 'status',
