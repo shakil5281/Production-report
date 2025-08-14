@@ -10,38 +10,15 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { IconCalendar, IconRefresh, IconDownload } from '@tabler/icons-react';
 import { toast } from 'sonner';
-
-interface ComprehensiveTargetData {
-  id: string;
-  lineNo: string;
-  lineName: string;
-  styleNo: string;
-  buyer: string;
-  item: string;
-  lineTarget: number;
-  totalTarget: number;
-  timeSlots: string[];
-  workingHours: number;
-  hourlyProduction: Record<string, number>;
-  totalProduction: number;
-  averageProductionPerHour: number;
-  targetCount: number;
-  timeSlotHeaders: string[];
-}
-
-interface SummaryData {
-  totalLines: number;
-  totalTarget: number;
-  totalProduction: number;
-  averageProductionPerHour: number;
-  date: string;
-}
+import { ComprehensiveReportTable } from '@/components/target/comprehensive-report-table';
+import { ComprehensiveTargetData, SummaryData, ComprehensiveReportResponse } from '@/components/target/types';
 
 export default function ComprehensiveTargetReportPage() {
   const [date, setDate] = useState<Date>(new Date());
   const [reportData, setReportData] = useState<ComprehensiveTargetData[]>([]);
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [timeSlotHeaders, setTimeSlotHeaders] = useState<string[]>([]);
+  const [timeSlotTotals, setTimeSlotTotals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,13 +36,14 @@ export default function ComprehensiveTargetReportPage() {
         throw new Error('Failed to fetch comprehensive target report');
       }
       
-      const data = await response.json();
+      const data: ComprehensiveReportResponse = await response.json();
       console.log('Comprehensive report API response:', data);
       
       if (data.success) {
         setReportData(data.data);
         setSummary(data.summary);
         setTimeSlotHeaders(data.timeSlotHeaders || []);
+        setTimeSlotTotals(data.timeSlotTotals || {});
         console.log('Set comprehensive report data:', data.data);
         console.log('Time slot headers:', data.timeSlotHeaders);
       } else {
@@ -91,39 +69,33 @@ export default function ComprehensiveTargetReportPage() {
       return;
     }
 
-        // Create CSV content with dynamic time slot headers
+    // Create CSV content with dynamic time slot headers
     const headers = [
-      'Line No',
-      'Line Name', 
-      'Style No',
+      'Line',
+      'Style',
       'Buyer',
       'Item',
-      'Line Target',
-      'Total Target',
-      
-      'Working Hours',
-      'Target Count',
-             ...timeSlotHeaders,
-      'Total Production',
-      'Average Production/Hour'
+      'Target',
+      'Hours',
+      'Targets',
+      ...timeSlotHeaders,
+      'Total',
+      'Avg/Hour'
     ];
 
-        const csvContent = [
+    const csvContent = [
       headers.join(','),
       ...reportData.map(row => [
         row.lineNo,
-        row.lineName,
         row.styleNo,
         row.buyer,
         row.item,
-        row.lineTarget,
-        row.totalTarget,
-        
-        row.workingHours,
-        row.targetCount || 1,
+        row.target,
+        row.hours,
+        row.targets,
         ...timeSlotHeaders.map(timeSlot => row.hourlyProduction[timeSlot] || 0),
         row.totalProduction,
-        row.averageProductionPerHour.toFixed(2)
+        row.averageProductionPerHour.toFixed(0)
       ].join(','))
     ].join('\n');
 
@@ -176,9 +148,9 @@ export default function ComprehensiveTargetReportPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Comprehensive Target Report</h1>
-                     <p className="text-muted-foreground">
-             View all target details with actual hourly production data
-           </p>
+          <p className="text-muted-foreground">
+            View all target details with actual hourly production data
+          </p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -242,9 +214,9 @@ export default function ComprehensiveTargetReportPage() {
 
           <Card>
             <CardHeader className="pb-2">
-                             <CardTitle className="text-sm font-medium text-muted-foreground">
-                 Total Production
-               </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Production
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
@@ -284,146 +256,16 @@ export default function ComprehensiveTargetReportPage() {
       <Card>
         <CardHeader>
           <CardTitle>Target Details Report</CardTitle>
-                     <CardDescription>
-             Comprehensive view of all targets with actual hourly production data
-           </CardDescription>
+          <CardDescription>
+            Comprehensive view of all targets with actual hourly production data
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {reportData.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg font-medium">No targets found</p>
-              <p className="text-sm">No target data available for the selected date</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-200">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                      Line
-                    </th>
-                    <th className="border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                      Style
-                    </th>
-                    <th className="border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                      Buyer
-                    </th>
-                    <th className="border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                      Item
-                    </th>
-                    <th className="border border-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700">
-                      Target
-                    </th>
-                    
-                                         <th className="border border-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700">
-                       Hours
-                     </th>
-                     <th className="border border-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700">
-                       Targets
-                     </th>
-                                         {timeSlotHeaders.map((timeSlot, index) => (
-                       <th key={index} className="border border-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700 bg-blue-50">
-                         {timeSlot}
-                       </th>
-                     ))}
-                    <th className="border border-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700 bg-green-50">
-                      Total
-                    </th>
-                    <th className="border border-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700 bg-green-50">
-                      Avg/Hour
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.map((row, index) => (
-                    <tr key={row.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="border border-gray-200 px-3 py-2 text-sm">
-                        <div>
-                          <div className="font-medium">{row.lineNo}</div>
-                          <div className="text-xs text-gray-500">{row.lineName}</div>
-                        </div>
-                      </td>
-                      <td className="border border-gray-200 px-3 py-2 text-sm font-medium">
-                        {row.styleNo}
-                      </td>
-                      <td className="border border-gray-200 px-3 py-2 text-sm">
-                        {row.buyer}
-                      </td>
-                      <td className="border border-gray-200 px-3 py-2 text-sm">
-                        {row.item}
-                      </td>
-                      <td className="border border-gray-200 px-3 py-2 text-sm text-center font-medium">
-                        {row.lineTarget.toLocaleString()}
-                      </td>
-                      
-                                             <td className="border border-gray-200 px-3 py-2 text-sm text-center">
-                         {row.workingHours}h
-                       </td>
-                       <td className="border border-gray-200 px-3 py-2 text-sm text-center">
-                         <Badge variant="secondary">{row.targetCount || 1}</Badge>
-                       </td>
-                      
-                      {/* Dynamic Hourly Production Columns */}
-                      {timeSlotHeaders.map((timeSlot, index) => (
-                        <td key={index} className="border border-gray-200 px-3 py-2 text-sm text-center bg-blue-50">
-                          {row.hourlyProduction[timeSlot]?.toLocaleString() || '0'}
-                        </td>
-                      ))}
-                      
-                      {/* Totals */}
-                      <td className="border border-gray-200 px-3 py-2 text-sm text-center font-medium bg-green-50">
-                        {row.totalProduction.toLocaleString()}
-                      </td>
-                      <td className="border border-gray-200 px-3 py-2 text-sm text-center bg-green-50">
-                        {row.averageProductionPerHour.toFixed(0)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                
-                {/* Footer with Totals */}
-                {reportData.length > 0 && (
-                  <tfoot>
-                    <tr className="bg-gray-100 font-medium">
-                                             <td className="border border-gray-200 px-3 py-2 text-sm" colSpan={3}>
-                         <strong>TOTALS</strong>
-                       </td>
-                      <td className="border border-gray-200 px-3 py-2 text-sm text-center">
-                        {reportData.reduce((sum, row) => sum + row.lineTarget, 0).toLocaleString()}
-                      </td>
-                                           <td className="border border-gray-200 px-3 py-2 text-sm text-center">
-                       -
-                     </td>
-                     <td className="border border-gray-200 px-3 py-2 text-sm text-center">
-                       {reportData.reduce((sum, row) => sum + row.workingHours, 0)}h
-                     </td>
-                     <td className="border border-gray-200 px-3 py-2 text-sm text-center">
-                       {reportData.reduce((sum, row) => sum + (row.targetCount || 1), 0)}
-                     </td>
-                      
-                                             {/* Dynamic Hourly Totals */}
-                       {timeSlotHeaders.map((timeSlot, index) => (
-                         <td key={index} className="border border-gray-200 px-3 py-2 text-sm text-center bg-blue-100">
-                           {reportData.reduce((sum, row) => sum + (row.hourlyProduction[timeSlot] || 0), 0).toLocaleString()}
-                         </td>
-                       ))}
-                      
-                      {/* Total Totals */}
-                      <td className="border border-gray-200 px-3 py-2 text-sm text-center font-bold bg-green-100">
-                        {reportData.reduce((sum, row) => sum + row.totalProduction, 0).toLocaleString()}
-                      </td>
-                      <td className="border border-gray-200 px-3 py-2 text-sm text-center bg-green-100">
-                        {reportData.length > 0 
-                          ? (reportData.reduce((sum, row) => sum + row.averageProductionPerHour, 0) / reportData.length).toFixed(0)
-                          : '0'
-                        }
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-          )}
+          <ComprehensiveReportTable 
+            data={reportData}
+            timeSlotHeaders={timeSlotHeaders}
+            timeSlotTotals={timeSlotTotals}
+          />
         </CardContent>
       </Card>
     </div>

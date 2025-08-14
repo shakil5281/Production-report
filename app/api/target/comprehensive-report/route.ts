@@ -42,176 +42,9 @@ export async function GET(request: NextRequest) {
       ]
     });
 
-    // Get production entries for the same date to show actual production
-    const productionEntries = await prisma.productionEntry.findMany({
-      where: {
-        date: {
-          gte: startOfDay,
-          lte: endOfDay
-        }
-      },
-      include: {
-        line: true,
-        style: true
-      },
-      orderBy: [
-        { lineId: 'asc' },
-        { hourIndex: 'asc' }
-      ]
-    });
-    
     console.log(`Found ${targets.length} targets for date ${formattedDate}`);
-    console.log(`Found ${productionEntries.length} production entries for date ${formattedDate}`);
     
-    // Get lines for reference
-    const lines = await prisma.line.findMany({
-      where: { isActive: true },
-      orderBy: { code: 'asc' }
-    });
-    
-    // Create a map of line codes to line names
-    const lineMap = new Map(lines.map(line => [line.code, line.name]));
-    
-    // Group targets by line number only (combine all targets for same line)
-    const lineGroups = new Map();
-    
-                    // Collect all unique time slots for dynamic headers
-                const uniqueTimeSlots = new Set<string>();
-    
-    targets.forEach(target => {
-      console.log(`Processing target: Line=${target.lineNo}, Style=${target.styleNo}, Target=${target.lineTarget}, InTime=${target.inTime}, OutTime=${target.outTime}`);
-      
-      const lineKey = target.lineNo;
-      
-      // Add time slot to unique set
-      const timeSlot = `${target.inTime || '08:00'}-${target.outTime || '20:00'}`;
-      uniqueTimeSlots.add(timeSlot);
-      
-      if (!lineGroups.has(lineKey)) {
-        lineGroups.set(lineKey, {
-          lineNo: target.lineNo,
-          lineName: lineMap.get(target.lineNo) || 'Unknown Line',
-          targets: [],
-          totalLineTarget: 0,
-                                styles: new Set<string>(),
-                      buyers: new Set<string>(),
-                      items: new Set<string>(),
-                                timeSlots: new Set<string>() // Track all time slots for this line
-        });
-      }
-      
-      const group = lineGroups.get(lineKey);
-      group.targets.push(target);
-      group.totalLineTarget += target.lineTarget;
-      group.styles.add(target.styleNo);
-      group.buyers.add(target.productionList?.buyer || 'N/A');
-      group.items.add(target.productionList?.item || 'N/A');
-      group.timeSlots.add(timeSlot);
-    });
-    
-    // Convert unique time slots to sorted array for headers
-    const sortedTimeSlots = Array.from(uniqueTimeSlots).sort((a: string, b: string) => {
-      const aStart = parseInt(a.split('-')[0].split(':')[0]);
-      const bStart = parseInt(b.split('-')[0].split(':')[0]);
-      return aStart - bStart;
-    });
-    
-    console.log(`Unique time slots found: ${sortedTimeSlots.join(', ')}`);
-    
-    // Process grouped data and create report
-    const reportData: any[] = [];
-    
-    lineGroups.forEach((group, lineKey) => {
-      console.log(`Processing line ${lineKey}, Total targets: ${group.totalLineTarget}, Time slots: ${Array.from(group.timeSlots).join(', ')}`);
-      
-      // Create dynamic hourly production object based on actual time slots
-      const hourlyProduction: Record<string, number> = {};
-      
-      // Initialize all time slots with 0
-      sortedTimeSlots.forEach(timeSlot => {
-        hourlyProduction[timeSlot] = 0;
-      });
-      
-      // Get actual production data for this line
-      const lineProductionEntries = productionEntries.filter(entry => entry.line?.code === lineKey);
-      console.log(`Line ${lineKey} has ${lineProductionEntries.length} production entries`);
-      
-      // Get buyer and item from the first production entry's style for this line
-      let lineBuyer = 'N/A';
-      let lineItem = 'N/A';
-      if (lineProductionEntries.length > 0) {
-        lineBuyer = lineProductionEntries[0].style?.buyer || 'N/A';
-        lineItem = lineProductionEntries[0].style?.styleNumber || 'N/A';
-      }
-      
-      // Map production entries to time slots based on hourIndex
-      lineProductionEntries.forEach(entry => {
-        const hourIndex = entry.hourIndex;
-        let timeSlot = '';
-        
-        // Map hourIndex to time slot format
-        switch(hourIndex) {
-          case 8: timeSlot = '08:00-09:00'; break;
-          case 9: timeSlot = '09:00-10:00'; break;
-          case 10: timeSlot = '10:00-11:00'; break;
-          case 11: timeSlot = '11:00-12:00'; break;
-          case 12: timeSlot = '12:00-13:00'; break;
-          case 13: timeSlot = '13:00-14:00'; break;
-          case 14: timeSlot = '14:00-15:00'; break;
-          case 15: timeSlot = '15:00-16:00'; break;
-          case 16: timeSlot = '16:00-17:00'; break;
-          case 17: timeSlot = '17:00-18:00'; break;
-          case 18: timeSlot = '18:00-19:00'; break;
-          case 19: timeSlot = '19:00-20:00'; break;
-          default: timeSlot = '08:00-09:00'; break;
-        }
-        
-        if (hourlyProduction.hasOwnProperty(timeSlot)) {
-          hourlyProduction[timeSlot] += entry.outputQty;
-          console.log(`Line ${lineKey}: Added ${entry.outputQty} to time slot ${timeSlot} (hourIndex: ${hourIndex})`);
-        }
-      });
-      
-      // Calculate totals
-      const totalProduction = Object.values(hourlyProduction).reduce((sum: number, val: number) => sum + val, 0);
-      console.log(`Line ${lineKey} hourly production:`, hourlyProduction);
-      const timeSlotsArray = Array.from(group.timeSlots) as string[];
-      const totalWorkingHours = timeSlotsArray.reduce((sum: number, timeSlot: string) => {
-        const [start, end] = timeSlot.split('-');
-        const startHour = parseInt(start.split(':')[0]);
-        const endHour = parseInt(end.split(':')[0]);
-        return sum + Math.max(1, endHour - startHour);
-      }, 0);
-      
-      const averageProductionPerHour = totalWorkingHours > 0 ? totalProduction / totalWorkingHours : 0;
-      
-      // Get style details (use production data for buyer and item, targets for style numbers)
-      const buyer = lineBuyer;
-      const item = lineItem;
-      const styleNo = Array.from(group.styles).join(', ');
-      
-      reportData.push({
-        id: lineKey,
-        lineNo: group.lineNo,
-        lineName: group.lineName,
-        styleNo: styleNo,
-        buyer: buyer,
-        item: item,
-        lineTarget: group.totalLineTarget,
-        totalTarget: group.totalLineTarget,
-        timeSlots: Array.from(group.timeSlots),
-        workingHours: totalWorkingHours,
-        hourlyProduction,
-        totalProduction,
-        averageProductionPerHour,
-        targetCount: group.targets.length,
-        timeSlotHeaders: sortedTimeSlots
-      });
-    });
-    
-    // If no targets found, return empty report
-    if (reportData.length === 0) {
-      console.log('No targets found for the specified date');
+    if (targets.length === 0) {
       return NextResponse.json({
         success: true,
         data: [],
@@ -225,11 +58,115 @@ export async function GET(request: NextRequest) {
         message: 'No targets found for the specified date'
       });
     }
+
+    // Get lines for reference
+    const lines = await prisma.line.findMany({
+      where: { isActive: true },
+      orderBy: { code: 'asc' }
+    });
+    
+    // Create line map for efficient lookup
+    const lineMap = new Map(lines.map(line => [line.code, { name: line.name, id: line.id }]));
+    
+    // Collect all unique time slots from targets
+    const uniqueTimeSlots = new Set<string>();
+    targets.forEach(target => {
+      const timeSlot = `${target.inTime || '08:00'}-${target.outTime || '20:00'}`;
+      uniqueTimeSlots.add(timeSlot);
+    });
+    
+    // Convert to sorted array
+    const timeSlotHeaders = Array.from(uniqueTimeSlots).sort((a, b) => {
+      const aStart = parseInt(a.split('-')[0].split(':')[0]);
+      const bStart = parseInt(b.split('-')[0].split(':')[0]);
+      return aStart - bStart;
+    });
+    
+    console.log(`Unique time slots found: ${timeSlotHeaders.join(', ')}`);
+    
+    // Group targets by line and style to avoid duplicates
+    const targetGroups = new Map();
+    
+    targets.forEach(target => {
+      const groupKey = `${target.lineNo}-${target.styleNo}`;
+      
+      if (!targetGroups.has(groupKey)) {
+        targetGroups.set(groupKey, {
+          lineNo: target.lineNo,
+          styleNo: target.styleNo,
+          targets: [],
+          productionList: target.productionList
+        });
+      }
+      
+      targetGroups.get(groupKey).targets.push(target);
+    });
+    
+    console.log(`Grouped into ${targetGroups.size} unique line-style combinations`);
+    
+    // Initialize report data array
+    const reportData: any[] = [];
+    
+    targetGroups.forEach((group, groupKey) => {
+      console.log(`Processing group: ${groupKey}`);
+      
+      // Calculate total target (sum of all targets in this group)
+      const totalTarget = group.targets.reduce((sum: number, target: any) => sum + target.lineTarget, 0);
+      
+      // Calculate total working hours (sum of all hours in this group)
+      const totalWorkingHours = group.targets.reduce((sum: number, target: any) => {
+        const inTime = target.inTime || '08:00';
+        const outTime = target.outTime || '20:00';
+        const startHour = parseInt(inTime.split(':')[0]);
+        const endHour = parseInt(outTime.split(':')[0]);
+        return sum + Math.max(1, endHour - startHour);
+      }, 0);
+      
+      // Calculate total targets (target * hours)
+      const totalTargets = totalTarget * totalWorkingHours;
+      
+      // Initialize hourly production with 0 for all time slots
+      const hourlyProduction: Record<string, number> = {};
+      timeSlotHeaders.forEach(timeSlot => {
+        hourlyProduction[timeSlot] = 0;
+      });
+      
+      // Map production data from targets to time slots
+      group.targets.forEach((target: any) => {
+        const timeSlot = `${target.inTime || '08:00'}-${target.outTime || '20:00'}`;
+        if (hourlyProduction.hasOwnProperty(timeSlot)) {
+          hourlyProduction[timeSlot] = target.hourlyProduction || 0;
+          console.log(`Style ${group.styleNo}: Added ${target.hourlyProduction || 0} to time slot ${timeSlot}`);
+        }
+      });
+      
+      // Calculate totals
+      const totalProduction = Object.values(hourlyProduction).reduce((sum: number, val: number) => sum + val, 0);
+      const averageProductionPerHour = totalWorkingHours > 0 ? totalProduction / totalWorkingHours : 0;
+      
+      console.log(`Style ${group.styleNo} hourly production:`, hourlyProduction);
+      console.log(`Style ${group.styleNo} total production: ${totalProduction}`);
+      
+      reportData.push({
+        id: groupKey, // Use the group key as unique ID
+        lineNo: group.lineNo,
+        lineName: lineMap.get(group.lineNo)?.name || 'Unknown Line',
+        styleNo: group.styleNo,
+        buyer: group.productionList?.buyer || 'N/A',
+        item: group.productionList?.item || 'N/A',
+        target: totalTarget,
+        hours: totalWorkingHours,
+        targets: totalTargets,
+        hourlyProduction,
+        totalProduction,
+        averageProductionPerHour
+      });
+    });
     
     // Calculate summary statistics
     const summary = {
-      totalLines: reportData.length,
-      totalTarget: reportData.reduce((sum, item) => sum + item.totalTarget, 0),
+      totalLines: new Set(reportData.map(item => item.lineNo)).size,
+      totalTarget: reportData.reduce((sum, item) => sum + item.targets, 0),
       totalProduction: reportData.reduce((sum, item) => sum + item.totalProduction, 0),
       averageProductionPerHour: reportData.length > 0 
         ? reportData.reduce((sum, item) => sum + item.averageProductionPerHour, 0) / reportData.length 
@@ -237,14 +174,22 @@ export async function GET(request: NextRequest) {
       date: formattedDate
     };
     
+    // Calculate totals for each time slot
+    const timeSlotTotals: Record<string, number> = {};
+    timeSlotHeaders.forEach(timeSlot => {
+      timeSlotTotals[timeSlot] = reportData.reduce((sum, item) => sum + (item.hourlyProduction[timeSlot] || 0), 0);
+    });
+    
     console.log(`Final comprehensive report data: ${reportData.length} items`);
     console.log(`Summary: ${summary.totalLines} lines, ${summary.totalTarget} total target, ${summary.totalProduction} total production`);
+    console.log(`Time slot totals:`, timeSlotTotals);
     
     return NextResponse.json({
       success: true,
       data: reportData,
       summary: summary,
-      timeSlotHeaders: sortedTimeSlots
+      timeSlotHeaders: timeSlotHeaders,
+      timeSlotTotals: timeSlotTotals
     });
     
   } catch (error) {
