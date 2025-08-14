@@ -61,34 +61,36 @@ export function ProductionListDataTable({ statusFilter = 'all' }: ProductionList
 
   return (
     <>
-      <ScrollArea className="h-[600px] w-full rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16">SL</TableHead>
-              <TableHead>Program Code</TableHead>
-              <TableHead>Buyer</TableHead>
-              <TableHead>Item</TableHead>
-              <TableHead className="text-right">Quantity</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Dates</TableHead>
-              <TableHead>Notes</TableHead>
-              <TableHead className="w-24">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {pageItems.map((item, idx) => (
-              <ProductionRow key={item.id} item={item} index={startIndex + idx} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} />
-            ))}
-            {pageItems.length === 0 && (
+      <div className="overflow-x-auto">
+        <ScrollArea className="h-[600px] w-full rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-6 text-muted-foreground">No records</TableCell>
+                <TableHead className="w-16">SL</TableHead>
+                <TableHead>Program Code</TableHead>
+                <TableHead>Style No</TableHead>
+                <TableHead>Buyer</TableHead>
+                <TableHead>Item</TableHead>
+                <TableHead className="text-right">Quantity</TableHead>
+                <TableHead className="text-right">Price</TableHead>
+                <TableHead className="text-right">%</TableHead>
+                              <TableHead>Status</TableHead>
+              <TableHead className="w-24">Actions</TableHead>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </ScrollArea>
+            </TableHeader>
+            <TableBody>
+              {pageItems.map((item, idx) => (
+                <ProductionRow key={item.id} item={item} index={startIndex + idx} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} />
+              ))}
+              {pageItems.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-6 text-muted-foreground">No records</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </div>
 
       <PaginationControls
         page={page}

@@ -29,18 +29,14 @@ export function ProductionRow({ item, index, onView, onEdit, onDelete }: Product
     <TableRow key={item.id}>
       <TableCell className="font-medium">{index + 1}</TableCell>
       <TableCell className="font-medium">{item.programCode}</TableCell>
+      <TableCell className="font-medium">{item.styleNo}</TableCell>
       <TableCell>{item.buyer}</TableCell>
       <TableCell>{item.item}</TableCell>
       <TableCell className="text-right">{item.quantity.toLocaleString()}</TableCell>
       <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
+      <TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell>
       <TableCell>
         <StatusBadge status={item.status} />
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {formatDateRange(item.startDate, item.endDate)}
-      </TableCell>
-      <TableCell className="max-w-[200px] truncate" title={item.notes || ''}>
-        {item.notes || '-'}
       </TableCell>
       <TableCell className="w-24">
         <RowActions item={item} onView={onView} onEdit={onEdit} onDelete={onDelete} />

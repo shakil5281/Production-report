@@ -40,9 +40,6 @@ interface Line {
   id: string;
   name: string;
   code: string;
-  factory: {
-    name: string;
-  };
 }
 
 interface Style {
@@ -325,7 +322,7 @@ export default function DailyProductionPage() {
                     <SelectContent>
                       {lines.map((line) => (
                         <SelectItem key={line.id} value={line.id}>
-                          {line.name} ({line.code}) - {line.factory.name}
+                          {line.name} ({line.code})
                         </SelectItem>
                       ))}
                     </SelectContent>

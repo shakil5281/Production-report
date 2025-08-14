@@ -1,31 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-
-interface ProductionItem {
-  id: string;
-  programCode: string;
-  buyer: string;
-  quantity: number;
-  item: string;
-  price: number;
-  status: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED';
-  startDate?: string;
-  endDate?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ProductionFormData {
-  programCode: string;
-  buyer: string;
-  quantity: number;
-  item: string;
-  price: number;
-  status?: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED';
-  startDate?: string;
-  endDate?: string;
-  notes?: string;
-}
+import type { ProductionItem, ProductionFormData } from '@/components/production-list/schema';
 
 interface ApiResponse<T> {
   success: boolean;

@@ -325,7 +325,7 @@ export default function ExpensesPage() {
                     <SelectItem value="">General (No specific line)</SelectItem>
                     {lines.map((line) => (
                       <SelectItem key={line.id} value={line.id}>
-                        {line.name} ({line.code}) - {line.factory.name}
+                        {line.name} ({line.code})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -544,7 +544,7 @@ export default function ExpensesPage() {
                           <div>
                             <div className="font-medium">{expense.line.name}</div>
                             <div className="text-sm text-muted-foreground">
-                              {expense.line.code} - {expense.line.factory.name}
+                              {expense.line.code}
                             </div>
                           </div>
                         ) : (

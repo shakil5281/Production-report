@@ -5,27 +5,20 @@ import { getCurrentUser } from '@/lib/auth';
 // GET /api/factories - Get all factories with their lines
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser(request);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const factories = await prisma.factory.findMany({
       where: { isActive: true },
-      include: {
-        lines: {
-          where: { isActive: true },
-          orderBy: { code: 'asc' }
-        }
-      },
       orderBy: { name: 'asc' }
     });
 
-    return NextResponse.json(factories);
+    return NextResponse.json({
+      success: true,
+      data: factories,
+      total: factories.length
+    });
   } catch (error) {
     console.error('Error fetching factories:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -67,10 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const factory = await prisma.factory.create({
-      data: { name },
-      include: {
-        lines: true
-      }
+      data: { name }
     });
 
     return NextResponse.json(factory, { status: 201 });

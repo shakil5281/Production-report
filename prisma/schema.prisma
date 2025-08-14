@@ -162,7 +162,7 @@ model Session {
   @@map("sessions")
 }
 
-// Factory & Lines
+// Factory
 model Factory {
   id        String   @id @default(uuid())
   name      String
@@ -170,15 +170,11 @@ model Factory {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  // Relations
-  lines Line[]
-  
   @@map("factories")
 }
 
 model Line {
   id         String   @id @default(uuid())
-  factoryId  String
   name       String
   code       String   @unique
   isActive   Boolean  @default(true)
@@ -186,7 +182,6 @@ model Line {
   updatedAt  DateTime @default(now())
   
   // Relations
-  factory           Factory           @relation(fields: [factoryId], references: [id], onDelete: Cascade)
   styleAssignments  StyleAssignment[]
   productionEntries ProductionEntry[]
   expenses         Expense[]
@@ -261,19 +256,40 @@ model ProductionEntry {
 // Production List
 model ProductionList {
   id           String           @id @default(uuid())
-  programCode  String           @unique
+  programCode  String
+  styleNo      String           @unique
   buyer        String
   quantity     Int
   item         String
   price        Decimal
+  percentage   Decimal          @default(0)
   status       ProductionStatus @default(PENDING)
-  startDate    DateTime?
-  endDate      DateTime?
-  notes        String?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   
+  // Relations
+  targets Target[]
+  
   @@map("production_list")
+}
+
+// Target Management
+model Target {
+  id                 String   @id @default(uuid())
+  lineNo             String
+  styleNo            String
+  lineTarget         Int
+  date               DateTime
+  inTime             String
+  outTime            String
+  hourlyProduction   Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  // Relations
+  productionList ProductionList @relation(fields: [styleNo], references: [styleNo], onDelete: Cascade)
+  
+  @@map("targets")
 }
 
 // Expenses & Salary

@@ -7,14 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IconPlus, IconEdit, IconX } from '@tabler/icons-react';
+import { toast } from 'sonner';
 
 interface ProductionItem {
   id: string;
   programCode: string;
+  styleNo: string;
   buyer: string;
   quantity: number;
   item: string;
   price: number;
+  percentage: number;
   status: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED';
   notes?: string;
   createdAt: string;
@@ -30,10 +33,12 @@ interface ProductionFormProps {
 
 interface ProductionFormData {
   programCode: string;
+  styleNo: string;
   buyer: string;
   quantity: number;
   item: string;
   price: number;
+  percentage: number;
   status?: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED';
   notes?: string;
 }
@@ -41,12 +46,13 @@ interface ProductionFormData {
 export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFormProps) {
   const [formData, setFormData] = useState<ProductionFormData>({
     programCode: '',
+    styleNo: '',
     buyer: '',
     quantity: 0,
     item: '',
     price: 0,
-    status: 'PENDING',
-    notes: ''
+    percentage: 0,
+    status: 'PENDING'
   });
   const [loading, setLoading] = useState(false);
 
@@ -54,12 +60,13 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
     if (item && mode === 'edit') {
       setFormData({
         programCode: item.programCode,
+        styleNo: item.styleNo,
         buyer: item.buyer,
         quantity: item.quantity,
         item: item.item,
         price: item.price,
-        status: item.status,
-        notes: item.notes || ''
+        percentage: item.percentage,
+        status: item.status
       });
     }
   }, [item, mode]);
@@ -81,7 +88,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
   const handleInputChange = (field: keyof ProductionFormData, value: string | number) => {
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'quantity' || field === 'price' ? Number(value) : value
+      [field]: field === 'quantity' || field === 'price' || field === 'percentage' ? Number(value) : value
     }));
   };
 
@@ -117,7 +124,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="programCode">Program Code *</Label>
               <Input
@@ -126,6 +133,19 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                 onChange={(e) => handleInputChange('programCode', e.target.value)}
                 placeholder="e.g., PRG-001"
                 required
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="styleNo">Style No *</Label>
+              <Input
+                id="styleNo"
+                value={formData.styleNo}
+                onChange={(e) => handleInputChange('styleNo', e.target.value)}
+                placeholder="e.g., STY-001"
+                required
+                className="w-full"
               />
             </div>
             
@@ -137,11 +157,10 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                 onChange={(e) => handleInputChange('buyer', e.target.value)}
                 placeholder="e.g., Buyer A"
                 required
+                className="w-full"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="quantity">Quantity *</Label>
               <Input
@@ -152,6 +171,19 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                 onChange={(e) => handleInputChange('quantity', e.target.value)}
                 placeholder="e.g., 1000"
                 required
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="item">Item *</Label>
+              <Input
+                id="item"
+                value={formData.item}
+                onChange={(e) => handleInputChange('item', e.target.value)}
+                placeholder="e.g., Shirt"
+                required
+                className="w-full"
               />
             </div>
             
@@ -166,19 +198,22 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                 onChange={(e) => handleInputChange('price', e.target.value)}
                 placeholder="e.g., 10.00"
                 required
+                className="w-full"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+            
             <div className="space-y-2">
-              <Label htmlFor="item">Item *</Label>
+              <Label htmlFor="percentage">Percentage (%)</Label>
               <Input
-                id="item"
-                value={formData.item}
-                onChange={(e) => handleInputChange('item', e.target.value)}
-                placeholder="e.g., Shirt"
-                required
+                id="percentage"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={formData.percentage}
+                onChange={(e) => handleInputChange('percentage', e.target.value)}
+                placeholder="e.g., 25.5"
+                className="w-full"
               />
             </div>
             
@@ -188,7 +223,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                 value={formData.status} 
                 onValueChange={handleStatusChange}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,16 +234,8 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Input
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
-              placeholder="Additional notes..."
-            />
+
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

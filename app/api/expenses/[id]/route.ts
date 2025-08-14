@@ -18,7 +18,7 @@ export async function GET(
     const expense = await prisma.expense.findUnique({
       where: { id },
       include: {
-        line: { include: { factory: true } },
+        line: true,
         category: true,
       },
     });
@@ -107,7 +107,7 @@ export async function PUT(
         paymentMethod: paymentMethod ?? undefined,
       },
       include: {
-        line: { include: { factory: true } },
+        line: true,
         category: true,
       },
     });

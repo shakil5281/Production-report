@@ -73,12 +73,12 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+    <div className="min-h-screen pt-24 md:pt-0 md:flex items-center justify-center md:bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
       <div className="w-full max-w-md">
-        <Card className="shadow-xl border-0">
+        <Card className="md:shadow border-0 border-none outline-none shadow-none ">
           <CardHeader className="space-y-1 text-center">
-            <div className="mx-auto w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mb-4">
-              <LogIn className="w-6 h-6 text-white" />
+            <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4">
+              <LogIn className="w-6 h-6" />
             </div>
             <CardTitle className="text-2xl font-bold text-gray-900">
               Welcome back
@@ -103,7 +103,7 @@ function LoginForm() {
                         <Input
                           type="email"
                           placeholder="Enter your email"
-                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
+                          className="md:py-5 py-7"
                           {...field}
                         />
                       </FormControl>
@@ -125,7 +125,7 @@ function LoginForm() {
                           <Input
                             type={showPassword ? 'text' : 'password'}
                             placeholder="Enter your password"
-                            className="w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
+                            className="md:py-5 py-7"
                             {...field}
                           />
                           <button
@@ -155,7 +155,7 @@ function LoginForm() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full md:py-5 py-7 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
@@ -174,7 +174,7 @@ function LoginForm() {
                 Don&apos;t have an account?{' '}
                 <Link
                   href="/signup"
-                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+                  className=" font-medium transition-colors duration-200"
                 >
                   Sign up
                 </Link>

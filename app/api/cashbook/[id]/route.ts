@@ -18,7 +18,7 @@ export async function GET(
     const entry = await prisma.cashbookEntry.findUnique({
       where: { id },
       include: {
-        line: { include: { factory: true } },
+        line: true,
       },
     });
 
@@ -109,7 +109,7 @@ export async function PUT(
         description: description ?? undefined,
       },
       include: {
-        line: { include: { factory: true } },
+        line: true,
       },
     });
 

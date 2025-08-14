@@ -42,9 +42,6 @@ interface Line {
   id: string;
   name: string;
   code: string;
-  factory: {
-    name: string;
-  };
 }
 
 interface Style {
@@ -216,7 +213,7 @@ export default function ProductionReportsPage() {
       entry.date,
       `${entry.hourIndex}:00`,
       entry.line.name,
-      entry.line.factory.name,
+      entry.line.code,
       entry.style.styleNumber,
       entry.style.buyer,
       entry.stage,
@@ -469,7 +466,7 @@ export default function ProductionReportsPage() {
                     <TableHead>Date</TableHead>
                     <TableHead>Hour</TableHead>
                     <TableHead>Line</TableHead>
-                    <TableHead>Factory</TableHead>
+                    <TableHead>Line Code</TableHead>
                     <TableHead>Style</TableHead>
                     <TableHead>Buyer</TableHead>
                     <TableHead>Stage</TableHead>
@@ -487,7 +484,7 @@ export default function ProductionReportsPage() {
                       <TableCell>
                         {entry.line.name} ({entry.line.code})
                       </TableCell>
-                      <TableCell>{entry.line.factory.name}</TableCell>
+                      <TableCell>{entry.line.code}</TableCell>
                       <TableCell>{entry.style.styleNumber}</TableCell>
                       <TableCell>{entry.style.buyer}</TableCell>
                       <TableCell>

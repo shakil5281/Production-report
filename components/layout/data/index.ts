@@ -55,6 +55,10 @@ export const data = {
           url: "/target",
         },
         {
+          title: "Lines",
+          url: "/lines",
+        },
+        {
           title: "Daily Production",
           url: "/daily-production",
         },

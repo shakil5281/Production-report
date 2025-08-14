@@ -1,351 +1,287 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { IconTarget, IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
-
-interface Line {
-	id: string;
-	name: string;
-	code: string;
-	factory: { name: string };
-}
-
-interface Style { id: string; styleNumber: string; buyer: string }
-
-interface StyleAssignment {
-	id: string;
-	lineId: string;
-	styleId: string;
-	startDate: string;
-	endDate?: string | null;
-	targetPerHour?: number | null;
-	line: Line;
-	style: Style;
-}
-
-interface ProductionEntry {
-	id: string;
-	date: string;
-	hourIndex: number;
-	lineId: string;
-	styleId: string;
-	stage: 'CUTTING' | 'SEWING' | 'FINISHING';
-	inputQty: number;
-	outputQty: number;
-	defectQty: number;
-	reworkQty: number;
-}
+import { IconTarget, IconPlus, IconX } from '@tabler/icons-react';
+import { TargetForm } from '@/components/target/target-form';
+import { TargetDataTable } from '@/components/target/target-data-table';
+import { useTarget } from '@/hooks/use-target';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import type { Target, TargetFormData, ProductionListItem, Line } from '@/components/target/schema';
 
 export default function TargetPage() {
-	const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-	const [stage, setStage] = useState<'CUTTING' | 'SEWING' | 'FINISHING'>('SEWING');
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Target | null>(null);
 	const [lines, setLines] = useState<Line[]>([]);
-	const [assignments, setAssignments] = useState<StyleAssignment[]>([]);
-	const [entries, setEntries] = useState<ProductionEntry[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+  const [productionItems, setProductionItems] = useState<ProductionListItem[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const router = useRouter();
+  const { createTarget, updateTarget, deleteTarget, targets, loading, error, fetchTargetsByDate } = useTarget();
 
-	const [isSheetOpen, setIsSheetOpen] = useState(false);
-	const [editing, setEditing] = useState<StyleAssignment | null>(null);
-	const [form, setForm] = useState({
-		lineId: '',
-		styleId: '',
-		startDate: new Date().toISOString().split('T')[0],
-		endDate: '' as string | '' ,
-		targetPerHour: 0,
-	});
+  useEffect(() => {
+    // Format date as YYYY-MM-DD in local timezone to avoid UTC conversion issues
+    const formattedDate = selectedDate.toLocaleDateString('en-CA'); // Returns YYYY-MM-DD format
+    fetchTargetsByDate(formattedDate);
+    fetchLines();
+    fetchProductionItems();
+  }, [fetchTargetsByDate, selectedDate]);
 
-	const hours = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 8), []); // 8..19
+  const fetchLines = async () => {
+    try {
+      const response = await fetch('/api/lines');
+      const data = await response.json();
+      if (data.success) {
+        setLines(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching lines:', error);
+    }
+  };
 
-	const fetchAll = useCallback(async () => {
-		try {
-			setLoading(true);
-			const [linesRes, assignmentsRes, entriesRes, stylesRes] = await Promise.all([
-				fetch('/api/lines'),
-				fetch(`/api/style-assignments?date=${date}`),
-				fetch(`/api/production/entries?date=${date}`),
-				fetch('/api/styles?limit=100'),
-			]);
-			if (!linesRes.ok || !assignmentsRes.ok || !entriesRes.ok || !stylesRes.ok) {
-				throw new Error('Failed to load data');
-			}
-			const [linesData, assignmentsData, entriesData, stylesData] = await Promise.all([
-				linesRes.json(),
-				assignmentsRes.json(),
-				entriesRes.json(),
-				stylesRes.json(),
-			]);
-			setLines(linesData || []);
-			setAssignments(assignmentsData.assignments || []);
-			setEntries(entriesData.entries || []);
-			setError(null);
-		} catch (e) {
-			setError(e instanceof Error ? e.message : 'Error');
-		} finally {
-			setLoading(false);
-		}
-	}, [date]);
+  const fetchProductionItems = async () => {
+    try {
+      // Fetch only running styles from production list instead of styles API
+      const response = await fetch('/api/production?status=RUNNING');
+      const data = await response.json();
+      if (data.success) {
+        setProductionItems(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching running production items:', error);
+    }
+  };
 
-	useEffect(() => { fetchAll(); }, [fetchAll]);
+  const handleCreateItem = useCallback(async (formData: TargetFormData) => {
+    try {
+      const success = await createTarget(formData);
+      if (success) {
+        setSheetOpen(false);
+        toast.success('Target created successfully!');
+        router.refresh();
+      } else {
+        toast.error('Failed to create target');
+      }
+      return success;
+    } catch (error) {
+      console.error('Error creating target:', error);
+      toast.error('Error creating target');
+      return false;
+    }
+  }, [createTarget, router]);
 
-	const resetForm = () => {
-		setEditing(null);
-		setForm({ lineId: '', styleId: '', startDate: date, endDate: '', targetPerHour: 0 });
-	};
+  const handleEditItem = useCallback(async (formData: TargetFormData) => {
+    if (!editingItem) return false;
+    
+    try {
+      const success = await updateTarget(editingItem.id, formData);
+      if (success) {
+        setEditingItem(null);
+        toast.success('Target updated successfully!');
+        router.refresh();
+      } else {
+        toast.error('Failed to update target');
+      }
+      return success;
+    } catch (error) {
+      console.error('Error updating target:', error);
+      toast.error('Error updating target');
+      return false;
+    }
+  }, [editingItem, updateTarget, router]);
 
-	const handleCreateOrUpdate = async (e: React.FormEvent) => {
-		e.preventDefault();
-		try {
-			const body = {
-				lineId: form.lineId,
-				styleId: form.styleId,
-				startDate: form.startDate,
-				endDate: form.endDate || null,
-				targetPerHour: Number(form.targetPerHour) || 0,
-			};
-			const res = await fetch(editing ? `/api/style-assignments/${editing.id}` : '/api/style-assignments', {
-				method: editing ? 'PUT' : 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(body),
-			});
-			if (!res.ok) {
-				const err = await res.json();
-				throw new Error(err.error || 'Failed');
-			}
-			await fetchAll();
-			setIsSheetOpen(false);
-			resetForm();
-		} catch (e) {
-			setError(e instanceof Error ? e.message : 'Error');
-		}
-	};
+  const handleViewItem = (item: Target) => {
+    // Handle view action - you can implement a view sheet here
+    console.log('View target:', item);
+  };
 
-	const handleEdit = (a: StyleAssignment) => {
-		setEditing(a);
-		setForm({
-			lineId: a.lineId,
-			styleId: a.styleId,
-			startDate: a.startDate.split('T')[0],
-			endDate: a.endDate ? a.endDate.split('T')[0] : '',
-			targetPerHour: a.targetPerHour ?? 0,
-		});
-		setIsSheetOpen(true);
-	};
+  const handleEditItemOpen = (item: Target) => {
+    setEditingItem(item);
+    setSheetOpen(true);
+  };
 
-	const handleDelete = async (id: string) => {
-		if (!confirm('Delete this target?')) return;
-		try {
-			const res = await fetch(`/api/style-assignments/${id}`, { method: 'DELETE' });
-			if (!res.ok) {
-				const err = await res.json();
-				throw new Error(err.error || 'Failed');
-			}
-			await fetchAll();
-		} catch (e) {
-			setError(e instanceof Error ? e.message : 'Error');
-		}
-	};
+  const handleDeleteItem = async (item: Target) => {
+    if (confirm('Are you sure you want to delete this target?')) {
+      try {
+        const success = await deleteTarget(item.id);
+        if (success) {
+          toast.success('Target deleted successfully!');
+          router.refresh();
+        } else {
+          toast.error('Failed to delete target');
+        }
+      } catch (error) {
+        console.error('Error deleting target:', error);
+        toast.error('Error deleting target');
+      }
+    }
+  };
 
-	// Aggregate output per hour per line for selected stage
-	const outputByHourAndLine = useMemo(() => {
-		const map: Record<string, Record<number, number>> = {};
-		for (const line of lines) map[line.id] = {};
-		for (const entry of entries) {
-			if (entry.stage !== stage) continue;
-			if (!map[entry.lineId]) map[entry.lineId] = {};
-			map[entry.lineId][entry.hourIndex] = (map[entry.lineId][entry.hourIndex] || 0) + (entry.outputQty || 0);
-		}
-		return map;
-	}, [entries, lines, stage]);
+  const handleSheetClose = () => {
+    setSheetOpen(false);
+    setEditingItem(null);
+  };
 
-	const targetPerLine = useMemo(() => {
-		const map: Record<string, number> = {};
-		assignments.forEach(a => { map[a.lineId] = a.targetPerHour ?? 0; });
-		return map;
-	}, [assignments]);
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
 
 	return (
 		<div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 			<div className="flex flex-col gap-2">
-				<h1 className="text-3xl font-bold tracking-tight">Production Targets</h1>
-				<p className="text-muted-foreground">Set targets and monitor per-hour output by line</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Production Targets</h1>
+          <p className="text-muted-foreground">
+            Set and manage production targets for lines and running styles - {selectedDate.toLocaleDateString()}
+          </p>
+        </div>
+
+        {/* Add Target Button */}
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetTrigger asChild>
+            <Button className="flex items-center gap-2 w-full sm:w-auto">
+              <IconPlus className="h-4 w-4" />
+              Add Target
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-full sm:w-[600px] max-w-full">
+            <SheetHeader>
+              <SheetTitle>{editingItem ? 'Edit Target' : 'Add New Target'}</SheetTitle>
+              <SheetDescription>
+                {editingItem 
+                  ? 'Update the production target information'
+                  : 'Create a new production target with all required details'
+                }
+              </SheetDescription>
+            </SheetHeader>
+            <ScrollArea className='h-[calc(100vh-100px)]'>
+              <div className="mt-6">
+                <TargetForm
+                  mode={editingItem ? 'edit' : 'create'}
+                  item={editingItem}
+                  onSubmit={editingItem ? handleEditItem : handleCreateItem}
+                  onCancel={handleSheetClose}
+                  productionItems={productionItems}
+                  lines={lines}
+                />
+              </div>
+            </ScrollArea>
+          </SheetContent>
+        </Sheet>
 			</div>
 
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-700">
+              <IconX className="h-4 w-4" />
+              <span>{error}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="ml-auto text-red-700 hover:text-red-800"
+              >
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Target Data Table */}
 			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2">
 						<IconTarget className="h-5 w-5" />
-						Controls
+            Production Targets for {selectedDate.toLocaleDateString()}
+            {loading && <span className="text-sm text-muted-foreground">(Loading...)</span>}
 					</CardTitle>
-					<CardDescription>Filters and target management</CardDescription>
+          <CardDescription>
+            Complete list of all production targets for {selectedDate.toLocaleDateString()} (only running styles)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TargetDataTable 
+            data={targets} 
+            selectedDate={selectedDate}
+            onDateChange={handleDateChange}
+            onView={handleViewItem}
+            onEdit={handleEditItemOpen}
+            onDelete={handleDeleteItem}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Summary Statistics */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Targets for {selectedDate.toLocaleDateString()}</CardTitle>
+            <IconTarget className="h-4 w-4 text-muted-foreground" />
 				</CardHeader>
-				<CardContent className="grid gap-4 md:grid-cols-4">
-					<div className="space-y-2">
-						<Label htmlFor="date">Date</Label>
-						<Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-					</div>
-					<div className="space-y-2">
-						<Label>Stage</Label>
-						<Select value={stage} onValueChange={(v: 'CUTTING' | 'SEWING' | 'FINISHING') => setStage(v)}>
-							<SelectTrigger>
-								<SelectValue placeholder="Select stage" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="CUTTING">Cutting</SelectItem>
-								<SelectItem value="SEWING">Sewing</SelectItem>
-								<SelectItem value="FINISHING">Finishing</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
-					<div className="space-y-2 md:col-span-2 flex items-end justify-end">
-						<Sheet open={isSheetOpen} onOpenChange={(o) => { if (!o) resetForm(); setIsSheetOpen(o); }}>
-							<Button onClick={() => setIsSheetOpen(true)} className="w-full md:w-auto">
-								<IconPlus className="h-4 w-4 mr-2" />
-								{editing ? 'Edit Target' : 'Add Target'}
-							</Button>
-							<SheetContent side="right" className="w-[600px] sm:w-[600px]">
-								<SheetHeader>
-									<SheetTitle>{editing ? 'Edit Target' : 'Add Target'}</SheetTitle>
-									<SheetDescription>Line-Style assignment and hourly target</SheetDescription>
-								</SheetHeader>
-								<form onSubmit={handleCreateOrUpdate} className="mt-6 space-y-4">
-									<div className="grid grid-cols-2 gap-4">
-										<div className="space-y-2">
-											<Label>Line</Label>
-											<Select value={form.lineId} onValueChange={(v) => setForm({ ...form, lineId: v })}>
-												<SelectTrigger>
-													<SelectValue placeholder="Select line" />
-												</SelectTrigger>
-												<SelectContent>
-													{lines.map(l => (
-														<SelectItem key={l.id} value={l.id}>{l.factory.name} - {l.code}</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</div>
-										<div className="space-y-2">
-											<Label>Style</Label>
-											{/* Keep a light style selector: reuse styles from API via datalist */}
-											<Input list="styles-list" value={form.styleId} onChange={(e) => setForm({ ...form, styleId: e.target.value })} placeholder="Paste styleId or choose" />
-											<datalist id="styles-list"></datalist>
-										</div>
-									</div>
-									<div className="grid grid-cols-2 gap-4">
-										<div className="space-y-2">
-											<Label>Start Date</Label>
-											<Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
-										</div>
-										<div className="space-y-2">
-											<Label>End Date</Label>
-											<Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
-										</div>
-									</div>
-									<div className="space-y-2">
-										<Label>Target per hour</Label>
-										<Input type="number" min={0} value={form.targetPerHour} onChange={(e) => setForm({ ...form, targetPerHour: Number(e.target.value) })} />
-									</div>
-									<div className="flex justify-end gap-2 pt-4">
-										<Button type="button" variant="outline" onClick={() => { setIsSheetOpen(false); resetForm(); }}>Cancel</Button>
-										<Button type="submit">{editing ? 'Update' : 'Create'}</Button>
-									</div>
-								</form>
-							</SheetContent>
-						</Sheet>
-					</div>
+          <CardContent>
+            <div className="text-xl md:text-2xl font-bold">{targets.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Production targets
+            </p>
 				</CardContent>
 			</Card>
 
-			{/* Per-hour production grid */}
 			<Card>
-				<CardHeader>
-					<CardTitle>Per-hour Production by Line</CardTitle>
-					<CardDescription>{date} — Stage: {stage}</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Line Target</CardTitle>
+            <div className="h-4 w-4 rounded-full bg-blue-500" />
 				</CardHeader>
 				<CardContent>
-					<ScrollArea className="w-full overflow-auto">
-						<div className="min-w-[700px]">
-							<table className="w-full text-sm">
-								<thead>
-									<tr className="border-b">
-										<th className="text-left py-2 px-2">Hour</th>
-										{lines.map(l => (
-											<th key={l.id} className="text-center py-2 px-2">
-												<div className="flex items-center justify-center gap-2">
-													{l.code}
-													{(targetPerLine[l.id] ?? 0) > 0 && (
-														<Badge variant="secondary">Target {targetPerLine[l.id]}</Badge>
-													)}
+            <div className="text-xl md:text-2xl font-bold">
+              {targets.reduce((sum, target) => sum + target.lineTarget, 0).toLocaleString()}
 												</div>
-											</th>
-										))}
-									</tr>
-								</thead>
-								<tbody>
-									{hours.map(h => (
-											<tr key={h} className="border-b">
-												<td className="py-2 px-2 font-medium">{String(h).padStart(2,'0')}:00 - {String((h+1)%24).padStart(2,'0')}:00</td>
-												{lines.map(l => {
-													const actual = outputByHourAndLine[l.id]?.[h] || 0;
-													const target = targetPerLine[l.id] || 0;
-													return (
-														<td key={l.id + '-' + h} className="text-center py-2 px-2">
-															<div className="inline-flex items-center gap-2">
-																<span className={actual >= target && target > 0 ? 'text-green-600' : 'text-foreground'}>{actual}</span>
-																{target > 0 && <span className="text-muted-foreground">/ {target}</span>}
-															</div>
-														</td>
-													);
-												})}
-											</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
-					</ScrollArea>
+            <p className="text-xs text-muted-foreground">
+              Combined targets
+            </p>
 				</CardContent>
 			</Card>
 
-			{/* Active assignments list with edit/delete */}
 			<Card>
-				<CardHeader>
-					<CardTitle>Active Targets</CardTitle>
-					<CardDescription>Assignments active on {date}</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Production</CardTitle>
+            <div className="h-4 w-4 rounded-full bg-green-500" />
 				</CardHeader>
-				<CardContent className="space-y-3">
-					{assignments.length === 0 && <div className="text-muted-foreground">No active targets.</div>}
-					{assignments.map(a => (
-						<div key={a.id} className="flex items-center justify-between rounded-md border p-3">
-							<div className="flex flex-col">
-								<span className="font-medium">{a.line.factory.name} / {a.line.code} → {a.style.styleNumber}</span>
-								<span className="text-xs text-muted-foreground">Target {a.targetPerHour ?? 0} per hour • {a.startDate.split('T')[0]}{a.endDate ? ` - ${a.endDate.split('T')[0]}` : ''}</span>
+          <CardContent>
+            <div className="text-xl md:text-2xl font-bold">
+              {targets.reduce((sum, target) => sum + target.hourlyProduction, 0).toLocaleString()}
 							</div>
-							<div className="flex gap-2">
-								<Button size="sm" variant="outline" onClick={() => handleEdit(a)}>
-									<IconEdit className="h-4 w-4" />
-								</Button>
-								<Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDelete(a.id)}>
-									<IconTrash className="h-4 w-4" />
-								</Button>
-							</div>
-						</div>
-					))}
+            <p className="text-xs text-muted-foreground">
+              Sum of hourly production
+            </p>
 				</CardContent>
 			</Card>
 
-			{error && (
-				<Card className="border-red-200 bg-red-50">
-					<CardContent className="pt-6 text-red-700">{error}</CardContent>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Production</CardTitle>
+            <div className="h-4 w-4 rounded-full bg-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl md:text-2xl font-bold">
+              {targets.length > 0 
+                ? (targets.reduce((sum, target) => sum + target.hourlyProduction, 0) / targets.length).toFixed(2)
+                : '0.00'
+              }
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Average hourly production
+            </p>
+          </CardContent>
 				</Card>
-			)}
+      </div>
 		</div>
 	);
 }
