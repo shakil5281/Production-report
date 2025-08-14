@@ -217,7 +217,7 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>
-                  {line.line.name} ({line.line.code}) - {line.line.factory.name}
+                  {line.line.name} ({line.line.code})
                 </span>
                 <Badge variant="outline">
                   {line.styles.length} Style{line.styles.length !== 1 ? 's' : ''}

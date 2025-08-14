@@ -41,11 +41,7 @@ export async function GET(request: NextRequest) {
         include: {
           styleAssignments: {
             include: {
-              line: {
-                include: {
-                  factory: true
-                }
-              }
+              line: true
             }
           },
           _count: {

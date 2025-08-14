@@ -14,10 +14,10 @@ export async function GET(
 		}
 
 		const { id } = await params;
-		const assignment = await prisma.styleAssignment.findUnique({
-			where: { id },
-			include: { line: { include: { factory: true } }, style: true },
-		});
+		    const assignment = await prisma.styleAssignment.findUnique({
+      where: { id },
+      include: { line: true, style: true },
+    });
 		if (!assignment) {
 			return NextResponse.json({ error: 'Style assignment not found' }, { status: 404 });
 		}
@@ -86,7 +86,7 @@ export async function PUT(
 				endDate: end,
 				targetPerHour: targetPerHour ?? existing.targetPerHour ?? 0,
 			},
-			include: { line: { include: { factory: true } }, style: true },
+			      include: { line: true, style: true },
 		});
 		return NextResponse.json(updated);
 	} catch (error) {

@@ -17,11 +17,7 @@ export async function GET(
     const entry = await prisma.productionEntry.findUnique({
       where: { id },
       include: {
-        line: {
-          include: {
-            factory: true
-          }
-        },
+        line: true,
         style: true
       }
     });
@@ -86,11 +82,7 @@ export async function PUT(
         notes: notes !== undefined ? notes : existingEntry.notes
       },
       include: {
-        line: {
-          include: {
-            factory: true
-          }
-        },
+        line: true,
         style: true
       }
     });

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const lines = await prisma.line.findMany({
       where: { isActive: true },
       include: {
-        factory: true,
+
         styleAssignments: {
           where: {
             startDate: { lte: date },
@@ -52,8 +52,7 @@ export async function GET(request: NextRequest) {
         line: {
           id: line.id,
           name: line.name,
-          code: line.code,
-          factory: line.factory
+          code: line.code
         },
         styles: line.styleAssignments.map(assignment => {
           const style = assignment.style;

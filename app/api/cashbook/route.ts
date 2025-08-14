@@ -36,11 +36,7 @@ export async function GET(request: NextRequest) {
     let entries = await prisma.cashbookEntry.findMany({
       where,
       include: {
-        line: {
-          include: {
-            factory: true,
-          },
-        },
+        line: true,
       },
       orderBy: [
         { date: 'desc' },
@@ -183,11 +179,7 @@ export async function POST(request: NextRequest) {
         description,
       },
       include: {
-        line: {
-          include: {
-            factory: true,
-          },
-        },
+        line: true,
       },
     });
 

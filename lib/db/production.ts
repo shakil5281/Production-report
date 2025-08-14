@@ -9,33 +9,36 @@ interface PrismaError extends Error {
 
 export interface CreateProductionItemData {
   programCode: string;
+  styleNo: string;
   buyer: string;
   quantity: number;
   item: string;
   price: number;
+  percentage: number;
   status?: ProductionStatus;
-  notes?: string;
 }
 
 export interface UpdateProductionItemData {
   programCode?: string;
+  styleNo?: string;
   buyer?: string;
   quantity?: number;
   item?: string;
   price?: number;
+  percentage?: number;
   status?: ProductionStatus;
-  notes?: string;
 }
 
 // Interface for Prisma update data
 interface PrismaUpdateData {
   programCode?: string;
+  styleNo?: string;
   buyer?: string;
   quantity?: number;
   item?: string;
   price?: Decimal;
+  percentage?: Decimal;
   status?: ProductionStatus;
-  notes?: string;
 }
 
 // Helper function to convert Decimal to number
@@ -50,7 +53,8 @@ function convertDecimalToNumber(value: unknown): number | unknown {
 function transformProductionItem(item: Record<string, unknown>) {
   return {
     ...item,
-    price: convertDecimalToNumber(item.price)
+    price: convertDecimalToNumber(item.price),
+    percentage: convertDecimalToNumber(item.percentage)
   };
 }
 
@@ -88,6 +92,7 @@ export const productionService = {
         data: {
           ...data,
           price: new Decimal(data.price),
+          percentage: new Decimal(data.percentage),
         }
       });
       return transformProductionItem(item);
@@ -95,7 +100,10 @@ export const productionService = {
       console.error('Error creating production item:', error);
       const prismaError = error as PrismaError;
       if (prismaError.code === 'P2002') {
-        throw new Error('Program code already exists');
+        if (prismaError.message.includes('styleNo')) {
+          throw new Error('Style No already exists');
+        }
+        throw new Error('Failed to create production item');
       }
       throw new Error('Failed to create production item');
     }
@@ -108,14 +116,18 @@ export const productionService = {
       
       // Only assign defined values
       if (data.programCode !== undefined) updateData.programCode = data.programCode;
+      if (data.styleNo !== undefined) updateData.styleNo = data.styleNo;
       if (data.buyer !== undefined) updateData.buyer = data.buyer;
       if (data.quantity !== undefined) updateData.quantity = data.quantity;
       if (data.item !== undefined) updateData.item = data.item;
       if (data.status !== undefined) updateData.status = data.status;
-      if (data.notes !== undefined) updateData.notes = data.notes;
       
       if (data.price !== undefined) {
         updateData.price = new Decimal(data.price);
+      }
+      
+      if (data.percentage !== undefined) {
+        updateData.percentage = new Decimal(data.percentage);
       }
 
       const item = await prisma.productionList.update({
@@ -127,7 +139,10 @@ export const productionService = {
       console.error('Error updating production item:', error);
       const prismaError = error as PrismaError;
       if (prismaError.code === 'P2002') {
-        throw new Error('Program code already exists');
+        if (prismaError.message.includes('styleNo')) {
+          throw new Error('Style No already exists');
+        }
+        throw new Error('Failed to update production item');
       }
       if (prismaError.code === 'P2025') {
         throw new Error('Production item not found');
@@ -153,10 +168,12 @@ export const productionService = {
     }
   },
 
-  // Check if program code exists
-  async programCodeExists(programCode: string, excludeId?: string) {
+
+
+  // Check if style number exists
+  async styleNoExists(styleNo: string, excludeId?: string) {
     try {
-      const where: { programCode: string; id?: { not: string } } = { programCode };
+      const where: { styleNo: string; id?: { not: string } } = { styleNo };
       if (excludeId) {
         where.id = { not: excludeId };
       }
@@ -164,8 +181,8 @@ export const productionService = {
       const existing = await prisma.productionList.findFirst({ where });
       return !!existing;
     } catch (error) {
-      console.error('Error checking program code:', error);
-      throw new Error('Failed to check program code');
+      console.error('Error checking style number:', error);
+      throw new Error('Failed to check style number');
     }
   },
 

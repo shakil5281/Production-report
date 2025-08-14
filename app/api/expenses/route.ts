@@ -39,11 +39,7 @@ export async function GET(request: NextRequest) {
       prisma.expense.findMany({
         where,
         include: {
-          line: {
-            include: {
-              factory: true
-            }
-          },
+          line: true,
           category: true
         },
         orderBy: [
@@ -163,11 +159,7 @@ export async function POST(request: NextRequest) {
         paymentMethod
       },
       include: {
-        line: {
-          include: {
-            factory: true
-          }
-        },
+        line: true,
         category: true
       }
     });

@@ -93,11 +93,7 @@ export async function GET(request: NextRequest) {
       prisma.productionEntry.findMany({
         where,
         include: {
-          line: {
-            include: {
-              factory: true
-            }
-          },
+          line: true,
           style: true
         },
         orderBy: [
@@ -234,11 +230,7 @@ export async function POST(request: NextRequest) {
         notes
       },
       include: {
-        line: {
-          include: {
-            factory: true
-          }
-        },
+        line: true,
         style: true
       }
     });

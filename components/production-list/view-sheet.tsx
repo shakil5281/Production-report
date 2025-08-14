@@ -24,7 +24,7 @@ interface ViewSheetProps {
 export function ViewSheet({ open, onOpenChange, item }: ViewSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[600px] sm:w-[600px]">
+      <SheetContent side="right" className="w-full sm:w-[600px] max-w-full">
         <SheetHeader>
           <SheetTitle>Production Item Details</SheetTitle>
           <SheetDescription>View detailed information about the production item</SheetDescription>
@@ -32,27 +32,27 @@ export function ViewSheet({ open, onOpenChange, item }: ViewSheetProps) {
         <div className="mt-6 space-y-4">
           {item && (
             <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Program Code</label>
                   <p className="text-lg">{item.programCode}</p>
                 </div>
                 <div>
+                  <label className="text-sm font-medium text-muted-foreground">Style No</label>
+                  <p className="text-lg">{item.styleNo}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">Buyer</label>
                   <p className="text-lg">{item.buyer}</p>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Item</label>
                   <p className="text-lg">{item.item}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <div className="mt-1"><StatusBadge status={item.status} /></div>
-                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Quantity</label>
                   <p className="text-lg">{item.quantity.toLocaleString()}</p>
@@ -62,16 +62,17 @@ export function ViewSheet({ open, onOpenChange, item }: ViewSheetProps) {
                   <p className="text-lg">${item.price.toFixed(2)}</p>
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Dates</label>
-                <p className="text-lg">{formatDateRange(item.startDate, item.endDate)}</p>
-              </div>
-              {item.notes && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Notes</label>
-                  <p className="text-lg">{item.notes}</p>
+                  <label className="text-sm font-medium text-muted-foreground">Percentage</label>
+                  <p className="text-lg">{item.percentage.toFixed(1)}%</p>
                 </div>
-              )}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                  <div className="mt-1"><StatusBadge status={item.status} /></div>
+                </div>
+              </div>
+
             </div>
           )}
         </div>

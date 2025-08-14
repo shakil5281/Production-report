@@ -1,26 +1,26 @@
 export interface ProductionItem {
   id: string;
   programCode: string;
+  styleNo: string;
   buyer: string;
   quantity: number;
   item: string;
   price: number;
+  percentage: number;
   status: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED';
-  startDate?: string;
-  endDate?: string;
-  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ProductionFormData {
   programCode: string;
+  styleNo: string;
   buyer: string;
   quantity: number;
   item: string;
   price: number;
+  percentage: number;
   status?: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED';
-  notes?: string;
 }
 
 export function formatDate(dateString?: string): string {

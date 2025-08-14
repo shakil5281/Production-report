@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 			prisma.styleAssignment.findMany({
 				where,
 				include: {
-					line: { include: { factory: true } },
+					line: true,
 					style: true,
 				},
 				orderBy: [{ startDate: 'desc' }],
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 				endDate: end,
 				targetPerHour: targetPerHour ?? 0,
 			},
-			include: { line: { include: { factory: true } }, style: true },
+			include: { line: true, style: true },
 		});
 
 		return NextResponse.json(assignment, { status: 201 });

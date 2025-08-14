@@ -338,7 +338,7 @@ export default function CashbookPage() {
                     <SelectItem value="">General (No specific line)</SelectItem>
                     {lines.map((line) => (
                       <SelectItem key={line.id} value={line.id}>
-                        {line.name} ({line.code}) - {line.factory.name}
+                        {line.name} ({line.code})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -564,7 +564,7 @@ export default function CashbookPage() {
                           <div>
                             <div className="font-medium">{entry.line.name}</div>
                             <div className="text-sm text-muted-foreground">
-                              {entry.line.code} - {entry.line.factory.name}
+                              {entry.line.code}
                             </div>
                           </div>
                         ) : (

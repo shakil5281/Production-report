@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { UserWithPermissions } from '@/lib/types/auth';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { LoadingSection } from '@/components/ui/loading';
+import { Toaster } from '@/components/ui/sonner';
 
 export default function RootLayout({
   children,
@@ -95,6 +96,7 @@ export default function RootLayout({
         {/* </div> */}
       </SidebarInset>
       {/* </div> */}
+      <Toaster />
     </SidebarProvider>
   );
 }
