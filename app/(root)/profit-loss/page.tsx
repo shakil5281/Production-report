@@ -103,7 +103,7 @@ export default function ProfitLossPage() {
       }
       
       const data = await response.json();
-      setLines(data || []);
+      setLines(data.data || []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch lines';
       setLinesError(errorMessage);
@@ -310,7 +310,7 @@ export default function ProfitLossPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All lines</SelectItem>
-                  {lines.map((line) => (
+                  {lines?.map((line) => (
                     <SelectItem key={line.id} value={line.id}>
                       {line.name} ({line.code})
                     </SelectItem>

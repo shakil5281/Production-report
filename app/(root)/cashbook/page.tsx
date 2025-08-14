@@ -104,7 +104,7 @@ export default function CashbookPage() {
       const response = await fetch('/api/lines');
       if (response.ok) {
         const data = await response.json();
-        setLines(data || []);
+        setLines(data.data || []);
       }
     } catch (err) {
       console.error('Failed to fetch lines:', err);
@@ -336,7 +336,7 @@ export default function CashbookPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">General (No specific line)</SelectItem>
-                    {lines.map((line) => (
+                    {lines?.map((line) => (
                       <SelectItem key={line.id} value={line.id}>
                         {line.name} ({line.code})
                       </SelectItem>
@@ -502,7 +502,7 @@ export default function CashbookPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All lines</SelectItem>
-                  {lines.map((line) => (
+                  {lines?.map((line) => (
                     <SelectItem key={line.id} value={line.id}>
                       {line.name} ({line.code})
                     </SelectItem>

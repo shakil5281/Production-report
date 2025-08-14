@@ -139,7 +139,7 @@ export function TargetForm({ item, onSubmit, onCancel, mode, productionItems, li
                   <SelectValue placeholder="Select line" />
                 </SelectTrigger>
                 <SelectContent>
-                  {lines.map(line => (
+                  {lines?.map(line => (
                     <SelectItem key={line.id} value={line.id}>
                       {line.name} - {line.code}
                     </SelectItem>

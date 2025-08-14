@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate daily totals and status for each line/style combination
-    const dashboardData = lines.map(line => {
+    const dashboardData = lines?.map(line => {
       const lineData = {
         line: {
           id: line.id,

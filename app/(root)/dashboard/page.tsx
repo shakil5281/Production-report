@@ -212,7 +212,7 @@ export default function DashboardPage() {
       {/* Production Lines */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Production Lines</h2>
-        {dashboardData.lines.map((line) => (
+        {dashboardData.lines?.map((line) => (
           <Card key={line.line.id}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">

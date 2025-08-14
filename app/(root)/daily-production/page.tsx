@@ -93,7 +93,7 @@ export default function DailyProductionPage() {
       ]);
 
       setEntries(entriesData.entries || []);
-      setLines(linesData || []);
+      setLines(linesData.data || []);
       setStyles(stylesData.styles || []);
       setError(null);
     } catch (err) {
@@ -320,7 +320,7 @@ export default function DailyProductionPage() {
                       <SelectValue placeholder="Select line" />
                     </SelectTrigger>
                     <SelectContent>
-                      {lines.map((line) => (
+                      {lines?.map((line) => (
                         <SelectItem key={line.id} value={line.id}>
                           {line.name} ({line.code})
                         </SelectItem>

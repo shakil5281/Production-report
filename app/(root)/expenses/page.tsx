@@ -121,7 +121,7 @@ export default function ExpensesPage() {
         categoriesRes.json()
       ]);
 
-      setLines(linesData || []);
+      setLines(linesData.data || []);
       setCategories(categoriesData || []);
     } catch (err) {
       console.error('Failed to fetch master data:', err);
@@ -323,7 +323,7 @@ export default function ExpensesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">General (No specific line)</SelectItem>
-                    {lines.map((line) => (
+                    {lines?.map((line) => (
                       <SelectItem key={line.id} value={line.id}>
                         {line.name} ({line.code})
                       </SelectItem>
@@ -445,7 +445,7 @@ export default function ExpensesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All lines</SelectItem>
-                  {lines.map((line) => (
+                  {lines?.map((line) => (
                     <SelectItem key={line.id} value={line.id}>
                       {line.name} ({line.code})
                     </SelectItem>
