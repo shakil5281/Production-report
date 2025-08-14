@@ -138,7 +138,7 @@ export default function ProductionReportsPage() {
         stylesRes.json()
       ]);
 
-      setLines(linesData || []);
+      setLines(linesData.data || []);
       setStyles(stylesData.styles || []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch master data';
@@ -319,7 +319,7 @@ export default function ProductionReportsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All lines</SelectItem>
-                  {lines.map((line) => (
+                  {lines?.map((line) => (
                     <SelectItem key={line.id} value={line.id}>
                       {line.name} ({line.code})
                     </SelectItem>
