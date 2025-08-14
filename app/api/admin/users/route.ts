@@ -192,7 +192,6 @@ async function createDefaultUserPermissions(userId: string, role: UserRole) {
     const userPermissions = defaultPermissions.map(permissionId => ({
       userId,
       permissionId,
-      granted: true,
     }));
 
     await prisma.userPermission.createMany({

@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 // GET /api/style-assignments/[id]
 export async function GET(
 	request: NextRequest,
-	{ params }: { params: Promise<{ id: string }> }
+	{ params }: { params: { id: string } }
 ) {
 	try {
 		const user = await getCurrentUser(request);
@@ -13,7 +13,7 @@ export async function GET(
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		const { id } = await params;
+		const { id } = params;
 		    const assignment = await prisma.styleAssignment.findUnique({
       where: { id },
       include: { line: true, style: true },
@@ -31,7 +31,7 @@ export async function GET(
 // PUT /api/style-assignments/[id]
 export async function PUT(
 	request: NextRequest,
-	{ params }: { params: Promise<{ id: string }> }
+	{ params }: { params: { id: string } }
 ) {
 	try {
 		const user = await getCurrentUser(request);
@@ -42,7 +42,7 @@ export async function PUT(
 			return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
 		}
 
-		const { id } = await params;
+		const { id } = params;
 		const body = await request.json();
 		const { startDate, endDate, targetPerHour } = body as {
 			startDate?: string;
@@ -98,7 +98,7 @@ export async function PUT(
 // DELETE /api/style-assignments/[id]
 export async function DELETE(
 	request: NextRequest,
-	{ params }: { params: Promise<{ id: string }> }
+	{ params }: { params: { id: string } }
 ) {
 	try {
 		const user = await getCurrentUser(request);
@@ -109,7 +109,7 @@ export async function DELETE(
 			return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
 		}
 
-		const { id } = await params;
+		const { id } = params;
 		await prisma.styleAssignment.delete({ where: { id } });
 		return NextResponse.json({ message: 'Style assignment deleted successfully' });
 	} catch (error) {
