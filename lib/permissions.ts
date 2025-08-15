@@ -20,9 +20,13 @@ export class PermissionService {
   static hasRole(userRole: UserRole, requiredRole: UserRole): boolean {
     const roleHierarchy = {
       [UserRole.USER]: 1,
-      [UserRole.MANAGER]: 2,
-      [UserRole.ADMIN]: 3,
-      [UserRole.SUPER_ADMIN]: 4,
+      [UserRole.CASHBOOK_MANAGER]: 2,
+      [UserRole.PRODUCTION_MANAGER]: 2,
+      [UserRole.CUTTING_MANAGER]: 2,
+      [UserRole.REPORT_VIEWER]: 2,
+      [UserRole.MANAGER]: 3,
+      [UserRole.ADMIN]: 4,
+      [UserRole.SUPER_ADMIN]: 5,
     };
 
     return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
@@ -37,9 +41,13 @@ export class PermissionService {
   static getRoleLevel(role: UserRole): number {
     const roleHierarchy = {
       [UserRole.USER]: 1,
-      [UserRole.MANAGER]: 2,
-      [UserRole.ADMIN]: 3,
-      [UserRole.SUPER_ADMIN]: 4,
+      [UserRole.CASHBOOK_MANAGER]: 2,
+      [UserRole.PRODUCTION_MANAGER]: 2,
+      [UserRole.CUTTING_MANAGER]: 2,
+      [UserRole.REPORT_VIEWER]: 2,
+      [UserRole.MANAGER]: 3,
+      [UserRole.ADMIN]: 4,
+      [UserRole.SUPER_ADMIN]: 5,
     };
 
     return roleHierarchy[role] || 0;

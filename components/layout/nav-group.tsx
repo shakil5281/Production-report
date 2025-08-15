@@ -37,6 +37,7 @@ export function NavGroup({
         items?: {
             title: string
             url: string
+            roles?: string[]
         }[]
     }[]
     user: UserWithPermissions
@@ -136,7 +137,11 @@ export function NavGroup({
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {item.items?.map((subItem) => {
+                                    {item.items?.filter(subItem => {
+                                        // Filter sub-items based on user role
+                                        if (!subItem.roles) return true
+                                        return subItem.roles.includes(user.role)
+                                    }).map((subItem) => {
                                         const isSubActive = pathname === subItem.url
                                         return (
                                             <SidebarMenuSubItem key={subItem.title}>

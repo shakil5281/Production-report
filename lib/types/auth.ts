@@ -56,13 +56,29 @@ export interface PermissionCheck {
 
 // Utility functions for role checking
 export const hasAdminAccess = (user: UserWithPermissions): boolean => {
-  return user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+  return user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
 };
 
 export const hasSuperAdminAccess = (user: UserWithPermissions): boolean => {
-  return user.role === 'SUPER_ADMIN';
+  return user.role === UserRole.SUPER_ADMIN;
 };
 
 export const hasManagerAccess = (user: UserWithPermissions): boolean => {
-  return user.role === 'MANAGER' || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+  return user.role === UserRole.MANAGER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+};
+
+export const hasCashbookAccess = (user: UserWithPermissions): boolean => {
+  return user.role === UserRole.CASHBOOK_MANAGER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+};
+
+export const hasProductionAccess = (user: UserWithPermissions): boolean => {
+  return user.role === UserRole.PRODUCTION_MANAGER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+};
+
+export const hasCuttingAccess = (user: UserWithPermissions): boolean => {
+  return user.role === UserRole.CUTTING_MANAGER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+};
+
+export const isReadOnlyUser = (user: UserWithPermissions): boolean => {
+  return user.role === UserRole.REPORT_VIEWER;
 };

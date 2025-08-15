@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient, UserRole, PermissionType } from '@prisma/client';
 import { AuthService } from '@/lib/auth';
 
 const prisma = new PrismaClient();
@@ -10,8 +10,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    
     // Get token from cookies
     const token = request.cookies.get('auth-token')?.value;
     
@@ -40,7 +38,8 @@ export async function GET(
       );
     }
 
-    // Get user with permissions
+    // Get the user
+    const { id } = await params;
     const targetUser = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -101,8 +100,6 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    
     // Get token from cookies
     const token = request.cookies.get('auth-token')?.value;
     
@@ -134,7 +131,16 @@ export async function PUT(
     const body = await request.json();
     const { name, email, role, isActive, password } = body;
 
-    // Check if user exists
+    // Validate required fields
+    if (!name || !email || !role) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Get params and check if user exists
+    const { id } = await params;
     const existingUser = await prisma.user.findUnique({
       where: { id }
     });
@@ -146,27 +152,32 @@ export async function PUT(
       );
     }
 
-    // Check if email is being changed and if it's already taken
-    if (email && email !== existingUser.email) {
-      const emailExists = await prisma.user.findUnique({
+    // Check if email is taken by another user
+    if (email !== existingUser.email) {
+      const emailTaken = await prisma.user.findUnique({
         where: { email }
       });
 
-      if (emailExists) {
+      if (emailTaken) {
         return NextResponse.json(
-          { error: 'Email already taken' },
+          { error: 'Email is already taken by another user' },
           { status: 409 }
         );
       }
     }
 
     // Prepare update data
-    const updateData: Record<string, unknown> = {};
-    if (name) updateData.name = name;
-    if (email) updateData.email = email;
-    if (role) updateData.role = role;
-    if (typeof isActive === 'boolean') updateData.isActive = isActive;
-    if (password) updateData.password = await authService.hashPassword(password);
+    const updateData: any = {
+      name,
+      email,
+      role: role as UserRole,
+      isActive: isActive ?? true,
+    };
+
+    // Hash password if provided
+    if (password && password.trim() !== '') {
+      updateData.password = await authService.hashPassword(password);
+    }
 
     // Update user
     const updatedUser = await prisma.user.update({
@@ -178,14 +189,27 @@ export async function PUT(
         email: true,
         role: true,
         isActive: true,
+        lastLogin: true,
+        createdAt: true,
         updatedAt: true,
       }
     });
 
+    // Update user permissions based on new role if role changed
+    if (role !== existingUser.role) {
+      // Delete existing permissions
+      await prisma.userPermission.deleteMany({
+        where: { userId: id }
+      });
+
+      // Create new permissions based on role
+      await createDefaultUserPermissions(id, role as UserRole);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'User updated successfully',
-      user: updatedUser
+      user: updatedUser,
     });
 
   } catch (error) {
@@ -205,8 +229,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    
     // Get token from cookies
     const token = request.cookies.get('auth-token')?.value;
     
@@ -235,7 +257,8 @@ export async function DELETE(
       );
     }
 
-    // Check if user exists
+    // Get params and check if user exists
+    const { id } = await params;
     const existingUser = await prisma.user.findUnique({
       where: { id }
     });
@@ -248,14 +271,14 @@ export async function DELETE(
     }
 
     // Prevent self-deletion
-    if (id === user.id) {
+    if (user.id === id) {
       return NextResponse.json(
         { error: 'Cannot delete your own account' },
         { status: 400 }
       );
     }
 
-    // Delete user (this will cascade delete related records)
+    // Delete user (this will cascade delete sessions and permissions)
     await prisma.user.delete({
       where: { id }
     });
@@ -274,4 +297,178 @@ export async function DELETE(
   } finally {
     await prisma.$disconnect();
   }
+}
+
+// Helper function to create default permissions for a role
+async function createDefaultUserPermissions(userId: string, role: UserRole) {
+  try {
+    // Get default permissions for the role
+    const defaultPermissions = await getDefaultPermissionsForRole(role);
+    
+    // Create user permissions
+    const userPermissions = defaultPermissions.map(permissionId => ({
+      userId,
+      permissionId,
+    }));
+
+    if (userPermissions.length > 0) {
+      await prisma.userPermission.createMany({
+        data: userPermissions,
+      });
+    }
+  } catch (error) {
+    console.error('Error creating default user permissions:', error);
+  }
+}
+
+async function getDefaultPermissionsForRole(role: UserRole): Promise<string[]> {
+  // Define default permissions for each role
+  const rolePermissions: Record<UserRole, PermissionType[]> = {
+    [UserRole.USER]: [
+      PermissionType.READ_PRODUCTION,
+      PermissionType.READ_REPORT,
+    ],
+    [UserRole.CASHBOOK_MANAGER]: [
+      PermissionType.CREATE_CASHBOOK,
+      PermissionType.READ_CASHBOOK,
+      PermissionType.UPDATE_CASHBOOK,
+      PermissionType.DELETE_CASHBOOK,
+      PermissionType.CREATE_EXPENSE,
+      PermissionType.READ_EXPENSE,
+      PermissionType.UPDATE_EXPENSE,
+      PermissionType.DELETE_EXPENSE,
+      PermissionType.READ_REPORT,
+    ],
+    [UserRole.PRODUCTION_MANAGER]: [
+      PermissionType.CREATE_PRODUCTION,
+      PermissionType.READ_PRODUCTION,
+      PermissionType.UPDATE_PRODUCTION,
+      PermissionType.DELETE_PRODUCTION,
+      PermissionType.CREATE_TARGET,
+      PermissionType.READ_TARGET,
+      PermissionType.UPDATE_TARGET,
+      PermissionType.DELETE_TARGET,
+      PermissionType.CREATE_LINE,
+      PermissionType.READ_LINE,
+      PermissionType.UPDATE_LINE,
+      PermissionType.DELETE_LINE,
+      PermissionType.READ_REPORT,
+    ],
+    [UserRole.CUTTING_MANAGER]: [
+      PermissionType.CREATE_CUTTING,
+      PermissionType.READ_CUTTING,
+      PermissionType.UPDATE_CUTTING,
+      PermissionType.DELETE_CUTTING,
+      PermissionType.READ_PRODUCTION,
+      PermissionType.READ_REPORT,
+    ],
+    [UserRole.REPORT_VIEWER]: [
+      PermissionType.READ_REPORT,
+      PermissionType.READ_PRODUCTION,
+      PermissionType.READ_CASHBOOK,
+      PermissionType.READ_CUTTING,
+      PermissionType.READ_TARGET,
+      PermissionType.READ_EXPENSE,
+      PermissionType.READ_SHIPMENT,
+    ],
+    [UserRole.MANAGER]: [
+      PermissionType.READ_PRODUCTION,
+      PermissionType.UPDATE_PRODUCTION,
+      PermissionType.CREATE_REPORT,
+      PermissionType.READ_REPORT,
+      PermissionType.UPDATE_REPORT,
+      PermissionType.READ_CASHBOOK,
+      PermissionType.READ_CUTTING,
+      PermissionType.READ_TARGET,
+      PermissionType.READ_EXPENSE,
+    ],
+    [UserRole.ADMIN]: [
+      PermissionType.CREATE_PRODUCTION,
+      PermissionType.READ_PRODUCTION,
+      PermissionType.UPDATE_PRODUCTION,
+      PermissionType.DELETE_PRODUCTION,
+      PermissionType.CREATE_CUTTING,
+      PermissionType.READ_CUTTING,
+      PermissionType.UPDATE_CUTTING,
+      PermissionType.DELETE_CUTTING,
+      PermissionType.CREATE_CASHBOOK,
+      PermissionType.READ_CASHBOOK,
+      PermissionType.UPDATE_CASHBOOK,
+      PermissionType.DELETE_CASHBOOK,
+      PermissionType.CREATE_REPORT,
+      PermissionType.READ_REPORT,
+      PermissionType.UPDATE_REPORT,
+      PermissionType.DELETE_REPORT,
+      PermissionType.CREATE_USER,
+      PermissionType.READ_USER,
+      PermissionType.UPDATE_USER,
+      PermissionType.CREATE_EXPENSE,
+      PermissionType.READ_EXPENSE,
+      PermissionType.UPDATE_EXPENSE,
+      PermissionType.DELETE_EXPENSE,
+      PermissionType.CREATE_TARGET,
+      PermissionType.READ_TARGET,
+      PermissionType.UPDATE_TARGET,
+      PermissionType.DELETE_TARGET,
+      PermissionType.CREATE_LINE,
+      PermissionType.READ_LINE,
+      PermissionType.UPDATE_LINE,
+      PermissionType.DELETE_LINE,
+    ],
+    [UserRole.SUPER_ADMIN]: [
+      PermissionType.CREATE_PRODUCTION,
+      PermissionType.READ_PRODUCTION,
+      PermissionType.UPDATE_PRODUCTION,
+      PermissionType.DELETE_PRODUCTION,
+      PermissionType.CREATE_CUTTING,
+      PermissionType.READ_CUTTING,
+      PermissionType.UPDATE_CUTTING,
+      PermissionType.DELETE_CUTTING,
+      PermissionType.CREATE_CASHBOOK,
+      PermissionType.READ_CASHBOOK,
+      PermissionType.UPDATE_CASHBOOK,
+      PermissionType.DELETE_CASHBOOK,
+      PermissionType.CREATE_REPORT,
+      PermissionType.READ_REPORT,
+      PermissionType.UPDATE_REPORT,
+      PermissionType.DELETE_REPORT,
+      PermissionType.CREATE_USER,
+      PermissionType.READ_USER,
+      PermissionType.UPDATE_USER,
+      PermissionType.DELETE_USER,
+      PermissionType.CREATE_EXPENSE,
+      PermissionType.READ_EXPENSE,
+      PermissionType.UPDATE_EXPENSE,
+      PermissionType.DELETE_EXPENSE,
+      PermissionType.CREATE_TARGET,
+      PermissionType.READ_TARGET,
+      PermissionType.UPDATE_TARGET,
+      PermissionType.DELETE_TARGET,
+      PermissionType.CREATE_LINE,
+      PermissionType.READ_LINE,
+      PermissionType.UPDATE_LINE,
+      PermissionType.DELETE_LINE,
+      PermissionType.CREATE_SHIPMENT,
+      PermissionType.READ_SHIPMENT,
+      PermissionType.UPDATE_SHIPMENT,
+      PermissionType.DELETE_SHIPMENT,
+      PermissionType.MANAGE_SYSTEM,
+      PermissionType.MANAGE_ROLES,
+      PermissionType.MANAGE_PERMISSIONS,
+    ],
+  };
+
+  const permissions = rolePermissions[role] || [];
+  
+  // Get permission IDs from database
+  const permissionRecords = await prisma.permissionModel.findMany({
+    where: {
+      name: {
+        in: permissions,
+      },
+    },
+    select: { id: true },
+  });
+
+  return permissionRecords.map(p => p.id);
 }

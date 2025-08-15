@@ -266,6 +266,14 @@ export default function AdminUsersPage() {
         return 'bg-purple-100 text-purple-800';
       case UserRole.MANAGER:
         return 'bg-blue-100 text-blue-800';
+      case UserRole.CASHBOOK_MANAGER:
+        return 'bg-green-100 text-green-800';
+      case UserRole.PRODUCTION_MANAGER:
+        return 'bg-orange-100 text-orange-800';
+      case UserRole.CUTTING_MANAGER:
+        return 'bg-yellow-100 text-yellow-800';
+      case UserRole.REPORT_VIEWER:
+        return 'bg-indigo-100 text-indigo-800';
       case UserRole.USER:
         return 'bg-gray-100 text-gray-800';
       default:
@@ -384,6 +392,10 @@ export default function AdminUsersPage() {
                   <SelectItem value={UserRole.SUPER_ADMIN}>Super Admin</SelectItem>
                   <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
                   <SelectItem value={UserRole.MANAGER}>Manager</SelectItem>
+                  <SelectItem value={UserRole.CASHBOOK_MANAGER}>Cashbook Manager</SelectItem>
+                  <SelectItem value={UserRole.PRODUCTION_MANAGER}>Production Manager</SelectItem>
+                  <SelectItem value={UserRole.CUTTING_MANAGER}>Cutting Manager</SelectItem>
+                  <SelectItem value={UserRole.REPORT_VIEWER}>Report Viewer</SelectItem>
                   <SelectItem value={UserRole.USER}>User</SelectItem>
                 </SelectContent>
               </Select>
@@ -541,6 +553,10 @@ export default function AdminUsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={UserRole.USER}>User</SelectItem>
+                  <SelectItem value={UserRole.CASHBOOK_MANAGER}>Cashbook Manager</SelectItem>
+                  <SelectItem value={UserRole.PRODUCTION_MANAGER}>Production Manager</SelectItem>
+                  <SelectItem value={UserRole.CUTTING_MANAGER}>Cutting Manager</SelectItem>
+                  <SelectItem value={UserRole.REPORT_VIEWER}>Report Viewer</SelectItem>
                   <SelectItem value={UserRole.MANAGER}>Manager</SelectItem>
                   <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
                   <SelectItem value={UserRole.SUPER_ADMIN}>Super Admin</SelectItem>
@@ -622,6 +638,10 @@ export default function AdminUsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={UserRole.USER}>User</SelectItem>
+                  <SelectItem value={UserRole.CASHBOOK_MANAGER}>Cashbook Manager</SelectItem>
+                  <SelectItem value={UserRole.PRODUCTION_MANAGER}>Production Manager</SelectItem>
+                  <SelectItem value={UserRole.CUTTING_MANAGER}>Cutting Manager</SelectItem>
+                  <SelectItem value={UserRole.REPORT_VIEWER}>Report Viewer</SelectItem>
                   <SelectItem value={UserRole.MANAGER}>Manager</SelectItem>
                   <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
                   <SelectItem value={UserRole.SUPER_ADMIN}>Super Admin</SelectItem>
