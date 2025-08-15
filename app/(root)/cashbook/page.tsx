@@ -1,627 +1,354 @@
-'use client';
+"use client"
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, AlertCircle, DollarSign, TrendingUp, TrendingDown, Filter } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react"
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { 
+  CalendarIcon, 
+  TrendingUpIcon, 
+  TrendingDownIcon, 
+  DollarSignIcon, 
+  ArrowRightIcon,
+  WalletIcon,
+  ReceiptIcon,
+  FileTextIcon,
+  PlusIcon
+} from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
-interface CashbookEntry {
-  id: string;
-  date: string;
-  type: 'DEBIT' | 'CREDIT';
-  amount: number;
-  category: string;
-  referenceType?: string;
-  referenceId?: string;
-  lineId?: string;
-  description?: string;
-  runningBalance: number;
-  line?: {
-    name: string;
-    code: string;
-    factory: {
-      name: string;
-    };
-  };
+interface CashbookSummary {
+  totalCashReceived: number
+  totalExpenses: number
+  netCashFlow: number
+  openingBalance: number
+  closingBalance: number
+  transactionCount: number
+  lastTransactionTime: string
 }
 
-interface Line {
-  id: string;
-  name: string;
-  code: string;
-  factory: {
-    name: string;
-  };
+interface RecentTransaction {
+  id: string
+  type: "income" | "expense"
+  description: string
+  amount: number
+  category: string
+  time: string
+  balance: number
 }
+
+const mockSummary: CashbookSummary = {
+  totalCashReceived: 12450.00,
+  totalExpenses: 8750.50,
+  netCashFlow: 3699.50,
+  openingBalance: 10500.00,
+  closingBalance: 14199.50,
+  transactionCount: 47,
+  lastTransactionTime: "16:45:00"
+}
+
+const mockRecentTransactions: RecentTransaction[] = [
+  {
+    id: "1",
+    type: "income",
+    description: "Product sales payment from ABC Corp",
+    amount: 2500.00,
+    category: "Sales Revenue",
+    time: "16:45:00",
+    balance: 14199.50
+  },
+  {
+    id: "2",
+    type: "expense",
+    description: "Office supplies purchase",
+    amount: 125.50,
+    category: "Office Supplies",
+    time: "15:30:00",
+    balance: 11699.50
+  },
+  {
+    id: "3",
+    type: "income",
+    description: "Service consultation fee",
+    amount: 800.00,
+    category: "Service Revenue",
+    time: "14:15:00",
+    balance: 11825.00
+  },
+  {
+    id: "4",
+    type: "expense",
+    description: "Fuel and transportation",
+    amount: 180.00,
+    category: "Transportation",
+    time: "13:20:00",
+    balance: 11025.00
+  },
+  {
+    id: "5",
+    type: "expense",
+    description: "Equipment maintenance",
+    amount: 450.00,
+    category: "Maintenance",
+    time: "11:45:00",
+    balance: 11205.00
+  }
+]
+
+const quickActions = [
+  {
+    title: "Cash Received",
+    description: "Record money received and track revenue sources",
+    icon: TrendingUpIcon,
+    href: "/cashbook/cash-received",
+    color: "text-green-600",
+    bgColor: "bg-green-50"
+  },
+  {
+    title: "Daily Expense",
+    description: "Track daily expenses with real-time balance updates",
+    icon: TrendingDownIcon,
+    href: "/cashbook/daily-expense", 
+    color: "text-red-600",
+    bgColor: "bg-red-50"
+  },
+  {
+    title: "Monthly Express Report",
+    description: "Generate comprehensive monthly cashbook reports",
+    icon: FileTextIcon,
+    href: "/cashbook/monthly-express-report",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50"
+  }
+]
 
 export default function CashbookPage() {
-  const [entries, setEntries] = useState<CashbookEntry[]>([]);
-  const [lines, setLines] = useState<Line[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
-    date: '',
-    type: '',
-    category: '',
-    lineId: ''
-  });
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<CashbookEntry | null>(null);
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    type: 'DEBIT' as 'DEBIT' | 'CREDIT',
-    amount: 0,
-    category: '',
-    referenceType: '',
-    referenceId: '',
-    lineId: '',
-    description: ''
-  });
+  const [selectedPeriod, setSelectedPeriod] = useState("today")
+  const [searchTerm, setSearchTerm] = useState("")
 
-  useEffect(() => {
-    fetchData();
-  }, [filters]);
-
-  useEffect(() => {
-    fetchLines();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const queryParams = new URLSearchParams({
-        ...(filters.date && { date: filters.date }),
-        ...(filters.type && { type: filters.type }),
-        ...(filters.category && { category: filters.category }),
-        ...(filters.lineId && { lineId: filters.lineId })
-      });
-
-      const response = await fetch(`/api/cashbook?${queryParams}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch cashbook entries');
-      }
-
-      const data = await response.json();
-      setEntries(data.entries || []);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      toast.error('Failed to fetch cashbook entries');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchLines = async () => {
-    try {
-      const response = await fetch('/api/lines');
-      if (response.ok) {
-        const data = await response.json();
-        setLines(data.data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch lines:', err);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const url = editingEntry 
-        ? `/api/cashbook/${editingEntry.id}`
-        : '/api/cashbook';
-      
-      const method = editingEntry ? 'PUT' : 'POST';
-      const body = {
-        ...formData,
-        amount: parseFloat(formData.amount.toString())
-      };
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save cashbook entry');
-      }
-
-      toast.success(editingEntry ? 'Entry updated successfully' : 'Entry created successfully');
-      setIsDialogOpen(false);
-      setEditingEntry(null);
-      resetForm();
-      fetchData();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'An error occurred');
-    }
-  };
-
-  const handleEdit = (entry: CashbookEntry) => {
-    setEditingEntry(entry);
-    setFormData({
-      date: entry.date,
-      type: entry.type,
-      amount: entry.amount,
-      category: entry.category,
-      referenceType: entry.referenceType || '',
-      referenceId: entry.referenceId || '',
-      lineId: entry.lineId || '',
-      description: entry.description || ''
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this entry?')) return;
-    
-    try {
-      const response = await fetch(`/api/cashbook/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete entry');
-      }
-
-      toast.success('Entry deleted successfully');
-      fetchData();
-    } catch (err) {
-      toast.error('Failed to delete entry');
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      date: new Date().toISOString().split('T')[0],
-      type: 'DEBIT',
-      amount: 0,
-      category: '',
-      referenceType: '',
-      referenceId: '',
-      lineId: '',
-      description: ''
-    });
-  };
-
-  const getTypeColor = (type: string) => {
-    return type === 'CREDIT' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-red-100 text-red-800';
-  };
-
-  const getTotalBalance = () => {
-    if (entries.length === 0) return 0;
-    return entries[entries.length - 1].runningBalance;
-  };
-
-  const getTotalCredits = () => {
-    return entries
-      .filter(entry => entry.type === 'CREDIT')
-      .reduce((sum, entry) => sum + entry.amount, 0);
-  };
-
-  const getTotalDebits = () => {
-    return entries
-      .filter(entry => entry.type === 'DEBIT')
-      .reduce((sum, entry) => sum + entry.amount, 0);
-  };
-
-  if (loading && entries.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error && entries.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-red-600 flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Error
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={fetchData} className="w-full">
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Filter recent transactions based on search
+  const filteredTransactions = mockRecentTransactions.filter(transaction =>
+    transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-2 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cashbook</h1>
-          <p className="text-muted-foreground">
-            Track all money in and out with running balance
+      <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0 lg:gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Cashbook</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Comprehensive cash flow management and financial tracking
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingEntry(null);
-              resetForm();
-            }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Entry
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {editingEntry ? 'Edit Cashbook Entry' : 'Add Cashbook Entry'}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="type">Type</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value: 'DEBIT' | 'CREDIT') => 
-                    setFormData({ ...formData, type: value })
-                  }
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DEBIT">Debit (Money Out)</SelectItem>
-                    <SelectItem value="CREDIT">Credit (Money In)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="amount">Amount</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="e.g., Salary, Materials, Sales, etc."
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="lineId">Production Line (Optional)</Label>
-                <Select
-                  value={formData.lineId}
-                  onValueChange={(value) => setFormData({ ...formData, lineId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select line (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">General (No specific line)</SelectItem>
-                    {lines?.map((line) => (
-                      <SelectItem key={line.id} value={line.id}>
-                        {line.name} ({line.code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="referenceType">Reference Type (Optional)</Label>
-                  <Input
-                    id="referenceType"
-                    value={formData.referenceType}
-                    onChange={(e) => setFormData({ ...formData, referenceType: e.target.value })}
-                    placeholder="e.g., Invoice, PO, etc."
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="referenceId">Reference ID (Optional)</Label>
-                  <Input
-                    id="referenceId"
-                    value={formData.referenceId}
-                    onChange={(e) => setFormData({ ...formData, referenceId: e.target.value })}
-                    placeholder="e.g., INV-001"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Enter additional details..."
-                />
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" className="flex-1">
-                  {editingEntry ? 'Update' : 'Create'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setIsDialogOpen(false);
-                    setEditingEntry(null);
-                    resetForm();
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="year">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Credits</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Cash Received</CardTitle>
+            <TrendingUpIcon className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              ${getTotalCredits().toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total money in
-            </p>
+          <CardContent className="pt-1 sm:pt-2">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">${mockSummary.totalCashReceived.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">Total inflow today</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Debits</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-600" />
+            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <TrendingDownIcon className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              ${getTotalDebits().toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total money out
-            </p>
+            <div className="text-2xl font-bold text-red-600">${mockSummary.totalExpenses.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">Total outflow today</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Running Balance</CardTitle>
-            <DollarSign className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium">Net Cash Flow</CardTitle>
+            <DollarSignIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${
-              getTotalBalance() >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              ${getTotalBalance().toFixed(2)}
+            <div className={`text-2xl font-bold ${mockSummary.netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ${mockSummary.netCashFlow.toFixed(2)}
             </div>
+            <p className="text-xs text-muted-foreground">Net change today</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
+            <WalletIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${mockSummary.closingBalance.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              Current balance
+              {mockSummary.transactionCount} transactions today
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Balance Summary */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
+          <CardTitle>Daily Balance Summary</CardTitle>
+          <CardDescription>
+            Opening balance, transactions, and closing balance overview
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label htmlFor="filterDate">Date</Label>
-              <Input
-                id="filterDate"
-                type="date"
-                value={filters.date}
-                onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 border rounded-lg bg-blue-50">
+              <div className="text-sm text-muted-foreground">Opening Balance</div>
+              <div className="text-2xl font-bold text-blue-600">${mockSummary.openingBalance.toFixed(2)}</div>
+              <div className="text-xs text-muted-foreground">Start of day</div>
             </div>
-            <div>
-              <Label htmlFor="filterType">Type</Label>
-              <Select
-                value={filters.type}
-                onValueChange={(value) => setFilters({ ...filters, type: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All types</SelectItem>
-                  <SelectItem value="CREDIT">Credit (Money In)</SelectItem>
-                  <SelectItem value="DEBIT">Debit (Money Out)</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-sm text-muted-foreground">Net Movement</div>
+              <div className={`text-2xl font-bold ${mockSummary.netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {mockSummary.netCashFlow >= 0 ? '+' : ''}${mockSummary.netCashFlow.toFixed(2)}
+              </div>
+              <div className="text-xs text-muted-foreground">Today's change</div>
             </div>
-            <div>
-              <Label htmlFor="filterCategory">Category</Label>
-              <Input
-                id="filterCategory"
-                value={filters.category}
-                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                placeholder="Filter by category..."
-              />
-            </div>
-            <div>
-              <Label htmlFor="filterLineId">Production Line</Label>
-              <Select
-                value={filters.lineId}
-                onValueChange={(value) => setFilters({ ...filters, lineId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All lines" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All lines</SelectItem>
-                  {lines?.map((line) => (
-                    <SelectItem key={line.id} value={line.id}>
-                      {line.name} ({line.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="text-center p-4 border rounded-lg bg-green-50">
+              <div className="text-sm text-muted-foreground">Closing Balance</div>
+              <div className="text-2xl font-bold text-green-600">${mockSummary.closingBalance.toFixed(2)}</div>
+              <div className="text-xs text-muted-foreground">Current position</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Cashbook Entries Table */}
+      {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Cashbook Entries</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {entries.length} entries found
-          </p>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>
+            Access key cashbook functions and reports
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {quickActions.map((action) => (
+              <Link key={action.title} href={action.href}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <CardContent className="p-6">
+                    <div className={`w-12 h-12 rounded-lg ${action.bgColor} flex items-center justify-center mb-4`}>
+                      <action.icon className={`h-6 w-6 ${action.color}`} />
+                    </div>
+                    <h3 className="font-semibold mb-2">{action.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {action.description}
+                    </p>
+                    <div className="flex items-center text-sm font-medium text-primary">
+                      Access <ArrowRightIcon className="ml-1 h-4 w-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Transactions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Transactions</CardTitle>
+          <CardDescription>
+            Latest cashbook entries with running balance
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <Input
+                placeholder="Search transactions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
+              />
             </div>
-          ) : entries.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No cashbook entries found for the selected criteria</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Line</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+            <Button asChild>
+              <Link href="/cashbook/cash-received">
+                <PlusIcon className="h-4 w-4 mr-2" />
+                New Transaction
+              </Link>
+            </Button>
+          </div>
+
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Balance</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell className="font-medium">{transaction.time}</TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={transaction.type === "income" ? "default" : "secondary"}
+                        className={transaction.type === "income" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
+                      >
+                        {transaction.type === "income" ? "Cash In" : "Cash Out"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[250px] truncate" title={transaction.description}>
+                      {transaction.description}
+                    </TableCell>
+                    <TableCell>{transaction.category}</TableCell>
+                    <TableCell className={`font-medium ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                      {transaction.type === "income" ? "+" : "-"}${transaction.amount.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="font-medium">${transaction.balance.toFixed(2)}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {entries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>{entry.date}</TableCell>
-                      <TableCell>
-                        <Badge className={getTypeColor(entry.type)}>
-                          {entry.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {entry.category}
-                      </TableCell>
-                      <TableCell>
-                        {entry.line ? (
-                          <div>
-                            <div className="font-medium">{entry.line.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {entry.line.code}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">General</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {entry.referenceType && entry.referenceId ? (
-                          <div className="text-sm">
-                            <div className="font-medium">{entry.referenceType}</div>
-                            <div className="text-muted-foreground">{entry.referenceId}</div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {entry.description || (
-                          <span className="text-muted-foreground">No description</span>
-                        )}
-                      </TableCell>
-                      <TableCell className={`text-right font-medium ${
-                        entry.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {entry.type === 'CREDIT' ? '+' : '-'}${entry.amount.toFixed(2)}
-                      </TableCell>
-                      <TableCell className={`text-right font-medium ${
-                        entry.runningBalance >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        ${entry.runningBalance.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(entry)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(entry.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

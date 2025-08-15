@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       return aStart - bStart;
     });
     
-    console.log(`Unique time slots found: ${timeSlotHeaders.join(', ')}`);
+    // console.log(`Unique time slots found: ${timeSlotHeaders.join(', ')}`);
     
     // Group targets by line and style to avoid duplicates
     const targetGroups = new Map();
@@ -102,13 +102,13 @@ export async function GET(request: NextRequest) {
       targetGroups.get(groupKey).targets.push(target);
     });
     
-    console.log(`Grouped into ${targetGroups.size} unique line-style combinations`);
+    // console.log(`Grouped into ${targetGroups.size} unique line-style combinations`);
     
     // Initialize report data array
     const reportData: any[] = [];
     
     targetGroups.forEach((group, groupKey) => {
-      console.log(`Processing group: ${groupKey}`);
+      // console.log(`Processing group: ${groupKey}`);
       
       // Calculate total target (sum of all targets in this group)
       const totalTarget = group.targets.reduce((sum: number, target: any) => sum + target.lineTarget, 0);
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
         const timeSlot = `${target.inTime || '08:00'}-${target.outTime || '20:00'}`;
         if (hourlyProduction.hasOwnProperty(timeSlot)) {
           hourlyProduction[timeSlot] = target.hourlyProduction || 0;
-          console.log(`Style ${group.styleNo}: Added ${target.hourlyProduction || 0} to time slot ${timeSlot}`);
+          // console.log(`Style ${group.styleNo}: Added ${target.hourlyProduction || 0} to time slot ${timeSlot}`);
         }
       });
       
@@ -144,8 +144,8 @@ export async function GET(request: NextRequest) {
       const totalProduction = Object.values(hourlyProduction).reduce((sum: number, val: number) => sum + val, 0);
       const averageProductionPerHour = totalWorkingHours > 0 ? totalProduction / totalWorkingHours : 0;
       
-      console.log(`Style ${group.styleNo} hourly production:`, hourlyProduction);
-      console.log(`Style ${group.styleNo} total production: ${totalProduction}`);
+      // console.log(`Style ${group.styleNo} hourly production:`, hourlyProduction);
+      // console.log(`Style ${group.styleNo} total production: ${totalProduction}`);
       
       reportData.push({
         id: groupKey, // Use the group key as unique ID

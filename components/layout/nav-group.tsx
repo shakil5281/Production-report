@@ -41,19 +41,49 @@ export function NavGroup({
     }[]
     user: UserWithPermissions
 }) {
-    // Track which collapsible is open to enforce single-open behavior
-    const [openKey, setOpenKey] = React.useState<string | null>(
-        items.find((i) => i.isActive)?.title ?? null
-    )
+    // Track which collapsibles are open - allows multiple open at once
+    const [openKeys, setOpenKeys] = React.useState<Set<string>>(new Set())
     const pathname = usePathname()
     const router = useRouter()
     const { setOpenMobile } = useSidebar()
     
     // Filter items based on user role using the roles array from data
-    const filteredItems = items.filter(item => {
-        if (!item.roles) return true
-        return item.roles.includes(user.role)
-    })
+    const filteredItems = React.useMemo(() => {
+        return items.filter(item => {
+            if (!item.roles) return true
+            return item.roles.includes(user.role)
+        })
+    }, [items, user.role])
+
+    // Check if any item in a group is active and auto-expand that group
+    React.useEffect(() => {
+        const activeGroups = new Set<string>()
+        
+        for (const item of filteredItems) {
+            // Check if the main group URL is active
+            const isMainGroupActive = item.url && pathname === item.url
+            
+            // Check if any sub-item is active
+            const hasActiveSubItem = item.items?.some(subItem => pathname === subItem.url)
+            
+            if (isMainGroupActive || hasActiveSubItem) {
+                activeGroups.add(item.title)
+            }
+        }
+        
+        // Only update if there are new active groups that aren't already open
+        setOpenKeys(prevKeys => {
+            const hasNewGroups = Array.from(activeGroups).some(group => !prevKeys.has(group))
+            
+            if (hasNewGroups) {
+                const newKeys = new Set(prevKeys)
+                activeGroups.forEach(group => newKeys.add(group))
+                return newKeys
+            }
+            
+            return prevKeys // Return the same reference to prevent re-renders
+        })
+    }, [pathname, filteredItems])
     
     const handleNavigation = (url: string) => {
         router.push(url)
@@ -69,15 +99,31 @@ export function NavGroup({
                     <Collapsible
                         key={item.title}
                         asChild
-                        open={openKey === item.title}
-                        onOpenChange={(nextOpen) =>
-                            setOpenKey(nextOpen ? item.title : null)
-                        }
+                        open={openKeys.has(item.title)}
+                        onOpenChange={(nextOpen) => {
+                            const newOpenKeys = new Set(openKeys)
+                            if (nextOpen) {
+                                newOpenKeys.add(item.title)
+                            } else {
+                                newOpenKeys.delete(item.title)
+                            }
+                            setOpenKeys(newOpenKeys)
+                        }}
                         className="group/collapsible"
                     >
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
-                                <SidebarMenuButton tooltip={item.title} className="relative transition-all duration-200 ease-in-out">
+                                <SidebarMenuButton 
+                                    tooltip={item.title} 
+                                    className="relative transition-all duration-200 ease-in-out"
+                                    onClick={(e) => {
+                                        // If the item has a URL, navigate to it
+                                        if (item.url) {
+                                            e.preventDefault()
+                                            handleNavigation(item.url)
+                                        }
+                                    }}
+                                >
                                     {/* Active indicator line */}
                                     <span
                                         aria-hidden

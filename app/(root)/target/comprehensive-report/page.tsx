@@ -37,7 +37,7 @@ export default function ComprehensiveTargetReportPage() {
       }
       
       const data: ComprehensiveReportResponse = await response.json();
-      console.log('Comprehensive report API response:', data);
+      // console.log('Comprehensive report API response:', data);
       
       if (data.success) {
         setReportData(data.data);
