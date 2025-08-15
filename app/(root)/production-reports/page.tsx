@@ -266,14 +266,14 @@ export default function ProductionReportsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Production Reports</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Production Reports</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Generate and view production reports with detailed analytics
           </p>
         </div>
-        <Button onClick={exportReport} disabled={entries.length === 0}>
+        <Button onClick={exportReport} disabled={entries.length === 0} className="w-full sm:w-auto">
           <Download className="h-4 w-4 mr-2" />
           Export Report
         </Button>
@@ -288,7 +288,7 @@ export default function ProductionReportsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <Label htmlFor="startDate">Start Date</Label>
               <Input
@@ -376,14 +376,14 @@ export default function ProductionReportsPage() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Input</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Input</CardTitle>
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalInput.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-bold">{summary.totalInput.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
                 Total input quantity
               </p>
@@ -392,11 +392,11 @@ export default function ProductionReportsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Output</CardTitle>
-              <TrendingDown className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Output</CardTitle>
+              <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalOutput.toLocaleString()}</div>
+              <div className="text-lg sm:text-2xl font-bold">{summary.totalOutput.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
                 Total output quantity
               </p>
@@ -405,11 +405,11 @@ export default function ProductionReportsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Efficiency</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Efficiency</CardTitle>
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-lg sm:text-2xl font-bold text-green-600">
                 {summary.efficiency.toFixed(1)}%
               </div>
               <p className="text-xs text-muted-foreground">
@@ -420,11 +420,11 @@ export default function ProductionReportsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Defect Rate</CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium">Defect Rate</CardTitle>
+              <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-lg sm:text-2xl font-bold text-red-600">
                 {summary.defectRate.toFixed(2)}%
               </div>
               <p className="text-xs text-muted-foreground">
@@ -463,41 +463,44 @@ export default function ProductionReportsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Hour</TableHead>
-                    <TableHead>Line</TableHead>
-                    <TableHead>Line Code</TableHead>
-                    <TableHead>Style</TableHead>
-                    <TableHead>Buyer</TableHead>
-                    <TableHead>Stage</TableHead>
-                    <TableHead className="text-right">Input</TableHead>
-                    <TableHead className="text-right">Output</TableHead>
-                    <TableHead className="text-right">Defects</TableHead>
-                    <TableHead className="text-right">Rework</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Date</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Hour</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Line</TableHead>
+                    <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Line Code</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Style</TableHead>
+                    <TableHead className="text-xs sm:text-sm hidden md:table-cell">Buyer</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Stage</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right">Input</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right">Output</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right hidden sm:table-cell">Defects</TableHead>
+                    <TableHead className="text-xs sm:text-sm text-right hidden sm:table-cell">Rework</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {entries.map((entry) => (
                     <TableRow key={entry.id}>
-                      <TableCell>{formatDate(entry.date)}</TableCell>
-                      <TableCell>{getHourLabel(entry.hourIndex)}</TableCell>
-                      <TableCell>
-                        {entry.line.name} ({entry.line.code})
+                      <TableCell className="text-xs sm:text-sm">{formatDate(entry.date)}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">{getHourLabel(entry.hourIndex)}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        <div className="truncate max-w-20 sm:max-w-none">
+                          {entry.line.name}
+                          <span className="sm:hidden block text-muted-foreground">({entry.line.code})</span>
+                        </div>
                       </TableCell>
-                      <TableCell>{entry.line.code}</TableCell>
-                      <TableCell>{entry.style.styleNumber}</TableCell>
-                      <TableCell>{entry.style.buyer}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs sm:text-sm hidden sm:table-cell">{entry.line.code}</TableCell>
+                      <TableCell className="text-xs sm:text-sm font-medium">{entry.style.styleNumber}</TableCell>
+                      <TableCell className="text-xs sm:text-sm hidden md:table-cell">{entry.style.buyer}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">
                         <Badge className={getStageColor(entry.stage)}>
                           {entry.stage}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">{entry.inputQty}</TableCell>
-                      <TableCell className="text-right">{entry.outputQty}</TableCell>
-                      <TableCell className="text-right text-red-600">
+                      <TableCell className="text-xs sm:text-sm text-right">{entry.inputQty}</TableCell>
+                      <TableCell className="text-xs sm:text-sm text-right font-medium">{entry.outputQty}</TableCell>
+                      <TableCell className="text-xs sm:text-sm text-right text-red-600 hidden sm:table-cell">
                         {entry.defectQty}
                       </TableCell>
-                      <TableCell className="text-right text-orange-600">
+                      <TableCell className="text-xs sm:text-sm text-right text-orange-600 hidden sm:table-cell">
                         {entry.reworkQty}
                       </TableCell>
                     </TableRow>
@@ -509,11 +512,11 @@ export default function ProductionReportsPage() {
 
           {/* Pagination */}
           {pagination.pages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-4">
+              <div className="text-xs sm:text-sm text-muted-foreground">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center sm:justify-end space-x-2">
                 <Button
                   variant="outline"
                   size="sm"

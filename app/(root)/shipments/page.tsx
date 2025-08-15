@@ -66,7 +66,7 @@ export default function ShipmentsPage() {
   const [filters, setFilters] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
-    styleId: '',
+    styleId: 'all',
     poNumber: '',
     destination: ''
   });
@@ -96,7 +96,7 @@ export default function ShipmentsPage() {
       const queryParams = new URLSearchParams({
         startDate: filters.startDate,
         endDate: filters.endDate,
-        ...(filters.styleId && { styleId: filters.styleId }),
+        ...(filters.styleId && filters.styleId !== 'all' && { styleId: filters.styleId }),
         ...(filters.poNumber && { poNumber: filters.poNumber }),
         ...(filters.destination && { destination: filters.destination })
       });
@@ -521,7 +521,7 @@ export default function ShipmentsPage() {
                   <SelectValue placeholder="All styles" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All styles</SelectItem>
+                  <SelectItem value="all">All styles</SelectItem>
                   {styles.map((style) => (
                     <SelectItem key={style.id} value={style.id}>
                       {style.styleNumber}

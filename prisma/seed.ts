@@ -41,12 +41,12 @@ async function main() {
   // Create production lines
   console.log('Creating production lines...');
   const lines = [
-    { factoryId: factory1.id, name: 'Line A', code: 'A' },
-    { factoryId: factory1.id, name: 'Line B', code: 'B' },
-    { factoryId: factory1.id, name: 'Line C', code: 'C' },
-    { factoryId: factory2.id, name: 'Line X', code: 'X' },
-    { factoryId: factory2.id, name: 'Line Y', code: 'Y' },
-    { factoryId: factory2.id, name: 'Line Z', code: 'Z' }
+    { name: 'Line A', code: 'A' },
+    { name: 'Line B', code: 'B' },
+    { name: 'Line C', code: 'C' },
+    { name: 'Line X', code: 'X' },
+    { name: 'Line Y', code: 'Y' },
+    { name: 'Line Z', code: 'Z' }
   ];
 
   for (const line of lines) {

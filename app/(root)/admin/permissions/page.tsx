@@ -245,17 +245,7 @@ export default function PermissionsPage() {
       case UserRole.SUPER_ADMIN:
         return 'bg-red-500/10 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400';
       case UserRole.ADMIN:
-        return 'bg-purple-500/10 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-400';
-      case UserRole.MANAGER:
         return 'bg-blue-500/10 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400';
-      case UserRole.CASHBOOK_MANAGER:
-        return 'bg-green-500/10 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400';
-      case UserRole.PRODUCTION_MANAGER:
-        return 'bg-orange-500/10 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-400';
-      case UserRole.CUTTING_MANAGER:
-        return 'bg-yellow-500/10 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400';
-      case UserRole.REPORT_VIEWER:
-        return 'bg-indigo-500/10 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-400';
       case UserRole.USER:
         return 'bg-gray-500/10 text-gray-700 border-gray-200 dark:bg-gray-500/20 dark:text-gray-400';
       default:

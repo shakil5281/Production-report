@@ -9,141 +9,141 @@ export const data = {
       url: "/dashboard",
       icon: IconDashboard,
       isActive: true,
-      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN", "CASHBOOK_MANAGER", "PRODUCTION_MANAGER", "CUTTING_MANAGER", "REPORT_VIEWER"], // All users can access
+      roles: ["USER", "ADMIN", "SUPER_ADMIN"], // All users can access
     },
     {
       title: "Platform",
       url: "/platform",
       icon: IconApps,
       isActive: false,
-      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN", "CASHBOOK_MANAGER", "PRODUCTION_MANAGER", "CUTTING_MANAGER", "REPORT_VIEWER"],
+      roles: ["USER", "ADMIN", "SUPER_ADMIN"],
     },
     {
       title: "Production Reports",
       url: "/production-reports",
       icon: IconFileText,
       isActive: false,
-      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "PRODUCTION_MANAGER", "REPORT_VIEWER"], // Production related roles
+      roles: ["ADMIN", "SUPER_ADMIN"], // Admin and Super Admin only
     },
     {
       title: "Profit & Loss",
       url: "/profit-loss",
       icon: IconTrendingUp,
       isActive: false,
-      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"], // Financial reports
+      roles: ["ADMIN", "SUPER_ADMIN"], // Financial reports
     },
   ],
   navGroup: [
     {
       title: "Production",
       icon: IconChartBar,
-      roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      roles: ["ADMIN", "SUPER_ADMIN"],
       items: [
         {
           title: "Production List",
           url: "/production-list",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Target",
           url: "/target",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Daily Target Report",
           url: "/target/daily-report",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Comprehensive Target Report",
           url: "/target/comprehensive-report",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Lines",
           url: "/lines",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Daily Production",
           url: "/daily-production",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
       ],
     },
     {
       title: "Expense",
       icon: IconCurrencyDollar,
-      roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      roles: ["ADMIN", "SUPER_ADMIN"],
       items: [
         {
           title: "Manpower",
           url: "/expenses/manpower",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Daily Salary",
           url: "/expenses/daily-salary",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Daily Expense",
           url: "/expenses/daily-expense",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
       ],
     },
     {
       title: "Cashbook",
       icon: IconWallet,
-      roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      roles: ["ADMIN", "SUPER_ADMIN"],
       items: [
         {
           title: "Summary",
           url: "/cashbook",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Cash Received",
           url: "/cashbook/cash-received",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Daily Expense",
           url: "/cashbook/daily-expense",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Monthly Express Report",
           url: "/cashbook/monthly-express-report",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
       ],
     },
     {
       title: "Cutting",
       icon: IconScissors,
-      roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      roles: ["ADMIN", "SUPER_ADMIN"],
       items: [
         {
           title: "Summary",
           url: "/cutting",
-          roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Daily Input",
           url: "/cutting/daily-input",
-          roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Daily Output",
           url: "/cutting/daily-output",
-          roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Monthly Report",
           url: "/cutting/monthly-report",
-          roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
       ],
     },
@@ -202,22 +202,22 @@ export const data = {
     {
       title: "Shipments",
       icon: IconReport,
-      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      roles: ["ADMIN", "SUPER_ADMIN"],
       items: [
         {
           title: "All Shipments",
           url: "/shipments",
-          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Create Shipment",
           url: "/shipments/create",
-          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
         {
           title: "Shipment Reports",
           url: "/shipments/reports",
-          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["ADMIN", "SUPER_ADMIN"],
         },
       ],
     },
@@ -228,14 +228,14 @@ export const data = {
       url: "/profile",
       icon: IconUser,
       isActive: false,
-      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN", "CASHBOOK_MANAGER", "PRODUCTION_MANAGER", "CUTTING_MANAGER", "REPORT_VIEWER"],
+      roles: ["USER", "ADMIN", "SUPER_ADMIN"],
     },
     {
       title: "Help & Support",
       url: "/help",
       icon: IconHelp,
       isActive: false,
-      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN", "CASHBOOK_MANAGER", "PRODUCTION_MANAGER", "CUTTING_MANAGER", "REPORT_VIEWER"],
+      roles: ["USER", "ADMIN", "SUPER_ADMIN"],
     },
   ],
   documents: [

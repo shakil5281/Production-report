@@ -12,12 +12,7 @@ datasource db {
 enum UserRole {
   SUPER_ADMIN
   ADMIN
-  MANAGER
   USER
-  CASHBOOK_MANAGER
-  PRODUCTION_MANAGER
-  CUTTING_MANAGER
-  REPORT_VIEWER
 }
 
 enum PermissionType {
@@ -143,7 +138,8 @@ model Role {
   updatedAt   DateTime @updatedAt
   
   // Relations
-  rolePermissions RolePermission[]
+  rolePermissions       RolePermission[]
+  navigationPermissions NavigationPermission[]
   
   @@map("roles")
 }
@@ -188,6 +184,41 @@ model UserPermission {
   
   @@unique([userId, permissionId])
   @@map("user_permissions")
+}
+
+model NavigationItem {
+  id          String   @id @default(uuid())
+  title       String
+  url         String   @unique
+  icon        String?
+  parentId    String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  parent   NavigationItem?  @relation("NavigationHierarchy", fields: [parentId], references: [id])
+  children NavigationItem[] @relation("NavigationHierarchy")
+  navigationPermissions NavigationPermission[]
+  
+  @@map("navigation_items")
+}
+
+model NavigationPermission {
+  id             String   @id @default(uuid())
+  navigationId   String
+  roleId         String
+  canAccess      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  
+  // Relations
+  navigation NavigationItem @relation(fields: [navigationId], references: [id], onDelete: Cascade)
+  role       Role           @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([navigationId, roleId])
+  @@map("navigation_permissions")
 }
 
 model Session {

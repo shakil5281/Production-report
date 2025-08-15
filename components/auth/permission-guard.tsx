@@ -309,12 +309,7 @@ function getRoleDisplayName(role: UserRole): string {
   const displayNames: Record<UserRole, string> = {
     [UserRole.SUPER_ADMIN]: 'Super Admin',
     [UserRole.ADMIN]: 'Admin',
-    [UserRole.MANAGER]: 'Manager',
     [UserRole.USER]: 'User',
-    [UserRole.CASHBOOK_MANAGER]: 'Cashbook Manager',
-    [UserRole.PRODUCTION_MANAGER]: 'Production Manager',
-    [UserRole.CUTTING_MANAGER]: 'Cutting Manager',
-    [UserRole.REPORT_VIEWER]: 'Report Viewer',
   };
   
   return displayNames[role] || role;

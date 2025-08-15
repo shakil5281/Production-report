@@ -86,9 +86,9 @@ export default function RootLayout({
 
         {/* <div className="flex-1 flex flex-col"> */}
         <SiteHeader user={user} onSignOut={handleSignOut} />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-3 py-3 px-3 sm:gap-4 sm:py-4 sm:px-4 md:gap-6 md:py-6 md:px-6">
+        <div className="flex flex-1 flex-col min-h-0">
+          <div className="@container/main flex flex-1 flex-col gap-2 min-h-0">
+            <div className="flex flex-col gap-3 py-3 px-3 sm:gap-4 sm:py-4 sm:px-4 md:gap-6 md:py-6 md:px-6 min-h-0 flex-1 overflow-auto">
               {children}
             </div>
           </div>

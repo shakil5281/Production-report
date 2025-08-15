@@ -5,9 +5,8 @@ import { IconInnerShadowTop } from "@tabler/icons-react"
 import { UserWithPermissions } from "@/lib/types/auth"
 
 // import { NavDocuments } from "@/components/layout/nav-documents"
-import { NavMain } from "@/components/layout/nav-main"
-import { NavSecondary } from "@/components/layout/nav-secondary"
 import { NavUser } from "@/components/layout/nav-user"
+import { DynamicNav } from "@/components/layout/dynamic-nav"
 import {
   Sidebar,
   SidebarContent,
@@ -17,9 +16,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { NavGroup } from "./nav-group"
-// import { SquareTerminal } from "lucide-react"
-import { data } from './data'
 
 interface AppSidebarProps {
   user: UserWithPermissions;
@@ -44,10 +40,9 @@ export function AppSidebar({ user, ...props }: AppSidebarProps & React.Component
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} user={user} />
-        <NavGroup items={data.navGroup} user={user} />
-        {/* <NavDocuments items={data.documents} /> */}
-        <NavSecondary items={data.navSecondary} user={user} className="mt-auto" />
+        <DynamicNav user={user} type="main" />
+        <DynamicNav user={user} type="group" />
+        <DynamicNav user={user} type="secondary" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

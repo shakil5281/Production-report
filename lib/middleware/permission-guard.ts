@@ -105,19 +105,19 @@ export function withWriteAccess(permissions: PermissionType[]) {
  */
 export function withCashbookManagerAccess(handler: (req: NextRequest, user: UserWithPermissions) => Promise<NextResponse>) {
   return withPermission([], { 
-    allowedRoles: [UserRole.CASHBOOK_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN] 
+    allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] 
   })(handler);
 }
 
 export function withProductionManagerAccess(handler: (req: NextRequest, user: UserWithPermissions) => Promise<NextResponse>) {
   return withPermission([], { 
-    allowedRoles: [UserRole.PRODUCTION_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN] 
+    allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] 
   })(handler);
 }
 
 export function withCuttingManagerAccess(handler: (req: NextRequest, user: UserWithPermissions) => Promise<NextResponse>) {
   return withPermission([], { 
-    allowedRoles: [UserRole.CUTTING_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN] 
+    allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] 
   })(handler);
 }
 
@@ -130,8 +130,8 @@ export function isOperationAllowed(user: UserWithPermissions, operation: 'create
   // Super admin can do everything
   if (user.role === UserRole.SUPER_ADMIN) return true;
 
-  // Report viewers can only read
-  if (user.role === UserRole.REPORT_VIEWER && operation !== 'read') return false;
+  // Users can only read (basic permission check)
+  if (user.role === UserRole.USER && operation !== 'read') return false;
 
   // Map operation to permission type
   const permissionMap: Record<string, Record<string, PermissionType>> = {

@@ -71,18 +71,18 @@ export function ProductionListTanStackDataTable({ data, statusFilter = 'all', on
 
   return (
     <div className="w-full">
-      <div className="flex items-center py-4">
+      <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center">
         <Input
           placeholder="Filter by program code..."
           value={(table.getColumn('programCode')?.getFilterValue() as string) ?? ''}
           onChange={(event) =>
             table.getColumn('programCode')?.setFilterValue(event.target.value)
           }
-          className="max-w-sm"
+          className="w-full sm:max-w-sm"
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
+            <Button variant="outline" className="w-full sm:w-auto sm:ml-auto">
               <IconFilter className="mr-2 h-4 w-4" />
               Columns
               <IconChevronDown className="ml-2 h-4 w-4" />
@@ -109,7 +109,7 @@ export function ProductionListTanStackDataTable({ data, statusFilter = 'all', on
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -159,12 +159,12 @@ export function ProductionListTanStackDataTable({ data, statusFilter = 'all', on
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
+      <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex-1 text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
-        <div className="space-x-2">
+        <div className="flex items-center justify-center space-x-2">
           <Button
             variant="outline"
             size="sm"

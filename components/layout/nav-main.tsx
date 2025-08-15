@@ -89,7 +89,7 @@ export function NavMain({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton 
-                  className={`cursor-pointer ${isActive ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`} 
+                  className={`cursor-pointer min-h-10 md:min-h-8 ${isActive ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`} 
                   onClick={() => handleNavigation(item.url)} 
                   tooltip={item.title}
                   isActive={isActive}

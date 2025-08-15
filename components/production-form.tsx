@@ -100,7 +100,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
   };
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {mode === 'create' ? (
@@ -124,7 +124,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="programCode">Program Code *</Label>
               <Input
@@ -217,7 +217,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="status">Status</Label>
               <Select 
                 value={formData.status} 
@@ -234,16 +234,15 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                 </SelectContent>
               </Select>
             </div>
-
-
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={onCancel}
               disabled={loading}
+              className="w-full sm:w-auto"
             >
               <IconX className="h-4 w-4 mr-2" />
               Cancel
@@ -251,6 +250,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
             <Button
               type="submit"
               disabled={loading}
+              className="w-full sm:w-auto"
             >
               {mode === 'create' ? (
                 <>

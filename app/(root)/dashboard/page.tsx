@@ -132,33 +132,33 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Production Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Production Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Overview of production status across all lines
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="border rounded px-3 py-2"
+            className="border rounded px-3 py-2 text-sm w-full sm:w-auto min-w-0"
           />
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Lines</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Lines</CardTitle>
+            <Package className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.summary.totalLines}</div>
+            <div className="text-xl sm:text-2xl font-bold">{dashboardData.summary.totalLines}</div>
             <p className="text-xs text-muted-foreground">
               Active production lines
             </p>
@@ -167,11 +167,11 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Styles</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Styles</CardTitle>
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.summary.totalStyles}</div>
+            <div className="text-xl sm:text-2xl font-bold">{dashboardData.summary.totalStyles}</div>
             <p className="text-xs text-muted-foreground">
               Active styles in production
             </p>
@@ -180,11 +180,11 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Running</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Running</CardTitle>
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-xl sm:text-2xl font-bold text-green-600">
               {dashboardData.summary.byStatus.running}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -195,11 +195,11 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Complete</CardTitle>
-            <TrendingDown className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Complete</CardTitle>
+            <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-xl sm:text-2xl font-bold text-blue-600">
               {dashboardData.summary.byStatus.complete}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -210,16 +210,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Production Lines */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Production Lines</h2>
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-lg sm:text-xl font-semibold">Production Lines</h2>
         {dashboardData.lines?.map((line) => (
           <Card key={line.line.id}>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>
+              <CardTitle className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm sm:text-base font-medium">
                   {line.line.name} ({line.line.code})
                 </span>
-                <Badge variant="outline">
+                <Badge variant="outline" className="self-start sm:self-auto">
                   {line.styles.length} Style{line.styles.length !== 1 ? 's' : ''}
                 </Badge>
               </CardTitle>
@@ -234,24 +234,24 @@ export default function DashboardPage() {
                   {line.styles.map((style) => (
                     <div
                       key={style.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
+                      className="flex flex-col gap-3 p-3 border rounded-lg sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-medium">{style.styleNumber}</h4>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 mb-2">
+                          <h4 className="font-medium text-sm sm:text-base truncate">{style.styleNumber}</h4>
                           <Badge className={getStatusColor(style.status)}>
                             {style.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {style.buyer} • Order: {style.orderQty}
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          {style.buyer} • Order: {style.orderQty.toLocaleString()}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <div className="text-lg font-semibold">
-                          {style.dailyProgress.totalOutput}
+                      <div className="text-left sm:text-right flex-shrink-0">
+                        <div className="text-base sm:text-lg font-semibold">
+                          {style.dailyProgress.totalOutput.toLocaleString()}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-xs sm:text-sm text-muted-foreground">
                           {getProgressPercentage(
                             style.dailyProgress.totalOutput,
                             style.orderQty
