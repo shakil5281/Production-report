@@ -48,13 +48,61 @@ export function NavGroup({
     const router = useRouter()
     const { setOpenMobile } = useSidebar()
     
-    // Filter items based on user role using the roles array from data
+    // Filter items based on user permissions and roles
     const filteredItems = React.useMemo(() => {
         return items.filter(item => {
-            if (!item.roles) return true
-            return item.roles.includes(user.role)
+            // Check role-based access first
+            if (item.roles && !item.roles.includes(user.role)) {
+                return false;
+            }
+            
+            // For SuperAdmin, allow access to everything
+            if (user.role === 'SUPER_ADMIN') {
+                return true;
+            }
+            
+            // Check URL-based permissions if URL exists
+            if (item.url) {
+                const { canAccessRoute } = require('@/lib/permissions');
+                const userPermissions = user.permissions || [];
+                if (!canAccessRoute(user.role, userPermissions, item.url)) {
+                    return false;
+                }
+            }
+            
+            // Filter sub-items based on permissions
+            if (item.items) {
+                const userPermissions = user.permissions || [];
+                const { canAccessRoute } = require('@/lib/permissions');
+                
+                item.items = item.items.filter(subItem => {
+                    // Check role-based access
+                    if (subItem.roles && !subItem.roles.includes(user.role)) {
+                        return false;
+                    }
+                    
+                    // SuperAdmin can access everything
+                    if (user.role === 'SUPER_ADMIN') {
+                        return true;
+                    }
+                    
+                    // Check URL permissions
+                    if (subItem.url) {
+                        return canAccessRoute(user.role, userPermissions, subItem.url);
+                    }
+                    
+                    return true;
+                });
+                
+                // If no sub-items remain and main item has no direct URL, hide the group
+                if (item.items.length === 0 && !item.url) {
+                    return false;
+                }
+            }
+            
+            return true;
         })
-    }, [items, user.role])
+    }, [items, user.role, user.permissions])
 
     // Check if any item in a group is active and auto-expand that group
     React.useEffect(() => {

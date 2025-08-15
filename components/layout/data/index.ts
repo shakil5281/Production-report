@@ -150,12 +150,12 @@ export const data = {
     {
       title: "Administration",
       icon: IconSettings,
-      roles: ["SUPER_ADMIN"], // Only Super Admin can manage users
+      roles: ["SUPER_ADMIN", "ADMIN"], // Super Admin and Admin can access
       items: [
         {
           title: "Dashboard",
           url: "/admin/dashboard",
-          roles: ["SUPER_ADMIN"],
+          roles: ["SUPER_ADMIN", "ADMIN"],
         },
         {
           title: "User Management",
@@ -168,9 +168,56 @@ export const data = {
           roles: ["SUPER_ADMIN"],
         },
         {
+          title: "Role Management",
+          url: "/admin/roles",
+          roles: ["SUPER_ADMIN"],
+        },
+        {
           title: "System Settings",
           url: "/admin/settings",
           roles: ["SUPER_ADMIN"],
+        },
+        {
+          title: "API Routes",
+          url: "/admin/api-routes",
+          roles: ["SUPER_ADMIN"],
+        },
+        {
+          title: "System Logs",
+          url: "/admin/logs",
+          roles: ["SUPER_ADMIN"],
+        },
+        {
+          title: "Database Manager",
+          url: "/admin/database",
+          roles: ["SUPER_ADMIN"],
+        },
+        {
+          title: "Backup & Recovery",
+          url: "/admin/backup",
+          roles: ["SUPER_ADMIN"],
+        },
+      ],
+    },
+    {
+      title: "Shipments",
+      icon: IconReport,
+      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      items: [
+        {
+          title: "All Shipments",
+          url: "/shipments",
+          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+        },
+        {
+          title: "Create Shipment",
+          url: "/shipments/create",
+          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN"],
+        },
+        {
+          title: "Shipment Reports",
+          url: "/shipments/reports",
+          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
         },
       ],
     },

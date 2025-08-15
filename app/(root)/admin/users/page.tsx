@@ -9,7 +9,11 @@ import {
   Users,
   Shield,
   Search,
-  MoreHorizontal
+  MoreHorizontal,
+  Crown,
+  Star,
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,6 +106,45 @@ export default function AdminUsersPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
+
+  // Helper functions for role display
+  const getRoleIcon = (role: UserRole) => {
+    switch (role) {
+      case UserRole.SUPER_ADMIN:
+        return <Crown className="w-4 h-4 text-yellow-600" />;
+      case UserRole.ADMIN:
+        return <Shield className="w-4 h-4 text-blue-600" />;
+      case UserRole.MANAGER:
+        return <Star className="w-4 h-4 text-purple-600" />;
+      default:
+        return <Users className="w-4 h-4 text-gray-600" />;
+    }
+  };
+
+  const getRoleColor = (role: UserRole) => {
+    switch (role) {
+      case UserRole.SUPER_ADMIN:
+        return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
+      case UserRole.ADMIN:
+        return 'bg-blue-500/10 text-blue-700 border-blue-200';
+      case UserRole.MANAGER:
+        return 'bg-purple-500/10 text-purple-700 border-purple-200';
+      case UserRole.PRODUCTION_MANAGER:
+        return 'bg-green-500/10 text-green-700 border-green-200';
+      case UserRole.CASHBOOK_MANAGER:
+        return 'bg-orange-500/10 text-orange-700 border-orange-200';
+      case UserRole.CUTTING_MANAGER:
+        return 'bg-pink-500/10 text-pink-700 border-pink-200';
+      case UserRole.REPORT_VIEWER:
+        return 'bg-indigo-500/10 text-indigo-700 border-indigo-200';
+      default:
+        return 'bg-gray-500/10 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getRoleDisplayName = (role: UserRole) => {
+    return role.replace('_', ' ').toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase());
+  };
 
   // Fetch users on component mount
   useEffect(() => {
@@ -258,28 +301,7 @@ export default function AdminUsersPage() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const getRoleBadgeColor = (role: UserRole) => {
-    switch (role) {
-      case UserRole.SUPER_ADMIN:
-        return 'bg-red-100 text-red-800';
-      case UserRole.ADMIN:
-        return 'bg-purple-100 text-purple-800';
-      case UserRole.MANAGER:
-        return 'bg-blue-100 text-blue-800';
-      case UserRole.CASHBOOK_MANAGER:
-        return 'bg-green-100 text-green-800';
-      case UserRole.PRODUCTION_MANAGER:
-        return 'bg-orange-100 text-orange-800';
-      case UserRole.CUTTING_MANAGER:
-        return 'bg-yellow-100 text-yellow-800';
-      case UserRole.REPORT_VIEWER:
-        return 'bg-indigo-100 text-indigo-800';
-      case UserRole.USER:
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // Remove old function - using new getRoleColor function above
 
   const formatDate = (date: Date | string) => {
     const dateObj = date instanceof Date ? date : new Date(date);
@@ -448,9 +470,12 @@ export default function AdminUsersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getRoleBadgeColor(user.role)}>
-                        {user.role.replace('_', ' ')}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {getRoleIcon(user.role)}
+                        <Badge className={getRoleColor(user.role)}>
+                          {getRoleDisplayName(user.role)}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.isActive ? "default" : "secondary"}>

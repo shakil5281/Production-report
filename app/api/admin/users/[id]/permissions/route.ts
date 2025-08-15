@@ -106,7 +106,6 @@ export async function PUT(
         const userPermissions = permissionRecords.map(permission => ({
           userId,
           permissionId: permission.id,
-          granted: true,
         }));
 
         await tx.userPermission.createMany({
@@ -152,8 +151,13 @@ export async function PUT(
 
   } catch (error) {
     console.error('Update user permissions error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: params ? (await params).id : 'unknown'
+    });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   } finally {

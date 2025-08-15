@@ -30,10 +30,26 @@ export function NavSecondary({
   const router = useRouter()
   const { setOpenMobile } = useSidebar()
   
-  // Filter items based on user role
+  // Filter items based on user permissions
   const filteredItems = items.filter(item => {
-    if (!item.roles) return true
-    return item.roles.includes(user.role)
+    // Check role-based access first
+    if (item.roles && !item.roles.includes(user.role)) {
+      return false;
+    }
+    
+    // For SuperAdmin, allow access to everything
+    if (user.role === 'SUPER_ADMIN') {
+      return true;
+    }
+    
+    // Check URL-based permissions if URL exists
+    if (item.url) {
+      const { canAccessRoute } = require('@/lib/permissions');
+      const userPermissions = user.permissions || [];
+      return canAccessRoute(user.role, userPermissions, item.url);
+    }
+    
+    return true;
   })
   
   const handleNavigation = (url: string) => {
