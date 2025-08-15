@@ -4,10 +4,10 @@ import { productionService } from '@/lib/db/production';
 // GET production item by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const item = await productionService.getById(id);
 
     if (!item) {
@@ -34,10 +34,10 @@ export async function GET(
 // PUT update production item
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const body = await request.json();
     const { programCode, styleNo, buyer, quantity, item, price, percentage, status } = body;
 
@@ -97,10 +97,10 @@ export async function PUT(
 // DELETE production item
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const deletedItem = await productionService.delete(id);
 
     return NextResponse.json({

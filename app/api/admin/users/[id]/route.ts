@@ -7,10 +7,10 @@ const prisma = new PrismaClient();
 // GET - Get specific user (Super Admin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     
     // Get token from cookies
     const token = request.cookies.get('auth-token')?.value;
@@ -98,10 +98,10 @@ export async function GET(
 // PUT - Update user (Super Admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     
     // Get token from cookies
     const token = request.cookies.get('auth-token')?.value;
@@ -202,10 +202,10 @@ export async function PUT(
 // DELETE - Delete user (Super Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     
     // Get token from cookies
     const token = request.cookies.get('auth-token')?.value;

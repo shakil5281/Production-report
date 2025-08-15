@@ -4,10 +4,10 @@ import { linesService } from '@/lib/db/lines';
 // GET line by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const line = await linesService.getById(id);
 
     if (!line) {
@@ -34,10 +34,10 @@ export async function GET(
 // PUT update line
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const body = await request.json();
     const { name, code, isActive } = body;
 
@@ -74,10 +74,10 @@ export async function PUT(
 // DELETE line
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const deletedLine = await linesService.delete(id);
 
     return NextResponse.json({
