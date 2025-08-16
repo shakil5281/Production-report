@@ -1,11 +1,6 @@
-import { ProductionStatus } from '@prisma/client';
+import { ProductionStatus, Prisma } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 import { prisma } from './prisma';
-
-// Define a proper error type for Prisma errors
-interface PrismaError extends Error {
-  code?: string;
-}
 
 export interface CreateProductionItemData {
   programCode: string;
@@ -98,12 +93,13 @@ export const productionService = {
       return transformProductionItem(item);
     } catch (error) {
       console.error('Error creating production item:', error);
-      const prismaError = error as PrismaError;
-      if (prismaError.code === 'P2002') {
-        if (prismaError.message.includes('styleNo')) {
-          throw new Error('Style No already exists');
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          if (error.message.includes('styleNo')) {
+            throw new Error('Style No already exists');
+          }
+          throw new Error('Failed to create production item');
         }
-        throw new Error('Failed to create production item');
       }
       throw new Error('Failed to create production item');
     }
@@ -137,31 +133,34 @@ export const productionService = {
       return transformProductionItem(item);
     } catch (error) {
       console.error('Error updating production item:', error);
-      const prismaError = error as PrismaError;
       
-      if (prismaError.code === 'P2002') {
-        if (prismaError.message.includes('styleNo')) {
-          throw new Error('Style No already exists. Please use a different style number.');
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          if (error.message.includes('styleNo')) {
+            throw new Error('Style No already exists. Please use a different style number.');
+          }
+          throw new Error('Duplicate entry error. Please check your data.');
         }
-        throw new Error('Duplicate entry error. Please check your data.');
+        
+        if (error.code === 'P2025') {
+          throw new Error('Production item not found. The item may have been deleted.');
+        }
+        
+        if (error.code === 'P2003') {
+          throw new Error('Foreign key constraint failed. Please check referenced data.');
+        }
+        
+        // Log the actual error for debugging
+        console.error('Prisma error details:', {
+          code: error.code,
+          message: error.message,
+          meta: error.meta
+        });
+        
+        throw new Error(`Failed to update production item: ${error.message || 'Unknown database error'}`);
       }
       
-      if (prismaError.code === 'P2025') {
-        throw new Error('Production item not found. The item may have been deleted.');
-      }
-      
-      if (prismaError.code === 'P2003') {
-        throw new Error('Foreign key constraint failed. Please check referenced data.');
-      }
-      
-      // Log the actual error for debugging
-      console.error('Prisma error details:', {
-        code: prismaError.code,
-        message: prismaError.message,
-        meta: prismaError.meta
-      });
-      
-      throw new Error(`Failed to update production item: ${prismaError.message || 'Unknown database error'}`);
+      throw new Error(`Failed to update production item: ${error instanceof Error ? error.message : 'Unknown database error'}`);
     }
   },
 
@@ -174,9 +173,10 @@ export const productionService = {
       return transformProductionItem(item);
     } catch (error) {
       console.error('Error deleting production item:', error);
-      const prismaError = error as PrismaError;
-      if (prismaError.code === 'P2025') {
-        throw new Error('Production item not found');
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new Error('Production item not found');
+        }
       }
       throw new Error('Failed to delete production item');
     }
