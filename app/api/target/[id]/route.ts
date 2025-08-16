@@ -40,15 +40,9 @@ export async function PUT(
     const { id } = await params;
     
     // Log the raw request for debugging
-    console.log('Raw request method:', request.method);
-    console.log('Raw request headers:', Object.fromEntries(request.headers.entries()));
-    
-    let body;
+        let body;
     try {
       body = await request.json();
-      console.log('Parsed request body:', body);
-      console.log('Body type:', typeof body);
-      console.log('Body keys:', Object.keys(body || {}));
     } catch (jsonError) {
       console.error('Failed to parse JSON:', jsonError);
       return NextResponse.json(
@@ -63,7 +57,7 @@ export async function PUT(
     
     const { lineNo, styleNo, lineTarget, date, inTime, outTime, hourlyProduction } = body;
 
-    console.log('Extracted values:', { id, lineNo, styleNo, lineTarget, date, inTime, outTime, hourlyProduction });
+
 
     // Validation - check if all required fields are present
     const requiredFields = { lineNo, styleNo, lineTarget, date, inTime, outTime };
