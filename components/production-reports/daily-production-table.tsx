@@ -49,19 +49,7 @@ interface DailyProductionReport {
   };
 }
 
-interface ProductionBalance {
-  id: string;
-  styleNo: string;
-  totalTarget: number;
-  totalProduced: number;
-  currentBalance: number;
-  lastUpdated: string;
-  productionList: {
-    buyer: string;
-    item: string;
-    price: number | string; // Prisma Decimal type
-  };
-}
+
 
 interface CreateReportForm {
   date: string;
@@ -74,7 +62,6 @@ interface CreateReportForm {
 
 export default function DailyProductionTable() {
   const [reports, setReports] = useState<DailyProductionReport[]>([]);
-  const [balances, setBalances] = useState<ProductionBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -107,21 +94,7 @@ export default function DailyProductionTable() {
     }
   };
 
-  const fetchBalances = async () => {
-    try {
-      const response = await fetch('/api/production/balances');
-      const data = await response.json();
-      
-      if (data.success) {
-        setBalances(data.data);
-      } else {
-        toast.error(data.error || 'Failed to fetch balances');
-      }
-    } catch (error) {
-      toast.error('Failed to fetch production balances');
-      console.error('Error fetching balances:', error);
-    }
-  };
+
 
   const createReport = async () => {
     try {
@@ -147,7 +120,6 @@ export default function DailyProductionTable() {
           notes: '',
         });
         fetchReports();
-        fetchBalances();
       } else {
         toast.error(data.error || 'Failed to create report');
       }
@@ -159,7 +131,6 @@ export default function DailyProductionTable() {
 
   useEffect(() => {
     fetchReports();
-    fetchBalances();
   }, [selectedDate]);
 
   const getBalanceStatus = (balance: number) => {
@@ -353,56 +324,7 @@ export default function DailyProductionTable() {
         </CardContent>
       </Card>
 
-      {/* Production Balances */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Production Balances by Style</CardTitle>
-          <CardDescription>
-            Cumulative balance tracking for each style number
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {balances.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No production balances found
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Style No</TableHead>
-                  <TableHead>Buyer</TableHead>
-                  <TableHead>Item</TableHead>
-                  <TableHead>Total Target</TableHead>
-                  <TableHead>Total Produced</TableHead>
-                  <TableHead>Current Balance</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {balances.map((balance) => {
-                  const balanceStatus = getBalanceStatus(balance.currentBalance);
-                  return (
-                    <TableRow key={balance.id}>
-                      <TableCell className="font-medium">{balance.styleNo}</TableCell>
-                      <TableCell>{balance.productionList.buyer}</TableCell>
-                      <TableCell>{balance.productionList.item}</TableCell>
-                      <TableCell>{balance.totalTarget}</TableCell>
-                      <TableCell>{balance.totalProduced}</TableCell>
-                      <TableCell>
-                        <Badge variant={balanceStatus.variant}>
-                          {balanceStatus.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{format(new Date(balance.lastUpdated), 'PPp')}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+
     </div>
   );
 }

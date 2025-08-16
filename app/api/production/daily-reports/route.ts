@@ -128,36 +128,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get or create production balance
-    let balance = await prisma.productionBalance.findUnique({
+    // Calculate balance from existing reports for this style
+    const existingReports = await prisma.dailyProductionReport.findMany({
       where: { styleNo },
+      select: {
+        targetQty: true,
+        productionQty: true,
+      },
     });
 
-    if (!balance) {
-      balance = await prisma.productionBalance.create({
-        data: {
-          styleNo,
-          totalTarget: targetQty,
-          totalProduced: productionQty,
-          currentBalance: targetQty - productionQty,
-        },
-      });
-    } else {
-      // Update balance: add new target, add new production, calculate new balance
-      const newTotalTarget = balance.totalTarget + targetQty;
-      const newTotalProduced = balance.totalProduced + productionQty;
-      const newBalance = newTotalTarget - newTotalProduced;
-
-      balance = await prisma.productionBalance.update({
-        where: { styleNo },
-        data: {
-          totalTarget: newTotalTarget,
-          totalProduced: newTotalProduced,
-          currentBalance: newBalance,
-          lastUpdated: new Date(),
-        },
-      });
-    }
+    // Calculate cumulative totals including this new report
+    const totalTarget = existingReports.reduce((sum, report) => sum + report.targetQty, 0) + targetQty;
+    const totalProduced = existingReports.reduce((sum, report) => sum + report.productionQty, 0) + productionQty;
+    const currentBalance = totalTarget - totalProduced;
 
     // Create daily report
     const report = await prisma.dailyProductionReport.create({
@@ -168,7 +151,7 @@ export async function POST(request: NextRequest) {
         productionQty,
         unitPrice,
         totalAmount,
-        balanceQty: balance.currentBalance,
+        balanceQty: currentBalance,
         lineNo,
         notes,
       },

@@ -38,20 +38,65 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    
+    // Log the raw request for debugging
+    console.log('Raw request method:', request.method);
+    console.log('Raw request headers:', Object.fromEntries(request.headers.entries()));
+    
+    let body;
+    try {
+      body = await request.json();
+      console.log('Parsed request body:', body);
+      console.log('Body type:', typeof body);
+      console.log('Body keys:', Object.keys(body || {}));
+    } catch (jsonError) {
+      console.error('Failed to parse JSON:', jsonError);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Invalid JSON in request body',
+          details: jsonError instanceof Error ? jsonError.message : 'JSON parse error'
+        },
+        { status: 400 }
+      );
+    }
+    
     const { lineNo, styleNo, lineTarget, date, inTime, outTime, hourlyProduction } = body;
 
-    // Validation
-    if (!lineNo || !styleNo || !lineTarget || !date || !inTime || !outTime) {
+    console.log('Extracted values:', { id, lineNo, styleNo, lineTarget, date, inTime, outTime, hourlyProduction });
+
+    // Validation - check if all required fields are present
+    const requiredFields = { lineNo, styleNo, lineTarget, date, inTime, outTime };
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key, value]) => value === undefined || value === null || value === '')
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { 
+          success: false, 
+          error: `Missing required fields: ${missingFields.join(', ')}`,
+          receivedData: body,
+          requiredFields: ['lineNo', 'styleNo', 'lineTarget', 'date', 'inTime', 'outTime']
+        },
         { status: 400 }
       );
     }
 
-    if (lineTarget <= 0 || hourlyProduction < 0) {
+    // Validate numeric values
+    const lineTargetNum = Number(lineTarget);
+    const hourlyProductionNum = Number(hourlyProduction) || 0;
+
+    if (isNaN(lineTargetNum) || lineTargetNum <= 0) {
       return NextResponse.json(
-        { success: false, error: 'Invalid numeric values' },
+        { success: false, error: 'lineTarget must be a positive number' },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(hourlyProductionNum) || hourlyProductionNum < 0) {
+      return NextResponse.json(
+        { success: false, error: 'hourlyProduction must be a non-negative number' },
         { status: 400 }
       );
     }
@@ -60,11 +105,11 @@ export async function PUT(
     const updatedTarget = await targetService.update(id, {
       lineNo,
       styleNo,
-      lineTarget: Number(lineTarget),
+      lineTarget: lineTargetNum,
       date,
       inTime,
       outTime,
-      hourlyProduction: Number(hourlyProduction) || 0
+      hourlyProduction: hourlyProductionNum
     });
 
     return NextResponse.json({
@@ -76,9 +121,13 @@ export async function PUT(
   } catch (error) {
     console.error('Error updating target:', error);
     return NextResponse.json(
-      { success: false, error: (error as Error).message || 'Failed to update target' },
+      { 
+        success: false, 
+        error: (error as Error).message || 'Failed to update target',
+        details: error instanceof Error ? error.stack : 'No stack trace'
+      },
       { status: 500 }
-      );
+    );
   }
 }
 

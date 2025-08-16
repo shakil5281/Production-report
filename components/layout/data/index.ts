@@ -42,11 +42,8 @@ export const data = {
           url: "/lines",
           roles: ["USER", "SUPER_ADMIN"], // READ_LINE permission
         },
-        {
-          title: "Daily Production Entry",
-          url: "/daily-production",
-          roles: ["USER", "SUPER_ADMIN"], // READ_PRODUCTION permission
-        },
+
+
       ],
     },
     {
@@ -81,11 +78,7 @@ export const data = {
           url: "/target",
           roles: ["USER", "SUPER_ADMIN"], // READ_TARGET permission
         },
-        {
-          title: "Daily Target Report",
-          url: "/target/daily-report",
-          roles: ["USER", "SUPER_ADMIN"], // READ_TARGET permission
-        },
+
         {
           title: "Comprehensive Target Report",
           url: "/target/comprehensive-report",

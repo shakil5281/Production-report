@@ -1,481 +1,477 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import { useCallback, useEffect, useState } from 'react';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { 
-  CalendarIcon, 
-  TrendingUpIcon, 
-  TrendingDownIcon, 
-  DollarSignIcon, 
-  DownloadIcon,
-  PrinterIcon,
-  FileTextIcon,
-  BarChart3Icon,
-  PieChartIcon
-} from "lucide-react"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  IconCalendar, 
+  IconCurrencyTaka,
+  IconRefresh,
+  IconReceipt,
+  IconReportAnalytics,
+  IconTrendingDown,
+  IconDownload,
+  IconFileText,
+  IconFileSpreadsheet,
+  IconFilter,
+  IconCalendarStats
+} from '@tabler/icons-react';
+import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
+
+interface ExpenseEntry {
+  id: string;
+  date: string;
+  amount: number;
+  description: string;
+  referenceId: string | null;
+  createdAt: string;
+}
+
+interface DailyData {
+  date: string;
+  categories: Record<string, number>;
+  dailyTotal: number;
+}
 
 interface MonthlyReportData {
-  month: string
-  year: string
-  openingBalance: number
-  totalIncome: number
-  totalExpenses: number
-  netCashFlow: number
-  closingBalance: number
-  transactionCount: number
-  avgDailyIncome: number
-  avgDailyExpense: number
-  highestSingleIncome: number
-  highestSingleExpense: number
-  workingDays: number
+  entries: ExpenseEntry[];
+  dailyData: DailyData[];
+  categories: string[];
+  categoryTotals: Record<string, number>;
 }
 
-interface CategoryBreakdown {
-  category: string
-  type: "income" | "expense"
-  amount: number
-  transactionCount: number
-  percentage: number
-  avgTransaction: number
+interface ReportSummary {
+  month: string;
+  monthName: string;
+  totalAmount: number;
+  totalEntries: number;
+  startDate: string;
+  endDate: string;
+  daysWithExpenses: number;
 }
 
-interface DailySummary {
-  date: string
-  openingBalance: number
-  totalIncome: number
-  totalExpenses: number
-  closingBalance: number
-  netFlow: number
-}
+export default function MonthlyExpenseReportPage() {
+  const [reportData, setReportData] = useState<MonthlyReportData | null>(null);
+  const [summary, setSummary] = useState<ReportSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-const mockReportData: MonthlyReportData = {
-  month: "January",
-  year: "2024",
-  openingBalance: 45000.00,
-  totalIncome: 125750.00,
-  totalExpenses: 89320.50,
-  netCashFlow: 36429.50,
-  closingBalance: 81429.50,
-  transactionCount: 324,
-  avgDailyIncome: 4056.45,
-  avgDailyExpense: 2881.95,
-  highestSingleIncome: 8500.00,
-  highestSingleExpense: 3200.00,
-  workingDays: 31
-}
+  const fetchReport = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/cashbook/monthly-expense-report?month=${selectedMonth}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-const mockCategoryBreakdown: CategoryBreakdown[] = [
-  {
-    category: "Product Sales",
-    type: "income",
-    amount: 75500.00,
-    transactionCount: 85,
-    percentage: 60.1,
-    avgTransaction: 888.24
-  },
-  {
-    category: "Service Revenue",
-    type: "income",
-    amount: 35250.00,
-    transactionCount: 42,
-    percentage: 28.0,
-    avgTransaction: 839.29
-  },
-  {
-    category: "Investment Income",
-    type: "income",
-    amount: 15000.00,
-    transactionCount: 3,
-    percentage: 11.9,
-    avgTransaction: 5000.00
-  },
-  {
-    category: "Raw Materials",
-    type: "expense",
-    amount: 32450.00,
-    transactionCount: 58,
-    percentage: 36.3,
-    avgTransaction: 559.48
-  },
-  {
-    category: "Utilities",
-    type: "expense",
-    amount: 18750.50,
-    transactionCount: 31,
-    percentage: 21.0,
-    avgTransaction: 604.85
-  },
-  {
-    category: "Transportation",
-    type: "expense",
-    amount: 12680.00,
-    transactionCount: 45,
-    percentage: 14.2,
-    avgTransaction: 281.78
-  },
-  {
-    category: "Office Supplies",
-    type: "expense",
-    amount: 8940.00,
-    transactionCount: 67,
-    percentage: 10.0,
-    avgTransaction: 133.43
-  },
-  {
-    category: "Maintenance",
-    type: "expense",
-    amount: 16500.00,
-    transactionCount: 23,
-    percentage: 18.5,
-    avgTransaction: 717.39
-  }
-]
+      const data = await response.json();
+      
+      if (data.success) {
+        setReportData(data.data);
+        setSummary(data.summary);
+      } else {
+        throw new Error(data.error || 'Failed to fetch report');
+      }
+    } catch (error) {
+      console.error('Error fetching monthly expense report:', error);
+      toast.error('Failed to fetch monthly expense report');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedMonth]);
 
-const mockDailySummary: DailySummary[] = [
-  { date: "2024-01-15", openingBalance: 48500.00, totalIncome: 4200.00, totalExpenses: 2850.00, closingBalance: 49850.00, netFlow: 1350.00 },
-  { date: "2024-01-14", openingBalance: 47200.00, totalIncome: 3800.00, totalExpenses: 2500.00, closingBalance: 48500.00, netFlow: 1300.00 },
-  { date: "2024-01-13", openingBalance: 46100.00, totalIncome: 2950.00, totalExpenses: 1850.00, closingBalance: 47200.00, netFlow: 1100.00 },
-  { date: "2024-01-12", openingBalance: 45800.00, totalIncome: 4100.00, totalExpenses: 3800.00, closingBalance: 46100.00, netFlow: 300.00 },
-  { date: "2024-01-11", openingBalance: 44650.00, totalIncome: 5200.00, totalExpenses: 4050.00, closingBalance: 45800.00, netFlow: 1150.00 }
-]
+  const exportToPDF = async () => {
+    if (!reportData || !summary) {
+      toast.error('No data to export');
+      return;
+    }
 
-const months = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-]
+    setExporting(true);
+    try {
+      const doc = new jsPDF();
+      
+      // Add title
+      doc.setFontSize(20);
+      doc.text('Monthly Expense Report', 14, 22);
+      
+      // Add month info
+      doc.setFontSize(12);
+      doc.text(summary.monthName, 14, 32);
+      
+      // Add summary
+      doc.text(`Total Amount: ৳${summary.totalAmount.toLocaleString()}`, 14, 42);
+      doc.text(`Total Entries: ${summary.totalEntries}`, 14, 52);
+      doc.text(`Days with Expenses: ${summary.daysWithExpenses}`, 100, 42);
+      doc.text(`Categories: ${reportData.categories.length}`, 100, 52);
+      
+      // Prepare table data
+      const tableColumns = ['Date', ...reportData.categories, 'Total'];
+      const tableRows = reportData.dailyData.map(daily => [
+        daily.date,
+        ...reportData.categories.map(cat => daily.categories[cat] ? daily.categories[cat].toLocaleString() : ''),
+        daily.dailyTotal.toLocaleString()
+      ]);
+      
+      // Add totals row
+      const totalsRow = [
+        'Total',
+        ...reportData.categories.map(cat => reportData.categoryTotals[cat]?.toLocaleString() || '0'),
+        summary.totalAmount.toLocaleString()
+      ];
+      tableRows.push(totalsRow);
+      
+      // Add table
+      autoTable(doc, {
+        head: [tableColumns],
+        body: tableRows,
+        startY: 65,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        headStyles: {
+          fillColor: [239, 68, 68],
+          textColor: 255,
+          fontStyle: 'bold',
+        },
+        alternateRowStyles: {
+          fillColor: [254, 242, 242],
+        },
+        didParseCell: function (data) {
+          if (data.row.index === tableRows.length - 1) {
+            data.cell.styles.fillColor = [220, 220, 220];
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      });
+      
+      // Save the PDF
+      doc.save(`monthly-expense-report-${selectedMonth}.pdf`);
+      toast.success('PDF exported successfully');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Failed to export PDF');
+    } finally {
+      setExporting(false);
+    }
+  };
 
-export default function MonthlyExpressReportPage() {
-  const [selectedMonth, setSelectedMonth] = useState("January")
-  const [selectedYear, setSelectedYear] = useState("2024")
-  const [filterType, setFilterType] = useState("all")
+  const exportToExcel = async () => {
+    if (!reportData || !summary) {
+      toast.error('No data to export');
+      return;
+    }
 
-  // Filter category breakdown based on type
-  const filteredCategories = mockCategoryBreakdown.filter(category => {
-    if (filterType === "all") return true
-    return category.type === filterType
-  })
+    setExporting(true);
+    try {
+      // Prepare data for Excel
+      const excelData = reportData.dailyData.map(daily => {
+        const row: any = { 'Date': daily.date };
+        reportData.categories.forEach(cat => {
+          row[cat] = daily.categories[cat] || 0;
+        });
+        row['Total'] = daily.dailyTotal;
+        return row;
+      });
+      
+      // Add totals row
+      const totalsRow: any = { 'Date': 'Total' };
+      reportData.categories.forEach(cat => {
+        totalsRow[cat] = reportData.categoryTotals[cat] || 0;
+      });
+      totalsRow['Total'] = summary.totalAmount;
+      excelData.push(totalsRow);
+      
+      // Add summary at the top
+      const summaryData = [
+        { 'Date': 'SUMMARY', ...Object.fromEntries(reportData.categories.map(cat => [cat, ''])), 'Total': '' },
+        { 'Date': 'Month', ...Object.fromEntries(reportData.categories.map(cat => [cat, ''])), 'Total': summary.monthName },
+        { 'Date': 'Total Amount', ...Object.fromEntries(reportData.categories.map(cat => [cat, ''])), 'Total': summary.totalAmount },
+        { 'Date': 'Total Entries', ...Object.fromEntries(reportData.categories.map(cat => [cat, ''])), 'Total': summary.totalEntries },
+        { 'Date': '', ...Object.fromEntries(reportData.categories.map(cat => [cat, ''])), 'Total': '' },
+        { 'Date': 'DETAILS', ...Object.fromEntries(reportData.categories.map(cat => [cat, ''])), 'Total': '' },
+        ...excelData
+      ];
+      
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(summaryData);
+      
+      // Set column widths
+      const colWidths = [{ width: 12 }]; // Date column
+      reportData.categories.forEach(() => colWidths.push({ width: 15 })); // Category columns
+      colWidths.push({ width: 12 }); // Total column
+      worksheet['!cols'] = colWidths;
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Monthly Expenses');
+      
+      // Save the file
+      XLSX.writeFile(workbook, `monthly-expense-report-${selectedMonth}.xlsx`);
+      toast.success('Excel file exported successfully');
+    } catch (error) {
+      console.error('Error exporting Excel:', error);
+      toast.error('Failed to export Excel file');
+    } finally {
+      setExporting(false);
+    }
+  };
 
-  const totalIncomeCategories = mockCategoryBreakdown.filter(cat => cat.type === "income")
-  const totalExpenseCategories = mockCategoryBreakdown.filter(cat => cat.type === "expense")
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-start lg:justify-between lg:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Monthly Express Report</h1>
-          <p className="text-muted-foreground">
-            Comprehensive monthly cashbook analysis and financial overview
+          <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">Monthly Expense Report</h1>
+          <p className="text-muted-foreground text-sm lg:text-base">
+            Comprehensive monthly view of all daily expense transactions
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <PrinterIcon className="h-4 w-4 mr-2" />
-            Print
-          </Button>
-          <Button variant="outline" size="sm">
-            <DownloadIcon className="h-4 w-4 mr-2" />
-            Export PDF
-          </Button>
+        <div className="flex flex-col space-y-2 lg:space-y-0 lg:flex-row lg:items-center lg:gap-2">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="month-filter" className="text-sm">Month:</Label>
+              <Select 
+                value={selectedMonth.split('-')[1]} 
+                onValueChange={(month) => setSelectedMonth(`${selectedYear}-${month.padStart(2, '0')}`)}
+              >
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="01">January</SelectItem>
+                  <SelectItem value="02">February</SelectItem>
+                  <SelectItem value="03">March</SelectItem>
+                  <SelectItem value="04">April</SelectItem>
+                  <SelectItem value="05">May</SelectItem>
+                  <SelectItem value="06">June</SelectItem>
+                  <SelectItem value="07">July</SelectItem>
+                  <SelectItem value="08">August</SelectItem>
+                  <SelectItem value="09">September</SelectItem>
+                  <SelectItem value="10">October</SelectItem>
+                  <SelectItem value="11">November</SelectItem>
+                  <SelectItem value="12">December</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="year-filter" className="text-sm">Year:</Label>
+              <Select 
+                value={selectedYear.toString()} 
+                onValueChange={(year) => {
+                  setSelectedYear(parseInt(year));
+                  setSelectedMonth(`${year}-${selectedMonth.split('-')[1]}`);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 10 }, (_, i) => {
+                    const year = new Date().getFullYear() - 5 + i;
+                    return (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+            <Button
+              variant="outline"
+              onClick={fetchReport}
+              disabled={loading}
+              className="flex items-center justify-center gap-2"
+            >
+              <IconRefresh className="h-4 w-4" />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                <IconCalendarStats className="h-3 w-3" />
+                <span className="hidden sm:inline">{summary?.monthName || 'Loading...'}</span>
+                <span className="sm:hidden">{selectedMonth}</span>
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToPDF}
+                disabled={exporting || !reportData || reportData.dailyData.length === 0}
+                className="flex items-center gap-2"
+              >
+                <IconFileText className="h-4 w-4" />
+                <span className="hidden sm:inline">PDF</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToExcel}
+                disabled={exporting || !reportData || reportData.dailyData.length === 0}
+                className="flex items-center gap-2"
+              >
+                <IconFileSpreadsheet className="h-4 w-4" />
+                <span className="hidden sm:inline">Excel</span>
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Period Selection */}
+      {/* Summary Cards */}
+      {summary && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Month</CardTitle>
+              <IconCalendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.monthName}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Expense</CardTitle>
+              <IconCurrencyTaka className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">৳{summary.totalAmount.toLocaleString()}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
+              <IconReceipt className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.totalEntries}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Days with Expenses</CardTitle>
+              <IconTrendingDown className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.daysWithExpenses}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Monthly Report Table */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className="flex gap-2 items-center">
-              <Label htmlFor="monthSelect">Report Period:</Label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map(month => (
-                    <SelectItem key={month} value={month}>{month}</SelectItem>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <IconReportAnalytics className="h-5 w-5" />
+            Monthly Expense Report
+          </CardTitle>
+          <CardDescription>
+            Detailed view of all daily expenses for {summary?.monthName || 'selected month'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">Loading monthly expense report...</div>
+            </div>
+          ) : !reportData || reportData.dailyData.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">No expenses found for the selected month</div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-semibold">Date</TableHead>
+                    {reportData.categories.map((category) => (
+                      <TableHead key={category} className="text-center font-semibold">
+                        {category}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-center font-semibold">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reportData.dailyData.map((dailyData) => (
+                    <TableRow key={dailyData.date}>
+                      <TableCell className="font-medium">
+                        {dailyData.date}
+                      </TableCell>
+                      {reportData.categories.map((category) => (
+                        <TableCell key={category} className="text-center">
+                          {dailyData.categories[category] ? dailyData.categories[category].toLocaleString() : ''}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-center font-bold">
+                        {dailyData.dailyTotal.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2024">2024</SelectItem>
-                  <SelectItem value="2025">2025</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1" />
-            <Badge variant="outline" className="text-sm">
-              {mockReportData.workingDays} working days
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Key Metrics Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Opening Balance</CardTitle>
-            <DollarSignIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${mockReportData.openingBalance.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Start of {selectedMonth}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-            <TrendingUpIcon className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">${mockReportData.totalIncome.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Avg: ${mockReportData.avgDailyIncome.toFixed(2)}/day
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <TrendingDownIcon className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">${mockReportData.totalExpenses.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Avg: ${mockReportData.avgDailyExpense.toFixed(2)}/day
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Closing Balance</CardTitle>
-            <BarChart3Icon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${mockReportData.closingBalance.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Net: ${mockReportData.netCashFlow.toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Cash Flow Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Cash Flow Summary</CardTitle>
-            <CardDescription>Monthly income vs expenses breakdown</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 border rounded-lg bg-blue-50">
-                <div>
-                  <div className="font-medium">Opening Balance</div>
-                  <div className="text-sm text-muted-foreground">Beginning of month</div>
-                </div>
-                <div className="text-lg font-bold">${mockReportData.openingBalance.toFixed(2)}</div>
-              </div>
-              
-              <div className="flex justify-between items-center p-4 border rounded-lg bg-green-50">
-                <div>
-                  <div className="font-medium text-green-700">Total Income</div>
-                  <div className="text-sm text-muted-foreground">{totalIncomeCategories.reduce((sum, cat) => sum + cat.transactionCount, 0)} transactions</div>
-                </div>
-                <div className="text-lg font-bold text-green-600">+${mockReportData.totalIncome.toFixed(2)}</div>
-              </div>
-
-              <div className="flex justify-between items-center p-4 border rounded-lg bg-red-50">
-                <div>
-                  <div className="font-medium text-red-700">Total Expenses</div>
-                  <div className="text-sm text-muted-foreground">{totalExpenseCategories.reduce((sum, cat) => sum + cat.transactionCount, 0)} transactions</div>
-                </div>
-                <div className="text-lg font-bold text-red-600">-${mockReportData.totalExpenses.toFixed(2)}</div>
-              </div>
-
-              <div className="flex justify-between items-center p-4 border rounded-lg bg-green-50">
-                <div>
-                  <div className="font-medium">Closing Balance</div>
-                  <div className="text-sm text-muted-foreground">End of month</div>
-                </div>
-                <div className="text-lg font-bold text-green-600">${mockReportData.closingBalance.toFixed(2)}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance Metrics</CardTitle>
-            <CardDescription>Key financial indicators</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="text-center p-3 border rounded-lg">
-                  <div className="text-lg font-bold text-green-600">${mockReportData.highestSingleIncome.toFixed(2)}</div>
-                  <div className="text-sm text-muted-foreground">Highest Income</div>
-                </div>
-                <div className="text-center p-3 border rounded-lg">
-                  <div className="text-lg font-bold text-red-600">${mockReportData.highestSingleExpense.toFixed(2)}</div>
-                  <div className="text-sm text-muted-foreground">Highest Expense</div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="text-center p-3 border rounded-lg">
-                  <div className="text-lg font-bold">{mockReportData.transactionCount}</div>
-                  <div className="text-sm text-muted-foreground">Total Transactions</div>
-                </div>
-                <div className="text-center p-3 border rounded-lg">
-                  <div className="text-lg font-bold">{(mockReportData.transactionCount / mockReportData.workingDays).toFixed(1)}</div>
-                  <div className="text-sm text-muted-foreground">Avg/Day</div>
-                </div>
-              </div>
-
-              <div className="text-center p-4 border rounded-lg bg-blue-50">
-                <div className="text-2xl font-bold text-blue-600">
-                  {((mockReportData.totalIncome / mockReportData.totalExpenses) * 100).toFixed(1)}%
-                </div>
-                <div className="text-sm text-muted-foreground">Income to Expense Ratio</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Category Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Category Analysis</CardTitle>
-          <CardDescription>
-            Income and expense breakdown by category
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="income">Income Only</SelectItem>
-                <SelectItem value="expense">Expenses Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Transactions</TableHead>
-                  <TableHead>Percentage</TableHead>
-                  <TableHead>Avg. Transaction</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCategories.map((category) => (
-                  <TableRow key={category.category}>
-                    <TableCell className="font-medium">{category.category}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={category.type === "income" ? "default" : "secondary"}
-                        className={category.type === "income" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
-                      >
-                        {category.type}
-                      </Badge>
+                  
+                  {/* Total Row */}
+                  <TableRow className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                    <TableCell className="font-bold">Total</TableCell>
+                    {reportData.categories.map((category) => (
+                      <TableCell key={category} className="text-center font-bold">
+                        {reportData.categoryTotals[category]?.toLocaleString() || '0'}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center font-bold">
+                      {summary?.totalAmount.toLocaleString()}
                     </TableCell>
-                    <TableCell className={`font-medium ${category.type === "income" ? "text-green-600" : "text-red-600"}`}>
-                      ${category.amount.toFixed(2)}
-                    </TableCell>
-                    <TableCell>{category.transactionCount}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>{category.percentage.toFixed(1)}%</span>
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full ${category.type === "income" ? "bg-green-500" : "bg-red-500"}`}
-                            style={{ width: `${Math.min(category.percentage, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>${category.avgTransaction.toFixed(2)}</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                </TableBody>
+              </Table>
 
-      {/* Recent Daily Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Daily Summary</CardTitle>
-          <CardDescription>
-            Last 5 days cash flow summary
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Opening Balance</TableHead>
-                  <TableHead>Income</TableHead>
-                  <TableHead>Expenses</TableHead>
-                  <TableHead>Net Flow</TableHead>
-                  <TableHead>Closing Balance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockDailySummary.map((day) => (
-                  <TableRow key={day.date}>
-                    <TableCell className="font-medium">{day.date}</TableCell>
-                    <TableCell>${day.openingBalance.toFixed(2)}</TableCell>
-                    <TableCell className="text-green-600">${day.totalIncome.toFixed(2)}</TableCell>
-                    <TableCell className="text-red-600">${day.totalExpenses.toFixed(2)}</TableCell>
-                    <TableCell className={`font-medium ${day.netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {day.netFlow >= 0 ? '+' : ''}${day.netFlow.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="font-medium">${day.closingBalance.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              {/* Monthly Summary */}
+              {summary && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-2">Monthly Summary ({summary.monthName})</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Total Amount:</span>
+                      <div className="font-bold text-lg">৳{summary.totalAmount.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Total Entries:</span>
+                      <div className="font-bold text-lg">{summary.totalEntries}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Days with Expenses:</span>
+                      <div className="font-bold text-lg">{summary.daysWithExpenses}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Categories:</span>
+                      <div className="font-bold text-lg">{reportData.categories.length}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
