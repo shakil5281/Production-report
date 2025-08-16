@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   Shield,
   Users,
-  Search,
   Edit,
   Save,
   X,
@@ -16,17 +15,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Sheet,
   SheetContent,
@@ -41,17 +31,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserRole, PermissionType } from '@/lib/types/auth';
 import { ROLE_PERMISSIONS, getRoleDisplayName } from '@/lib/rbac';
 import { toast } from 'sonner';
+import { UserPermissionsDataTable } from '@/components/admin/user-permissions/data-table';
+import type { UserPermissionData } from '@/components/admin/user-permissions/schema';
 
-interface UserPermission {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  isActive: boolean;
-  permissions: PermissionType[];
-  lastLogin?: Date;
-  createdAt: Date;
-}
+// Use the interface from our schema instead
 
 const PERMISSION_CATEGORIES = {
   'User Management': [
@@ -116,11 +99,11 @@ const PERMISSION_CATEGORIES = {
 };
 
 export default function PermissionsPage() {
-  const [users, setUsers] = useState<UserPermission[]>([]);
+  const [users, setUsers] = useState<UserPermissionData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole | 'all'>('all');
-  const [editingUser, setEditingUser] = useState<UserPermission | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [editingUser, setEditingUser] = useState<UserPermissionData | null>(null);
   const [tempPermissions, setTempPermissions] = useState<PermissionType[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -146,7 +129,12 @@ export default function PermissionsPage() {
       }
 
       const data = await response.json();
-      setUsers(data.users);
+      // Transform the data to match our schema
+      const transformedUsers: UserPermissionData[] = data.users.map((user: any) => ({
+        ...user,
+        lastLogin: user.lastLogin || null,
+      }));
+      setUsers(transformedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
@@ -155,7 +143,13 @@ export default function PermissionsPage() {
     }
   };
 
-  const startEditing = (user: UserPermission) => {
+  const handleViewUser = (user: UserPermissionData) => {
+    setEditingUser(user);
+    setTempPermissions([...user.permissions]);
+    setIsSheetOpen(true);
+  };
+
+  const handleEditUser = (user: UserPermissionData) => {
     setEditingUser(user);
     setTempPermissions([...user.permissions]);
     setIsSheetOpen(true);
@@ -281,26 +275,7 @@ export default function PermissionsPage() {
     return <AlertCircle className="w-3 h-3" />;
   };
 
-  // Filter users based on search and role
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-    return matchesSearch && matchesRole;
-  });
-
-  const formatLastLogin = (lastLogin?: Date) => {
-    if (!lastLogin) return 'Never';
-    const now = new Date();
-    const diffMs = now.getTime() - new Date(lastLogin).getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return `${Math.floor(diffDays / 30)} months ago`;
-  };
+  // Data is now filtered and managed by the data table component
 
   if (loading) {
     return (
@@ -369,142 +344,26 @@ export default function PermissionsPage() {
         </CardContent>
       </Card>
 
-      {/* Search and Filters */}
+      {/* User Permissions Data Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserCheck className="w-5 h-5" />
-            User Permissions ({filteredUsers.length} users)
+            User Permissions Management
           </CardTitle>
-          <CardDescription>Individual user permission management</CardDescription>
+          <CardDescription>Individual user permission management with advanced filtering and search</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value as UserRole | 'all')}
-              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 min-w-[200px] bg-background"
-            >
-              <option value="all">All Roles</option>
-              {Object.values(UserRole).map(role => (
-                <option key={role} value={role}>
-                  {getRoleDisplayName(role)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="rounded-md border overflow-hidden">
-            <ScrollArea className="h-[600px]">
-              <div className="min-w-[800px]">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur">
-                    <TableRow>
-                      <TableHead className="min-w-[250px]">User</TableHead>
-                      <TableHead className="min-w-[150px]">Role</TableHead>
-                      <TableHead className="min-w-[120px] hidden sm:table-cell">Status</TableHead>
-                      <TableHead className="min-w-[120px] hidden md:table-cell">Last Login</TableHead>
-                      <TableHead className="min-w-[300px] hidden lg:table-cell">Permissions</TableHead>
-                      <TableHead className="text-right min-w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium truncate">{user.name}</div>
-                            <div className="text-sm text-muted-foreground truncate">{user.email}</div>
-                            <div className="sm:hidden text-xs text-muted-foreground mt-1">
-                              {formatLastLogin(user.lastLogin)} • {user.permissions.length} permissions
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1">
-                          <Badge className={getRoleBadgeColor(user.role)}>
-                            {getRoleDisplayName(user.role)}
-                          </Badge>
-                          <Badge 
-                            variant={user.isActive ? "default" : "secondary"}
-                            className={`sm:hidden ${user.isActive ? "bg-green-500/10 text-green-700 border-green-200" : ""}`}
-                          >
-                            {user.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        <Badge 
-                          variant={user.isActive ? "default" : "secondary"}
-                          className={user.isActive ? "bg-green-500/10 text-green-700 border-green-200" : ""}
-                        >
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className="text-sm text-muted-foreground">
-                          {formatLastLogin(user.lastLogin)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <div className="flex flex-wrap gap-1 max-w-md">
-                          {user.permissions.slice(0, 3).map(permission => (
-                            <Badge 
-                              key={permission} 
-                              variant="outline"
-                              className={`text-xs ${getPermissionColor(permission)}`}
-                            >
-                              {permission.replace(/_/g, ' ').toLowerCase()}
-                            </Badge>
-                          ))}
-                          {user.permissions.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{user.permissions.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startEditing(user)}
-                          disabled={user.role === UserRole.SUPER_ADMIN}
-                          className="h-8"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredUsers.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No users found matching your search criteria.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  </TableBody>
-                </Table>
-              </div>
-            </ScrollArea>
-          </div>
+          <UserPermissionsDataTable
+            data={users}
+            loading={loading}
+            roleFilter={selectedRole}
+            statusFilter={statusFilter}
+            onView={handleViewUser}
+            onEdit={handleEditUser}
+            onRoleFilterChange={setSelectedRole}
+            onStatusFilterChange={setStatusFilter}
+          />
         </CardContent>
       </Card>
 

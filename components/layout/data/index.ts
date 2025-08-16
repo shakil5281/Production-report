@@ -148,6 +148,28 @@ export const data = {
       ],
     },
     {
+      title: "Shipments",
+      icon: IconReport,
+      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      items: [
+        {
+          title: "All Shipments",
+          url: "/shipments",
+          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+        },
+        {
+          title: "Create Shipment",
+          url: "/shipments/create",
+          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN"],
+        },
+        {
+          title: "Shipment Reports",
+          url: "/shipments/reports",
+          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+        },
+      ],
+    },
+    {
       title: "Administration",
       icon: IconSettings,
       roles: ["SUPER_ADMIN", "ADMIN"], // Super Admin and Admin can access
@@ -196,28 +218,6 @@ export const data = {
           title: "Backup & Recovery",
           url: "/admin/backup",
           roles: ["SUPER_ADMIN"],
-        },
-      ],
-    },
-    {
-      title: "Shipments",
-      icon: IconReport,
-      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
-      items: [
-        {
-          title: "All Shipments",
-          url: "/shipments",
-          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
-        },
-        {
-          title: "Create Shipment",
-          url: "/shipments/create",
-          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN"],
-        },
-        {
-          title: "Shipment Reports",
-          url: "/shipments/reports",
-          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
         },
       ],
     },
