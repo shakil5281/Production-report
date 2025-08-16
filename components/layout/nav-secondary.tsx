@@ -44,9 +44,8 @@ export function NavSecondary({
     
     // Check URL-based permissions if URL exists
     if (item.url) {
-      const { canAccessRoute } = require('@/lib/permissions');
-      const userPermissions = user.permissions || [];
-      return canAccessRoute(user.role, userPermissions, item.url);
+      const { canAccessPage } = require('@/lib/permissions');
+      return canAccessPage(user, item.url);
     }
     
     return true;

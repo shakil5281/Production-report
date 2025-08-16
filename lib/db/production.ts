@@ -138,16 +138,30 @@ export const productionService = {
     } catch (error) {
       console.error('Error updating production item:', error);
       const prismaError = error as PrismaError;
+      
       if (prismaError.code === 'P2002') {
         if (prismaError.message.includes('styleNo')) {
-          throw new Error('Style No already exists');
+          throw new Error('Style No already exists. Please use a different style number.');
         }
-        throw new Error('Failed to update production item');
+        throw new Error('Duplicate entry error. Please check your data.');
       }
+      
       if (prismaError.code === 'P2025') {
-        throw new Error('Production item not found');
+        throw new Error('Production item not found. The item may have been deleted.');
       }
-      throw new Error('Failed to update production item');
+      
+      if (prismaError.code === 'P2003') {
+        throw new Error('Foreign key constraint failed. Please check referenced data.');
+      }
+      
+      // Log the actual error for debugging
+      console.error('Prisma error details:', {
+        code: prismaError.code,
+        message: prismaError.message,
+        meta: prismaError.meta
+      });
+      
+      throw new Error(`Failed to update production item: ${prismaError.message || 'Unknown database error'}`);
     }
   },
 

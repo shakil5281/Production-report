@@ -37,12 +37,6 @@ interface DashboardStats {
   activeUsers: number;
   inactiveUsers: number;
   superAdmins: number;
-  admins: number;
-  managers: number;
-  cashbookManagers: number;
-  productionManagers: number;
-  cuttingManagers: number;
-  reportViewers: number;
   regularUsers: number;
   recentActivity: ActivityLog[];
 }
@@ -102,12 +96,6 @@ export default function AdminDashboard() {
         activeUsers: users.filter((u: User) => u.isActive).length,
         inactiveUsers: users.filter((u: User) => !u.isActive).length,
         superAdmins: users.filter((u: User) => u.role === UserRole.SUPER_ADMIN).length,
-        admins: users.filter((u: User) => u.role === UserRole.ADMIN).length,
-        managers: users.filter((u: User) => u.role === UserRole.MANAGER).length,
-        cashbookManagers: users.filter((u: User) => u.role === UserRole.CASHBOOK_MANAGER).length,
-        productionManagers: users.filter((u: User) => u.role === UserRole.PRODUCTION_MANAGER).length,
-        cuttingManagers: users.filter((u: User) => u.role === UserRole.CUTTING_MANAGER).length,
-        reportViewers: users.filter((u: User) => u.role === UserRole.REPORT_VIEWER).length,
         regularUsers: users.filter((u: User) => u.role === UserRole.USER).length,
         recentActivity: [] // This would come from an audit log API
       };
@@ -133,18 +121,6 @@ export default function AdminDashboard() {
     switch (role) {
       case UserRole.SUPER_ADMIN:
         return 'bg-red-100 text-red-800';
-      case UserRole.ADMIN:
-        return 'bg-purple-100 text-purple-800';
-      case UserRole.MANAGER:
-        return 'bg-blue-100 text-blue-800';
-      case UserRole.CASHBOOK_MANAGER:
-        return 'bg-green-100 text-green-800';
-      case UserRole.PRODUCTION_MANAGER:
-        return 'bg-orange-100 text-orange-800';
-      case UserRole.CUTTING_MANAGER:
-        return 'bg-yellow-100 text-yellow-800';
-      case UserRole.REPORT_VIEWER:
-        return 'bg-indigo-100 text-indigo-800';
       case UserRole.USER:
         return 'bg-gray-100 text-gray-800';
       default:
@@ -241,30 +217,30 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Administrators</CardTitle>
-            <Shield className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-sm font-medium">Super Administrators</CardTitle>
+            <Shield className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {stats.superAdmins + stats.admins}
+            <div className="text-2xl font-bold text-red-600">
+              {stats.superAdmins}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {stats.superAdmins} Super Admin, {stats.admins} Admin
+              Full system access
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Specialized Roles</CardTitle>
-            <Activity className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium">Regular Users</CardTitle>
+            <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {stats.cashbookManagers + stats.productionManagers + stats.cuttingManagers + stats.reportViewers}
+              {stats.regularUsers}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Cashbook, Production, Cutting, Reports
+              Business operations access
             </div>
           </CardContent>
         </Card>
@@ -277,39 +253,28 @@ export default function AdminDashboard() {
           <CardDescription>User distribution across different roles</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 gap-8 max-w-md mx-auto">
             <div className="text-center">
-              <div className="text-lg font-semibold text-red-600">{stats.superAdmins}</div>
-              <div className="text-xs text-muted-foreground">Super Admin</div>
+              <div className="text-3xl font-semibold text-red-600">{stats.superAdmins}</div>
+              <div className="text-sm text-muted-foreground">Super Admin</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Full system & user management
+              </div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-purple-600">{stats.admins}</div>
-              <div className="text-xs text-muted-foreground">Admin</div>
+              <div className="text-3xl font-semibold text-blue-600">{stats.regularUsers}</div>
+              <div className="text-sm text-muted-foreground">User</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Business operations only
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-blue-600">{stats.managers}</div>
-              <div className="text-xs text-muted-foreground">Manager</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-green-600">{stats.cashbookManagers}</div>
-              <div className="text-xs text-muted-foreground">Cashbook Mgr</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-orange-600">{stats.productionManagers}</div>
-              <div className="text-xs text-muted-foreground">Production Mgr</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-yellow-600">{stats.cuttingManagers}</div>
-              <div className="text-xs text-muted-foreground">Cutting Mgr</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-indigo-600">{stats.reportViewers}</div>
-              <div className="text-xs text-muted-foreground">Report Viewer</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-gray-600">{stats.regularUsers}</div>
-              <div className="text-xs text-muted-foreground">User</div>
-            </div>
+          </div>
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            <h4 className="font-medium mb-2">New Simplified Role System</h4>
+            <p className="text-sm text-muted-foreground">
+              The system now uses a simplified two-role approach: Super Admins have full system access including user management, 
+              while Users have access to all business operations but cannot manage users or system settings.
+            </p>
           </div>
         </CardContent>
       </Card>

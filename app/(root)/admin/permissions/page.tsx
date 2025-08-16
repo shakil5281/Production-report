@@ -30,73 +30,10 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserRole, PermissionType } from '@/lib/types/auth';
 import { ROLE_PERMISSIONS, getRoleDisplayName } from '@/lib/rbac';
+import { PERMISSION_CATEGORIES, getPermissionLabel } from '@/lib/permissions';
 import { toast } from 'sonner';
 import { UserPermissionsDataTable } from '@/components/admin/user-permissions/data-table';
 import type { UserPermissionData } from '@/components/admin/user-permissions/schema';
-
-// Use the interface from our schema instead
-
-const PERMISSION_CATEGORIES = {
-  'User Management': [
-    PermissionType.CREATE_USER,
-    PermissionType.READ_USER,
-    PermissionType.UPDATE_USER,
-    PermissionType.DELETE_USER,
-  ],
-  'Production': [
-    PermissionType.CREATE_PRODUCTION,
-    PermissionType.READ_PRODUCTION,
-    PermissionType.UPDATE_PRODUCTION,
-    PermissionType.DELETE_PRODUCTION,
-  ],
-  'Cutting': [
-    PermissionType.CREATE_CUTTING,
-    PermissionType.READ_CUTTING,
-    PermissionType.UPDATE_CUTTING,
-    PermissionType.DELETE_CUTTING,
-  ],
-  'Cashbook': [
-    PermissionType.CREATE_CASHBOOK,
-    PermissionType.READ_CASHBOOK,
-    PermissionType.UPDATE_CASHBOOK,
-    PermissionType.DELETE_CASHBOOK,
-  ],
-  'Expenses': [
-    PermissionType.CREATE_EXPENSE,
-    PermissionType.READ_EXPENSE,
-    PermissionType.UPDATE_EXPENSE,
-    PermissionType.DELETE_EXPENSE,
-  ],
-  'Targets': [
-    PermissionType.CREATE_TARGET,
-    PermissionType.READ_TARGET,
-    PermissionType.UPDATE_TARGET,
-    PermissionType.DELETE_TARGET,
-  ],
-  'Lines': [
-    PermissionType.CREATE_LINE,
-    PermissionType.READ_LINE,
-    PermissionType.UPDATE_LINE,
-    PermissionType.DELETE_LINE,
-  ],
-  'Reports': [
-    PermissionType.CREATE_REPORT,
-    PermissionType.READ_REPORT,
-    PermissionType.UPDATE_REPORT,
-    PermissionType.DELETE_REPORT,
-  ],
-  'Shipments': [
-    PermissionType.CREATE_SHIPMENT,
-    PermissionType.READ_SHIPMENT,
-    PermissionType.UPDATE_SHIPMENT,
-    PermissionType.DELETE_SHIPMENT,
-  ],
-  'System': [
-    PermissionType.MANAGE_SYSTEM,
-    PermissionType.MANAGE_ROLES,
-    PermissionType.MANAGE_PERMISSIONS,
-  ],
-};
 
 export default function PermissionsPage() {
   const [users, setUsers] = useState<UserPermissionData[]>([]);
@@ -238,18 +175,6 @@ export default function PermissionsPage() {
     switch (role) {
       case UserRole.SUPER_ADMIN:
         return 'bg-red-500/10 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400';
-      case UserRole.ADMIN:
-        return 'bg-purple-500/10 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-400';
-      case UserRole.MANAGER:
-        return 'bg-blue-500/10 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400';
-      case UserRole.CASHBOOK_MANAGER:
-        return 'bg-green-500/10 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400';
-      case UserRole.PRODUCTION_MANAGER:
-        return 'bg-orange-500/10 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-400';
-      case UserRole.CUTTING_MANAGER:
-        return 'bg-yellow-500/10 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400';
-      case UserRole.REPORT_VIEWER:
-        return 'bg-indigo-500/10 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-400';
       case UserRole.USER:
         return 'bg-gray-500/10 text-gray-700 border-gray-200 dark:bg-gray-500/20 dark:text-gray-400';
       default:
@@ -338,6 +263,16 @@ export default function PermissionsPage() {
                     </div>
                   )}
                 </div>
+                {role === UserRole.SUPER_ADMIN && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Has full system access including user management
+                  </div>
+                )}
+                {role === UserRole.USER && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Has access to all business operations
+                  </div>
+                )}
               </div>
             ))}
           </div>

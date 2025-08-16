@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { productionService } from '@/lib/db/production';
+import { getCurrentUser } from '@/lib/auth';
 
 // GET production item by ID
 export async function GET(
@@ -7,6 +8,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const item = await productionService.getById(id);
 
@@ -37,6 +47,15 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { programCode, styleNo, buyer, quantity, item, price, percentage, status } = body;
@@ -49,9 +68,16 @@ export async function PUT(
       );
     }
 
-    if (quantity <= 0 || price <= 0 || percentage < 0 || percentage > 100) {
+    if (quantity <= 0 || price <= 0) {
       return NextResponse.json(
-        { success: false, error: 'Quantity and price must be positive numbers, percentage must be between 0-100' },
+        { success: false, error: 'Quantity and price must be positive numbers' },
+        { status: 400 }
+      );
+    }
+    
+    if (percentage !== undefined && (percentage < 0 || percentage > 100)) {
+      return NextResponse.json(
+        { success: false, error: 'Percentage must be between 0-100' },
         { status: 400 }
       );
     }
@@ -68,6 +94,18 @@ export async function PUT(
     }
 
     // Update the item
+    console.log('Updating production item with data:', {
+      id,
+      programCode,
+      styleNo,
+      buyer,
+      quantity: Number(quantity),
+      item,
+      price: Number(price),
+      percentage: Number(percentage) || 0,
+      status
+    });
+    
     const updatedItem = await productionService.update(id, {
       programCode,
       styleNo,
@@ -87,6 +125,19 @@ export async function PUT(
 
   } catch (error) {
     console.error('Error updating production item:', error);
+    
+    // Handle specific errors
+    if (error instanceof Error) {
+      // If it's a known error with a specific message, return that
+      if (error.message.includes('Style No already exists') || 
+          error.message.includes('Production item not found')) {
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: 400 }
+        );
+      }
+    }
+    
     return NextResponse.json(
       { success: false, error: (error as Error).message || 'Failed to update production item' },
       { status: 500 }
@@ -100,6 +151,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const deletedItem = await productionService.delete(id);
 

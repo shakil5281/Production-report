@@ -63,17 +63,15 @@ export function NavGroup({
             
             // Check URL-based permissions if URL exists
             if (item.url) {
-                const { canAccessRoute } = require('@/lib/permissions');
-                const userPermissions = user.permissions || [];
-                if (!canAccessRoute(user.role, userPermissions, item.url)) {
+                const { canAccessPage } = require('@/lib/permissions');
+                if (!canAccessPage(user, item.url)) {
                     return false;
                 }
             }
             
             // Filter sub-items based on permissions
             if (item.items) {
-                const userPermissions = user.permissions || [];
-                const { canAccessRoute } = require('@/lib/permissions');
+                const { canAccessPage } = require('@/lib/permissions');
                 
                 item.items = item.items.filter(subItem => {
                     // Check role-based access
@@ -88,7 +86,7 @@ export function NavGroup({
                     
                     // Check URL permissions
                     if (subItem.url) {
-                        return canAccessRoute(user.role, userPermissions, subItem.url);
+                        return canAccessPage(user, subItem.url);
                     }
                     
                     return true;

@@ -112,10 +112,8 @@ export default function AdminUsersPage() {
     switch (role) {
       case UserRole.SUPER_ADMIN:
         return <Crown className="w-4 h-4 text-yellow-600" />;
-      case UserRole.ADMIN:
-        return <Shield className="w-4 h-4 text-blue-600" />;
-      case UserRole.MANAGER:
-        return <Star className="w-4 h-4 text-purple-600" />;
+      case UserRole.USER:
+        return <Users className="w-4 h-4 text-blue-600" />;
       default:
         return <Users className="w-4 h-4 text-gray-600" />;
     }
@@ -124,19 +122,9 @@ export default function AdminUsersPage() {
   const getRoleColor = (role: UserRole) => {
     switch (role) {
       case UserRole.SUPER_ADMIN:
-        return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
-      case UserRole.ADMIN:
+        return 'bg-red-500/10 text-red-700 border-red-200';
+      case UserRole.USER:
         return 'bg-blue-500/10 text-blue-700 border-blue-200';
-      case UserRole.MANAGER:
-        return 'bg-purple-500/10 text-purple-700 border-purple-200';
-      case UserRole.PRODUCTION_MANAGER:
-        return 'bg-green-500/10 text-green-700 border-green-200';
-      case UserRole.CASHBOOK_MANAGER:
-        return 'bg-orange-500/10 text-orange-700 border-orange-200';
-      case UserRole.CUTTING_MANAGER:
-        return 'bg-pink-500/10 text-pink-700 border-pink-200';
-      case UserRole.REPORT_VIEWER:
-        return 'bg-indigo-500/10 text-indigo-700 border-indigo-200';
       default:
         return 'bg-gray-500/10 text-gray-700 border-gray-200';
     }
@@ -361,23 +349,23 @@ export default function AdminUsersPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Admins</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Super Admins</CardTitle>
+            <Crown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter(u => u.role === UserRole.ADMIN || u.role === UserRole.SUPER_ADMIN).length}
+              {users.filter(u => u.role === UserRole.SUPER_ADMIN).length}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Managers</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Regular Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter(u => u.role === UserRole.MANAGER).length}
+              {users.filter(u => u.role === UserRole.USER).length}
             </div>
           </CardContent>
         </Card>
@@ -412,12 +400,6 @@ export default function AdminUsersPage() {
                 <SelectContent>
                   <SelectItem value="all">All roles</SelectItem>
                   <SelectItem value={UserRole.SUPER_ADMIN}>Super Admin</SelectItem>
-                  <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-                  <SelectItem value={UserRole.MANAGER}>Manager</SelectItem>
-                  <SelectItem value={UserRole.CASHBOOK_MANAGER}>Cashbook Manager</SelectItem>
-                  <SelectItem value={UserRole.PRODUCTION_MANAGER}>Production Manager</SelectItem>
-                  <SelectItem value={UserRole.CUTTING_MANAGER}>Cutting Manager</SelectItem>
-                  <SelectItem value={UserRole.REPORT_VIEWER}>Report Viewer</SelectItem>
                   <SelectItem value={UserRole.USER}>User</SelectItem>
                 </SelectContent>
               </Select>
@@ -578,12 +560,6 @@ export default function AdminUsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={UserRole.USER}>User</SelectItem>
-                  <SelectItem value={UserRole.CASHBOOK_MANAGER}>Cashbook Manager</SelectItem>
-                  <SelectItem value={UserRole.PRODUCTION_MANAGER}>Production Manager</SelectItem>
-                  <SelectItem value={UserRole.CUTTING_MANAGER}>Cutting Manager</SelectItem>
-                  <SelectItem value={UserRole.REPORT_VIEWER}>Report Viewer</SelectItem>
-                  <SelectItem value={UserRole.MANAGER}>Manager</SelectItem>
-                  <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
                   <SelectItem value={UserRole.SUPER_ADMIN}>Super Admin</SelectItem>
                 </SelectContent>
               </Select>
@@ -663,12 +639,6 @@ export default function AdminUsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={UserRole.USER}>User</SelectItem>
-                  <SelectItem value={UserRole.CASHBOOK_MANAGER}>Cashbook Manager</SelectItem>
-                  <SelectItem value={UserRole.PRODUCTION_MANAGER}>Production Manager</SelectItem>
-                  <SelectItem value={UserRole.CUTTING_MANAGER}>Cutting Manager</SelectItem>
-                  <SelectItem value={UserRole.REPORT_VIEWER}>Report Viewer</SelectItem>
-                  <SelectItem value={UserRole.MANAGER}>Manager</SelectItem>
-                  <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
                   <SelectItem value={UserRole.SUPER_ADMIN}>Super Admin</SelectItem>
                 </SelectContent>
               </Select>

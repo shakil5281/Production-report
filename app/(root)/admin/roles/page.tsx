@@ -170,7 +170,7 @@ export default function RolesManagementPage() {
   const selectAllInCategory = (category: string) => {
     const categoryPermissions = PERMISSION_CATEGORIES[category as keyof typeof PERMISSION_CATEGORIES] || [];
     setEditingRole(prev => {
-      const newPermissions = [...new Set([...prev.permissions, ...categoryPermissions])];
+      const newPermissions = [...new Set([...prev.permissions, ...categoryPermissions.map(p => p as string)])];
       const originalPermissions = prev.role?.permissions.map(p => p.name) || [];
       const hasChanges = JSON.stringify(newPermissions.sort()) !== JSON.stringify(originalPermissions.sort());
       
@@ -185,7 +185,7 @@ export default function RolesManagementPage() {
   const deselectAllInCategory = (category: string) => {
     const categoryPermissions = PERMISSION_CATEGORIES[category as keyof typeof PERMISSION_CATEGORIES] || [];
     setEditingRole(prev => {
-      const newPermissions = prev.permissions.filter(p => !categoryPermissions.includes(p));
+      const newPermissions = prev.permissions.filter(p => !categoryPermissions.map(cp => cp as string).includes(p));
       const originalPermissions = prev.role?.permissions.map(p => p.name) || [];
       const hasChanges = JSON.stringify(newPermissions.sort()) !== JSON.stringify(originalPermissions.sort());
       
@@ -274,7 +274,7 @@ export default function RolesManagementPage() {
     
     Object.keys(PERMISSION_CATEGORIES).forEach(category => {
       categorized[category] = allPermissions.filter(permission =>
-        PERMISSION_CATEGORIES[category as keyof typeof PERMISSION_CATEGORIES].includes(permission.name)
+        PERMISSION_CATEGORIES[category as keyof typeof PERMISSION_CATEGORIES].map(p => p as string).includes(permission.name)
       );
     });
     

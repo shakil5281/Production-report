@@ -1,9 +1,74 @@
 import { UserRole, PermissionType } from '@prisma/client';
 
+// Permission categories for UI organization
+export const PERMISSION_CATEGORIES = {
+  'User Management': [
+    PermissionType.CREATE_USER,
+    PermissionType.READ_USER,
+    PermissionType.UPDATE_USER,
+    PermissionType.DELETE_USER,
+  ],
+  'Production': [
+    PermissionType.CREATE_PRODUCTION,
+    PermissionType.READ_PRODUCTION,
+    PermissionType.UPDATE_PRODUCTION,
+    PermissionType.DELETE_PRODUCTION,
+  ],
+  'Cutting': [
+    PermissionType.CREATE_CUTTING,
+    PermissionType.READ_CUTTING,
+    PermissionType.UPDATE_CUTTING,
+    PermissionType.DELETE_CUTTING,
+  ],
+  'Cashbook': [
+    PermissionType.CREATE_CASHBOOK,
+    PermissionType.READ_CASHBOOK,
+    PermissionType.UPDATE_CASHBOOK,
+    PermissionType.DELETE_CASHBOOK,
+  ],
+  'Expenses': [
+    PermissionType.CREATE_EXPENSE,
+    PermissionType.READ_EXPENSE,
+    PermissionType.UPDATE_EXPENSE,
+    PermissionType.DELETE_EXPENSE,
+  ],
+  'Targets': [
+    PermissionType.CREATE_TARGET,
+    PermissionType.READ_TARGET,
+    PermissionType.UPDATE_TARGET,
+    PermissionType.DELETE_TARGET,
+  ],
+  'Lines': [
+    PermissionType.CREATE_LINE,
+    PermissionType.READ_LINE,
+    PermissionType.UPDATE_LINE,
+    PermissionType.DELETE_LINE,
+  ],
+  'Reports': [
+    PermissionType.CREATE_REPORT,
+    PermissionType.READ_REPORT,
+    PermissionType.UPDATE_REPORT,
+    PermissionType.DELETE_REPORT,
+  ],
+  'Shipments': [
+    PermissionType.CREATE_SHIPMENT,
+    PermissionType.READ_SHIPMENT,
+    PermissionType.UPDATE_SHIPMENT,
+    PermissionType.DELETE_SHIPMENT,
+  ],
+  'System': [
+    PermissionType.MANAGE_SYSTEM,
+    PermissionType.MANAGE_ROLES,
+    PermissionType.MANAGE_PERMISSIONS,
+  ],
+};
+
 // Define permissions for each role
+// SuperAdmin: Has access to all features including user management and system administration
+// User: Has access to all business features except user management and system administration
 export const ROLE_PERMISSIONS: Record<UserRole, PermissionType[]> = {
   SUPER_ADMIN: [
-    // All permissions - SuperAdmin has access to everything
+    // All permissions - SuperAdmin has access to everything including administration
     'READ_USER', 'CREATE_USER', 'UPDATE_USER', 'DELETE_USER',
     'READ_PRODUCTION', 'CREATE_PRODUCTION', 'UPDATE_PRODUCTION', 'DELETE_PRODUCTION',
     'READ_CUTTING', 'CREATE_CUTTING', 'UPDATE_CUTTING', 'DELETE_CUTTING',
@@ -15,8 +80,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, PermissionType[]> = {
     'READ_REPORT', 'CREATE_REPORT', 'UPDATE_REPORT', 'DELETE_REPORT',
     'MANAGE_SYSTEM', 'MANAGE_ROLES', 'MANAGE_PERMISSIONS'
   ],
-  ADMIN: [
-    'READ_USER', 'CREATE_USER', 'UPDATE_USER',
+  USER: [
+    // Users have access to all business operations except administration
     'READ_PRODUCTION', 'CREATE_PRODUCTION', 'UPDATE_PRODUCTION', 'DELETE_PRODUCTION',
     'READ_CUTTING', 'CREATE_CUTTING', 'UPDATE_CUTTING', 'DELETE_CUTTING',
     'READ_CASHBOOK', 'CREATE_CASHBOOK', 'UPDATE_CASHBOOK', 'DELETE_CASHBOOK',
@@ -24,260 +89,225 @@ export const ROLE_PERMISSIONS: Record<UserRole, PermissionType[]> = {
     'READ_TARGET', 'CREATE_TARGET', 'UPDATE_TARGET', 'DELETE_TARGET',
     'READ_LINE', 'CREATE_LINE', 'UPDATE_LINE', 'DELETE_LINE',
     'READ_SHIPMENT', 'CREATE_SHIPMENT', 'UPDATE_SHIPMENT', 'DELETE_SHIPMENT',
-    'READ_REPORT', 'CREATE_REPORT', 'UPDATE_REPORT'
-  ],
-  MANAGER: [
-    'READ_PRODUCTION', 'CREATE_PRODUCTION', 'UPDATE_PRODUCTION',
-    'READ_CUTTING', 'CREATE_CUTTING', 'UPDATE_CUTTING',
-    'READ_CASHBOOK', 'CREATE_CASHBOOK', 'UPDATE_CASHBOOK',
-    'READ_EXPENSE', 'CREATE_EXPENSE', 'UPDATE_EXPENSE',
-    'READ_TARGET', 'CREATE_TARGET', 'UPDATE_TARGET',
-    'READ_LINE', 'CREATE_LINE', 'UPDATE_LINE',
-    'READ_SHIPMENT', 'CREATE_SHIPMENT', 'UPDATE_SHIPMENT',
-    'READ_REPORT', 'CREATE_REPORT'
-  ],
-  PRODUCTION_MANAGER: [
-    'READ_PRODUCTION', 'CREATE_PRODUCTION', 'UPDATE_PRODUCTION',
-    'READ_TARGET', 'CREATE_TARGET', 'UPDATE_TARGET',
-    'READ_LINE', 'CREATE_LINE', 'UPDATE_LINE',
-    'READ_REPORT'
-  ],
-  CASHBOOK_MANAGER: [
-    'READ_CASHBOOK', 'CREATE_CASHBOOK', 'UPDATE_CASHBOOK',
-    'READ_EXPENSE', 'CREATE_EXPENSE', 'UPDATE_EXPENSE',
-    'READ_REPORT'
-  ],
-  CUTTING_MANAGER: [
-    'READ_PRODUCTION', 'CREATE_PRODUCTION', 'UPDATE_PRODUCTION',
-    'READ_CUTTING', 'CREATE_CUTTING', 'UPDATE_CUTTING',
-    'READ_REPORT'
-  ],
-  REPORT_VIEWER: [
-    'READ_PRODUCTION',
-    'READ_CUTTING',
-    'READ_CASHBOOK',
-    'READ_EXPENSE',
-    'READ_TARGET',
-    'READ_LINE',
-    'READ_SHIPMENT',
-    'READ_REPORT'
-  ],
-  USER: [
-    'READ_PRODUCTION',
-    'READ_REPORT'
+    'READ_REPORT', 'CREATE_REPORT', 'UPDATE_REPORT', 'DELETE_REPORT'
+    // Note: USER role excludes user management and system administration permissions
   ]
 };
 
-// Navigation permission mapping
-export const NAV_PERMISSIONS: Record<string, string[]> = {
-  // Main navigation
-  '/dashboard': ['READ_PRODUCTION', 'READ_REPORT'],
-  '/platform': ['READ_PRODUCTION', 'READ_REPORT'],
-  '/production-reports': ['READ_REPORT'],
-  '/profit-loss': ['READ_REPORT'],
+/**
+ * Check if user has a specific permission
+ */
+export function hasPermission(user: { role: UserRole; permissions?: string[] }, permission: PermissionType): boolean {
+  if (!user) return false;
   
-  // Production group
-  '/production-list': ['READ_PRODUCTION'],
-  '/target': ['READ_TARGET'],
-  '/target/daily-report': ['READ_TARGET', 'READ_REPORT'],
-  '/target/comprehensive-report': ['READ_TARGET', 'READ_REPORT'],
-  '/lines': ['READ_LINE'],
-  '/daily-production': ['READ_PRODUCTION'],
+  // Super admin has all permissions
+  if (user.role === UserRole.SUPER_ADMIN) return true;
   
-  // Expense group
-  '/expenses/manpower': ['READ_EXPENSE'],
-  '/expenses/daily-salary': ['READ_EXPENSE'],
-  '/expenses/daily-expense': ['READ_EXPENSE'],
-  
-  // Cashbook group
-  '/cashbook': ['READ_CASHBOOK'],
-  '/cashbook/cash-received': ['READ_CASHBOOK'],
-  '/cashbook/daily-expense': ['READ_CASHBOOK'],
-  '/cashbook/monthly-express-report': ['READ_CASHBOOK', 'READ_REPORT'],
-  
-  // Cutting group
-  '/cutting': ['READ_CUTTING'],
-  '/cutting/daily-input': ['CREATE_CUTTING'],
-  '/cutting/daily-output': ['CREATE_CUTTING'],
-  '/cutting/monthly-report': ['READ_REPORT'],
-  
-  // Shipments
-  '/shipments': ['READ_SHIPMENT'],
-  '/shipments/create': ['CREATE_SHIPMENT'],
-  '/shipments/reports': ['READ_SHIPMENT', 'READ_REPORT'],
-  
-  // Administration (SuperAdmin only)
-  '/admin/dashboard': ['MANAGE_SYSTEM'],
-  '/admin/users': ['READ_USER', 'CREATE_USER', 'UPDATE_USER'],
-  '/admin/permissions': ['MANAGE_PERMISSIONS'],
-  '/admin/roles': ['MANAGE_ROLES'],
-  '/admin/settings': ['MANAGE_SYSTEM'],
-  '/admin/api-routes': ['MANAGE_SYSTEM'],
-  '/admin/logs': ['MANAGE_SYSTEM'],
-  '/admin/database': ['MANAGE_SYSTEM'],
-  '/admin/backup': ['MANAGE_SYSTEM'],
-  
-  // Profile (all users)
-  '/profile': [],
-};
-
-// Check if user has permission
-export function hasPermission(
-  userRole: UserRole,
-  userPermissions: PermissionType[],
-  requiredPermission: PermissionType
-): boolean {
-  // SuperAdmin has all permissions
-  if (userRole === 'SUPER_ADMIN') {
-    return true;
-  }
-  
-  // Check if user has explicit permission
-  if (userPermissions.includes(requiredPermission)) {
-    return true;
-  }
+  // Check user's explicit permissions (if any)
+  if (user.permissions && user.permissions.includes(permission)) return true;
   
   // Check role-based permissions
-  const rolePermissions = ROLE_PERMISSIONS[userRole] || [];
-  return rolePermissions.includes(requiredPermission);
+  const rolePermissions = ROLE_PERMISSIONS[user.role] || [];
+  return rolePermissions.includes(permission);
 }
 
-// Check if user can access a route
-export function canAccessRoute(
-  userRole: UserRole,
-  userPermissions: PermissionType[],
-  route: string
-): boolean {
-  // SuperAdmin can access everything
-  if (userRole === 'SUPER_ADMIN') {
-    return true;
+/**
+ * Check if user can access administration features
+ */
+export function canAccessAdministration(user: { role: UserRole }): boolean {
+  return user.role === UserRole.SUPER_ADMIN;
+}
+
+/**
+ * Check if user can access a specific page
+ */
+export function canAccessPage(user: { role: UserRole }, page: string): boolean {
+  if (!user) return false;
+  
+  // Define page access rules
+  const adminPages = [
+    '/admin/users',
+    '/admin/permissions', 
+    '/admin/roles',
+    '/admin/settings',
+    '/admin/database',
+    '/admin/backup',
+    '/admin/logs',
+    '/admin/api-routes'
+  ];
+  
+  // Only SuperAdmin can access admin pages
+  if (adminPages.some(adminPage => page.startsWith(adminPage))) {
+    return user.role === UserRole.SUPER_ADMIN;
   }
   
-  const requiredPermissions = NAV_PERMISSIONS[route];
+  // All other pages are accessible to both roles
+  return true;
+}
+
+/**
+ * Get user-specific permissions for UI rendering
+ */
+export function getUserPermissions(user: { role: UserRole; permissions?: string[] }) {
+  if (!user) return {
+    canCreateProduction: false,
+    canReadProduction: false,
+    canUpdateProduction: false,
+    canDeleteProduction: false,
+    canCreateCashbook: false,
+    canReadCashbook: false,
+    canUpdateCashbook: false,
+    canDeleteCashbook: false,
+    canCreateUser: false,
+    canReadUser: false,
+    canUpdateUser: false,
+    canDeleteUser: false,
+    canManageSystem: false,
+  };
+
+  return {
+    canCreateProduction: hasPermission(user, PermissionType.CREATE_PRODUCTION),
+    canReadProduction: hasPermission(user, PermissionType.READ_PRODUCTION),
+    canUpdateProduction: hasPermission(user, PermissionType.UPDATE_PRODUCTION),
+    canDeleteProduction: hasPermission(user, PermissionType.DELETE_PRODUCTION),
+    canCreateCashbook: hasPermission(user, PermissionType.CREATE_CASHBOOK),
+    canReadCashbook: hasPermission(user, PermissionType.READ_CASHBOOK),
+    canUpdateCashbook: hasPermission(user, PermissionType.UPDATE_CASHBOOK),
+    canDeleteCashbook: hasPermission(user, PermissionType.DELETE_CASHBOOK),
+    canCreateCutting: hasPermission(user, PermissionType.CREATE_CUTTING),
+    canReadCutting: hasPermission(user, PermissionType.READ_CUTTING),
+    canUpdateCutting: hasPermission(user, PermissionType.UPDATE_CUTTING),
+    canDeleteCutting: hasPermission(user, PermissionType.DELETE_CUTTING),
+    canCreateExpense: hasPermission(user, PermissionType.CREATE_EXPENSE),
+    canReadExpense: hasPermission(user, PermissionType.READ_EXPENSE),
+    canUpdateExpense: hasPermission(user, PermissionType.UPDATE_EXPENSE),
+    canDeleteExpense: hasPermission(user, PermissionType.DELETE_EXPENSE),
+    canCreateTarget: hasPermission(user, PermissionType.CREATE_TARGET),
+    canReadTarget: hasPermission(user, PermissionType.READ_TARGET),
+    canUpdateTarget: hasPermission(user, PermissionType.UPDATE_TARGET),
+    canDeleteTarget: hasPermission(user, PermissionType.DELETE_TARGET),
+    canCreateLine: hasPermission(user, PermissionType.CREATE_LINE),
+    canReadLine: hasPermission(user, PermissionType.READ_LINE),
+    canUpdateLine: hasPermission(user, PermissionType.UPDATE_LINE),
+    canDeleteLine: hasPermission(user, PermissionType.DELETE_LINE),
+    canCreateShipment: hasPermission(user, PermissionType.CREATE_SHIPMENT),
+    canReadShipment: hasPermission(user, PermissionType.READ_SHIPMENT),
+    canUpdateShipment: hasPermission(user, PermissionType.UPDATE_SHIPMENT),
+    canDeleteShipment: hasPermission(user, PermissionType.DELETE_SHIPMENT),
+    canCreateReport: hasPermission(user, PermissionType.CREATE_REPORT),
+    canReadReport: hasPermission(user, PermissionType.READ_REPORT),
+    canUpdateReport: hasPermission(user, PermissionType.UPDATE_REPORT),
+    canDeleteReport: hasPermission(user, PermissionType.DELETE_REPORT),
+    canCreateUser: hasPermission(user, PermissionType.CREATE_USER),
+    canReadUser: hasPermission(user, PermissionType.READ_USER),
+    canUpdateUser: hasPermission(user, PermissionType.UPDATE_USER),
+    canDeleteUser: hasPermission(user, PermissionType.DELETE_USER),
+    canManageSystem: hasPermission(user, PermissionType.MANAGE_SYSTEM),
+    canManageRoles: hasPermission(user, PermissionType.MANAGE_ROLES),
+    canManagePermissions: hasPermission(user, PermissionType.MANAGE_PERMISSIONS),
+  };
+}
+
+/**
+ * Get role display name
+ */
+export function getRoleDisplayName(role: UserRole): string {
+  const displayNames: Record<UserRole, string> = {
+    [UserRole.SUPER_ADMIN]: 'Super Admin',
+    [UserRole.USER]: 'User',
+  };
   
-  // If no specific permissions required, allow access
-  if (!requiredPermissions || requiredPermissions.length === 0) {
-    return true;
-  }
-  
-  // Check if user has any of the required permissions
-  return requiredPermissions.some(permission => 
-    hasPermission(userRole, userPermissions, permission as PermissionType)
-  );
+  return displayNames[role] || role;
 }
 
-// Get all permissions for a role
-export function getRolePermissions(role: UserRole): PermissionType[] {
-  return ROLE_PERMISSIONS[role] || [];
+/**
+ * Check if user role is admin (for backwards compatibility)
+ */
+export function isAdminRole(role: UserRole): boolean {
+  return role === UserRole.SUPER_ADMIN;
 }
 
-// Check if user has any admin permissions
-export function isAdmin(userRole: UserRole): boolean {
-  return ['SUPER_ADMIN', 'ADMIN'].includes(userRole);
-}
-
-// Check if user is SuperAdmin
-export function isSuperAdmin(userRole: UserRole): boolean {
-  return userRole === 'SUPER_ADMIN';
-}
-
-// Filter navigation items based on permissions
-export function filterNavItemsByPermissions(
-  items: any[],
-  userRole: UserRole,
-  userPermissions: PermissionType[]
-): any[] {
-  return items.filter(item => {
-    // Check main item access
-    if (item.url && !canAccessRoute(userRole, userPermissions, item.url)) {
-      return false;
-    }
-    
-    // Check role-based access
-    if (item.roles && !item.roles.includes(userRole)) {
-      return false;
-    }
-    
-    // Filter sub-items if they exist
-    if (item.items) {
-      item.items = item.items.filter((subItem: any) => {
-        if (subItem.url && !canAccessRoute(userRole, userPermissions, subItem.url)) {
-          return false;
-        }
-        
-        if (subItem.roles && !subItem.roles.includes(userRole)) {
-          return false;
-        }
-        
-        return true;
-      });
-      
-      // If no sub-items remain and main item has no direct URL, hide the group
-      if (item.items.length === 0 && !item.url) {
-        return false;
-      }
-    }
-    
-    return true;
-  });
-}
-
-// Permission categories for UI
-export const PERMISSION_CATEGORIES = {
-  'User Management': ['READ_USER', 'CREATE_USER', 'UPDATE_USER', 'DELETE_USER'],
-  'Production Management': ['READ_PRODUCTION', 'CREATE_PRODUCTION', 'UPDATE_PRODUCTION', 'DELETE_PRODUCTION'],
-  'Cutting Management': ['READ_CUTTING', 'CREATE_CUTTING', 'UPDATE_CUTTING', 'DELETE_CUTTING'],
-  'Cashbook Management': ['READ_CASHBOOK', 'CREATE_CASHBOOK', 'UPDATE_CASHBOOK', 'DELETE_CASHBOOK'],
-  'Expense Management': ['READ_EXPENSE', 'CREATE_EXPENSE', 'UPDATE_EXPENSE', 'DELETE_EXPENSE'],
-  'Target Management': ['READ_TARGET', 'CREATE_TARGET', 'UPDATE_TARGET', 'DELETE_TARGET'],
-  'Line Management': ['READ_LINE', 'CREATE_LINE', 'UPDATE_LINE', 'DELETE_LINE'],
-  'Shipment Management': ['READ_SHIPMENT', 'CREATE_SHIPMENT', 'UPDATE_SHIPMENT', 'DELETE_SHIPMENT'],
-  'Report Management': ['READ_REPORT', 'CREATE_REPORT', 'UPDATE_REPORT', 'DELETE_REPORT'],
-  'System Administration': ['MANAGE_SYSTEM', 'MANAGE_ROLES', 'MANAGE_PERMISSIONS'],
+/**
+ * Check if user can export reports
+ */
+export const canExportReport = (role: UserRole): boolean => {
+  // Both roles can export reports
+  return role === UserRole.SUPER_ADMIN || role === UserRole.USER;
 };
 
-// Get permission label
+/**
+ * Get available roles for user creation (only SuperAdmin can create users)
+ */
+export function getAvailableRoles(currentUserRole: UserRole): UserRole[] {
+  if (currentUserRole === UserRole.SUPER_ADMIN) {
+    return [UserRole.SUPER_ADMIN, UserRole.USER];
+  }
+  return []; // Regular users cannot create other users
+}
+
+/**
+ * Get human-readable label for permission type
+ */
 export function getPermissionLabel(permission: PermissionType): string {
   const labels: Record<PermissionType, string> = {
-    READ_USER: 'View Users',
-    CREATE_USER: 'Create Users',
-    UPDATE_USER: 'Edit Users',
-    DELETE_USER: 'Delete Users',
-    READ_PRODUCTION: 'View Production',
+    // User Management
+    CREATE_USER: 'Create User',
+    READ_USER: 'Read User',
+    UPDATE_USER: 'Update User',
+    DELETE_USER: 'Delete User',
+    
+    // Production
     CREATE_PRODUCTION: 'Create Production',
-    UPDATE_PRODUCTION: 'Edit Production',
+    READ_PRODUCTION: 'Read Production',
+    UPDATE_PRODUCTION: 'Update Production',
     DELETE_PRODUCTION: 'Delete Production',
-    READ_CUTTING: 'View Cutting',
+    
+    // Cutting
     CREATE_CUTTING: 'Create Cutting',
-    UPDATE_CUTTING: 'Edit Cutting',
+    READ_CUTTING: 'Read Cutting',
+    UPDATE_CUTTING: 'Update Cutting',
     DELETE_CUTTING: 'Delete Cutting',
-    READ_CASHBOOK: 'View Cashbook',
-    CREATE_CASHBOOK: 'Create Cashbook Entries',
-    UPDATE_CASHBOOK: 'Edit Cashbook',
-    DELETE_CASHBOOK: 'Delete Cashbook Entries',
-    READ_EXPENSE: 'View Expenses',
-    CREATE_EXPENSE: 'Create Expenses',
-    UPDATE_EXPENSE: 'Edit Expenses',
-    DELETE_EXPENSE: 'Delete Expenses',
-    READ_TARGET: 'View Targets',
-    CREATE_TARGET: 'Create Targets',
-    UPDATE_TARGET: 'Edit Targets',
-    DELETE_TARGET: 'Delete Targets',
-    READ_LINE: 'View Lines',
-    CREATE_LINE: 'Create Lines',
-    UPDATE_LINE: 'Edit Lines',
-    DELETE_LINE: 'Delete Lines',
-    READ_SHIPMENT: 'View Shipments',
-    CREATE_SHIPMENT: 'Create Shipments',
-    UPDATE_SHIPMENT: 'Edit Shipments',
-    DELETE_SHIPMENT: 'Delete Shipments',
-    READ_REPORT: 'View Reports',
-    CREATE_REPORT: 'Create Reports',
-    UPDATE_REPORT: 'Edit Reports',
-    DELETE_REPORT: 'Delete Reports',
-    MANAGE_SYSTEM: 'System Management',
-    MANAGE_ROLES: 'Role Management',
-    MANAGE_PERMISSIONS: 'Permission Management',
+    
+    // Cashbook
+    CREATE_CASHBOOK: 'Create Cashbook',
+    READ_CASHBOOK: 'Read Cashbook',
+    UPDATE_CASHBOOK: 'Update Cashbook',
+    DELETE_CASHBOOK: 'Delete Cashbook',
+    
+    // Expenses
+    CREATE_EXPENSE: 'Create Expense',
+    READ_EXPENSE: 'Read Expense',
+    UPDATE_EXPENSE: 'Update Expense',
+    DELETE_EXPENSE: 'Delete Expense',
+    
+    // Targets
+    CREATE_TARGET: 'Create Target',
+    READ_TARGET: 'Read Target',
+    UPDATE_TARGET: 'Update Target',
+    DELETE_TARGET: 'Delete Target',
+    
+    // Lines
+    CREATE_LINE: 'Create Line',
+    READ_LINE: 'Read Line',
+    UPDATE_LINE: 'Update Line',
+    DELETE_LINE: 'Delete Line',
+    
+    // Reports
+    CREATE_REPORT: 'Create Report',
+    READ_REPORT: 'Read Report',
+    UPDATE_REPORT: 'Update Report',
+    DELETE_REPORT: 'Delete Report',
+    
+    // Shipments
+    CREATE_SHIPMENT: 'Create Shipment',
+    READ_SHIPMENT: 'Read Shipment',
+    UPDATE_SHIPMENT: 'Update Shipment',
+    DELETE_SHIPMENT: 'Delete Shipment',
+    
+    // System
+    MANAGE_SYSTEM: 'Manage System',
+    MANAGE_ROLES: 'Manage Roles',
+    MANAGE_PERMISSIONS: 'Manage Permissions',
   };
   
   return labels[permission] || permission;
