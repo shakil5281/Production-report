@@ -1,4 +1,4 @@
-import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings, IconChartBar, IconFileText, IconTrendingUp, IconUsers, IconUser, IconBook, IconCode, IconApps, IconCurrencyDollar, IconReceipt, IconCash, IconWallet, IconCut, IconScissors } from "@tabler/icons-react"
+import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings, IconChartBar, IconFileText, IconTrendingUp, IconUsers, IconUser, IconBook, IconCode, IconApps, IconCurrencyDollar, IconReceipt, IconCash, IconWallet, IconCut, IconScissors, IconClipboardData, IconTarget, IconBuilding } from "@tabler/icons-react"
 import { Book, ShieldCheck } from "lucide-react"
 
 
@@ -9,215 +9,237 @@ export const data = {
       url: "/dashboard",
       icon: IconDashboard,
       isActive: true,
-      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN", "CASHBOOK_MANAGER", "PRODUCTION_MANAGER", "CUTTING_MANAGER", "REPORT_VIEWER"], // All users can access
+      roles: ["USER", "SUPER_ADMIN"], // All users can access
     },
     {
       title: "Platform",
       url: "/platform",
       icon: IconApps,
       isActive: false,
-      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN", "CASHBOOK_MANAGER", "PRODUCTION_MANAGER", "CUTTING_MANAGER", "REPORT_VIEWER"],
+      roles: ["USER", "SUPER_ADMIN"],
     },
     {
       title: "Production Reports",
       url: "/production-reports",
       icon: IconFileText,
       isActive: false,
-      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "PRODUCTION_MANAGER", "REPORT_VIEWER"], // Production related roles
-    },
-    {
-      title: "Profit & Loss",
-      url: "/profit-loss",
-      icon: IconTrendingUp,
-      isActive: false,
-      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"], // Financial reports
+      roles: ["USER", "SUPER_ADMIN"], // Users with READ_REPORT permission
     },
   ],
   navGroup: [
     {
-      title: "Production",
-      icon: IconChartBar,
-      roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      title: "Production Management",
+      icon: IconBuilding,
+      roles: ["USER", "SUPER_ADMIN"], // Users with production permissions
       items: [
         {
           title: "Production List",
           url: "/production-list",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_PRODUCTION permission
         },
         {
-          title: "Target",
+          title: "Lines Management",
+          url: "/lines",
+          roles: ["USER", "SUPER_ADMIN"], // READ_LINE permission
+        },
+        {
+          title: "Daily Production Entry",
+          url: "/daily-production",
+          roles: ["USER", "SUPER_ADMIN"], // READ_PRODUCTION permission
+        },
+      ],
+    },
+    {
+      title: "Production Reports",
+      icon: IconClipboardData,
+      roles: ["USER", "SUPER_ADMIN"], // Users with report permissions
+      items: [
+        {
+          title: "Daily Production Report",
+          url: "/daily-production-report",
+          roles: ["USER", "SUPER_ADMIN"], // READ_PRODUCTION, READ_REPORT permissions
+        },
+        {
+          title: "Production Analytics",
+          url: "/production-reports",
+          roles: ["USER", "SUPER_ADMIN"], // READ_REPORT permission
+        },
+        {
+          title: "Profit & Loss Report",
+          url: "/profit-loss",
+          roles: ["USER", "SUPER_ADMIN"], // READ_REPORT permission
+        },
+      ],
+    },
+    {
+      title: "Target Management",
+      icon: IconTarget,
+      roles: ["USER", "SUPER_ADMIN"], // Users with target permissions
+      items: [
+        {
+          title: "Set Targets",
           url: "/target",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_TARGET permission
         },
         {
           title: "Daily Target Report",
           url: "/target/daily-report",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_TARGET permission
         },
         {
           title: "Comprehensive Target Report",
           url: "/target/comprehensive-report",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
-        },
-        {
-          title: "Lines",
-          url: "/lines",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
-        },
-        {
-          title: "Daily Production",
-          url: "/daily-production",
-          roles: ["PRODUCTION_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_TARGET permission
         },
       ],
     },
     {
       title: "Expense",
       icon: IconCurrencyDollar,
-      roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      roles: ["USER", "SUPER_ADMIN"], // Users with expense permissions
       items: [
         {
           title: "Manpower",
           url: "/expenses/manpower",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_EXPENSE permission
         },
         {
           title: "Daily Salary",
           url: "/expenses/daily-salary",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_EXPENSE permission
         },
         {
           title: "Daily Expense",
           url: "/expenses/daily-expense",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_EXPENSE permission
         },
       ],
     },
     {
       title: "Cashbook",
       icon: IconWallet,
-      roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      roles: ["USER", "SUPER_ADMIN"], // Users with cashbook permissions
       items: [
         {
           title: "Summary",
           url: "/cashbook",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_CASHBOOK permission
         },
         {
           title: "Cash Received",
           url: "/cashbook/cash-received",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["USER", "SUPER_ADMIN"], // CREATE_CASHBOOK permission
         },
         {
           title: "Daily Expense",
           url: "/cashbook/daily-expense",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["USER", "SUPER_ADMIN"], // CREATE_CASHBOOK permission
         },
         {
           title: "Monthly Express Report",
           url: "/cashbook/monthly-express-report",
-          roles: ["CASHBOOK_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_REPORT permission
         },
       ],
     },
     {
       title: "Cutting",
       icon: IconScissors,
-      roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      roles: ["USER", "SUPER_ADMIN"], // Users with cutting permissions
       items: [
         {
           title: "Summary",
           url: "/cutting",
-          roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_CUTTING permission
         },
         {
           title: "Daily Input",
           url: "/cutting/daily-input",
-          roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["USER", "SUPER_ADMIN"], // CREATE_CUTTING permission
         },
         {
           title: "Daily Output",
           url: "/cutting/daily-output",
-          roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["USER", "SUPER_ADMIN"], // CREATE_CUTTING permission
         },
         {
           title: "Monthly Report",
           url: "/cutting/monthly-report",
-          roles: ["CUTTING_MANAGER", "MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_REPORT permission
         },
       ],
     },
     {
       title: "Shipments",
       icon: IconReport,
-      roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+      roles: ["USER", "SUPER_ADMIN"], // Users with shipment permissions
       items: [
         {
           title: "All Shipments",
           url: "/shipments",
-          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_SHIPMENT permission
         },
         {
           title: "Create Shipment",
           url: "/shipments/create",
-          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN"],
+          roles: ["USER", "SUPER_ADMIN"], // CREATE_SHIPMENT permission
         },
         {
           title: "Shipment Reports",
           url: "/shipments/reports",
-          roles: ["MANAGER", "ADMIN", "SUPER_ADMIN", "REPORT_VIEWER"],
+          roles: ["USER", "SUPER_ADMIN"], // READ_REPORT permission
         },
       ],
     },
     {
       title: "Administration",
       icon: IconSettings,
-      roles: ["SUPER_ADMIN", "ADMIN"], // Super Admin and Admin can access
+      roles: ["SUPER_ADMIN"], // Only Super Admin can access administration
       items: [
         {
           title: "Dashboard",
           url: "/admin/dashboard",
-          roles: ["SUPER_ADMIN", "ADMIN"],
+          roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
         },
         {
           title: "User Management",
           url: "/admin/users",
-          roles: ["SUPER_ADMIN"],
+          roles: ["SUPER_ADMIN"], // CREATE_USER, READ_USER, UPDATE_USER, DELETE_USER permissions
         },
         {
           title: "Permissions",
           url: "/admin/permissions",
-          roles: ["SUPER_ADMIN"],
+          roles: ["SUPER_ADMIN"], // MANAGE_PERMISSIONS permission
         },
         {
           title: "Role Management",
           url: "/admin/roles",
-          roles: ["SUPER_ADMIN"],
+          roles: ["SUPER_ADMIN"], // MANAGE_ROLES permission
         },
         {
           title: "System Settings",
           url: "/admin/settings",
-          roles: ["SUPER_ADMIN"],
+          roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
         },
         {
           title: "API Routes",
           url: "/admin/api-routes",
-          roles: ["SUPER_ADMIN"],
+          roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
         },
         {
           title: "System Logs",
           url: "/admin/logs",
-          roles: ["SUPER_ADMIN"],
+          roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
         },
         {
           title: "Database Manager",
           url: "/admin/database",
-          roles: ["SUPER_ADMIN"],
+          roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
         },
         {
           title: "Backup & Recovery",
           url: "/admin/backup",
-          roles: ["SUPER_ADMIN"],
+          roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
         },
       ],
     },
@@ -228,14 +250,14 @@ export const data = {
       url: "/profile",
       icon: IconUser,
       isActive: false,
-      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN", "CASHBOOK_MANAGER", "PRODUCTION_MANAGER", "CUTTING_MANAGER", "REPORT_VIEWER"],
+      roles: ["USER", "SUPER_ADMIN"], // All authenticated users can access profile
     },
     {
       title: "Help & Support",
       url: "/help",
       icon: IconHelp,
       isActive: false,
-      roles: ["USER", "MANAGER", "ADMIN", "SUPER_ADMIN", "CASHBOOK_MANAGER", "PRODUCTION_MANAGER", "CUTTING_MANAGER", "REPORT_VIEWER"],
+      roles: ["USER", "SUPER_ADMIN"], // All authenticated users can access help
     },
   ],
   documents: [

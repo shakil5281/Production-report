@@ -56,7 +56,7 @@ export interface PermissionCheck {
 
 // Utility functions for role checking
 export const hasAdminAccess = (user: UserWithPermissions): boolean => {
-  return user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+  return user.role === UserRole.SUPER_ADMIN;
 };
 
 export const hasSuperAdminAccess = (user: UserWithPermissions): boolean => {
@@ -64,21 +64,34 @@ export const hasSuperAdminAccess = (user: UserWithPermissions): boolean => {
 };
 
 export const hasManagerAccess = (user: UserWithPermissions): boolean => {
-  return user.role === UserRole.MANAGER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+  return user.role === UserRole.SUPER_ADMIN || user.role === UserRole.USER;
 };
 
 export const hasCashbookAccess = (user: UserWithPermissions): boolean => {
-  return user.role === UserRole.CASHBOOK_MANAGER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+  if (user.role === UserRole.SUPER_ADMIN) return true;
+  return user.permissions?.some(p => 
+    p.includes('CREATE_CASHBOOK') || p.includes('READ_CASHBOOK') || 
+    p.includes('UPDATE_CASHBOOK') || p.includes('DELETE_CASHBOOK')
+  ) || false;
 };
 
 export const hasProductionAccess = (user: UserWithPermissions): boolean => {
-  return user.role === UserRole.PRODUCTION_MANAGER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+  if (user.role === UserRole.SUPER_ADMIN) return true;
+  return user.permissions?.some(p => 
+    p.includes('CREATE_PRODUCTION') || p.includes('READ_PRODUCTION') || 
+    p.includes('UPDATE_PRODUCTION') || p.includes('DELETE_PRODUCTION')
+  ) || false;
 };
 
 export const hasCuttingAccess = (user: UserWithPermissions): boolean => {
-  return user.role === UserRole.CUTTING_MANAGER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+  if (user.role === UserRole.SUPER_ADMIN) return true;
+  return user.permissions?.some(p => 
+    p.includes('CREATE_CUTTING') || p.includes('READ_CUTTING') || 
+    p.includes('UPDATE_CUTTING') || p.includes('DELETE_CUTTING')
+  ) || false;
 };
 
 export const isReadOnlyUser = (user: UserWithPermissions): boolean => {
-  return user.role === UserRole.REPORT_VIEWER;
+  if (user.role === UserRole.SUPER_ADMIN) return false;
+  return user.permissions?.every(p => p.includes('READ')) || false;
 };

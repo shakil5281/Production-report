@@ -74,7 +74,7 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen pt-24 md:pt-0 md:flex items-center justify-center md:bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full md:max-w-md">
         <Card className="md:shadow border-0 border-none outline-none shadow-none ">
           <CardHeader className="space-y-1 text-center">
             <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4">

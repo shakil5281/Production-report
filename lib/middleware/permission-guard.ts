@@ -77,7 +77,7 @@ export function withSuperAdminOnly(handler: (req: NextRequest, user: UserWithPer
  * Admin or Super Admin guard
  */
 export function withAdminAccess(handler: (req: NextRequest, user: UserWithPermissions) => Promise<NextResponse>) {
-  return withPermission([], { allowedRoles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] })(handler);
+  return withPermission([], { allowedRoles: [UserRole.SUPER_ADMIN] })(handler);
 }
 
 /**
@@ -104,21 +104,30 @@ export function withWriteAccess(permissions: PermissionType[]) {
  * Role-specific guards
  */
 export function withCashbookManagerAccess(handler: (req: NextRequest, user: UserWithPermissions) => Promise<NextResponse>) {
-  return withPermission([], { 
-    allowedRoles: [UserRole.CASHBOOK_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN] 
-  })(handler);
+  return withPermission([
+    PermissionType.CREATE_CASHBOOK,
+    PermissionType.READ_CASHBOOK,
+    PermissionType.UPDATE_CASHBOOK,
+    PermissionType.DELETE_CASHBOOK
+  ], { requireAll: false })(handler);
 }
 
 export function withProductionManagerAccess(handler: (req: NextRequest, user: UserWithPermissions) => Promise<NextResponse>) {
-  return withPermission([], { 
-    allowedRoles: [UserRole.PRODUCTION_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN] 
-  })(handler);
+  return withPermission([
+    PermissionType.CREATE_PRODUCTION,
+    PermissionType.READ_PRODUCTION,
+    PermissionType.UPDATE_PRODUCTION,
+    PermissionType.DELETE_PRODUCTION
+  ], { requireAll: false })(handler);
 }
 
 export function withCuttingManagerAccess(handler: (req: NextRequest, user: UserWithPermissions) => Promise<NextResponse>) {
-  return withPermission([], { 
-    allowedRoles: [UserRole.CUTTING_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN] 
-  })(handler);
+  return withPermission([
+    PermissionType.CREATE_CUTTING,
+    PermissionType.READ_CUTTING,
+    PermissionType.UPDATE_CUTTING,
+    PermissionType.DELETE_CUTTING
+  ], { requireAll: false })(handler);
 }
 
 /**
@@ -129,9 +138,6 @@ export function isOperationAllowed(user: UserWithPermissions, operation: 'create
 
   // Super admin can do everything
   if (user.role === UserRole.SUPER_ADMIN) return true;
-
-  // Report viewers can only read
-  if (user.role === UserRole.REPORT_VIEWER && operation !== 'read') return false;
 
   // Map operation to permission type
   const permissionMap: Record<string, Record<string, PermissionType>> = {

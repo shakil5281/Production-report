@@ -31,8 +31,8 @@ export async function PUT(
       );
     }
 
-    // Only Super Admin and Admin can update permissions
-    if (currentUser.role !== UserRole.SUPER_ADMIN && currentUser.role !== UserRole.ADMIN) {
+    // Only Super Admin can update permissions
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }
@@ -192,8 +192,8 @@ export async function GET(
       );
     }
 
-    // Only Super Admin and Admin can view permissions
-    if (currentUser.role !== UserRole.SUPER_ADMIN && currentUser.role !== UserRole.ADMIN) {
+    // Only Super Admin can view permissions
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }

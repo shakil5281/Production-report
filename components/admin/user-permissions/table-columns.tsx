@@ -43,8 +43,8 @@ function RoleBadge({ role }: { role: UserRole }) {
     switch (role) {
       case UserRole.SUPER_ADMIN:
         return <IconShield className="w-3 h-3 mr-1" />;
-      case UserRole.ADMIN:
-        return <IconShield className="w-3 h-3 mr-1" />;
+      case UserRole.USER:
+        return <IconUser className="w-3 h-3 mr-1" />;
       default:
         return <IconUser className="w-3 h-3 mr-1" />;
     }
@@ -113,7 +113,7 @@ export const columns: ColumnDef<UserPermissionData>[] = [
     header: 'Status',
     cell: ({ row }) => <StatusBadge isActive={row.getValue('isActive')} />,
     filterFn: (row, id, value) => {
-      const isActive = row.getValue(id);
+      const isActive = row.getValue(id) as boolean;
       return value === 'all' || (value === 'active' && isActive) || (value === 'inactive' && !isActive);
     },
   },
