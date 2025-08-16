@@ -46,12 +46,7 @@ export default function NotFound() {
                 Try these helpful links:
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/daily-production" className="flex items-center gap-1">
-                    <FileText className="w-3 h-3" />
-                    Production
-                  </Link>
-                </Button>
+
                 <Button asChild variant="ghost" size="sm">
                   <Link href="/production-reports" className="flex items-center gap-1">
                     <Search className="w-3 h-3" />

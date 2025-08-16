@@ -21,12 +21,13 @@ export default function PlatformPage() {
       color: 'bg-green-500',
     },
     {
-      title: 'Daily Production',
-      description: 'Track daily production metrics',
+      title: 'Production Balance',
+      description: 'Track production vs targets with hourly data',
       icon: IconChartBar,
-      url: '/daily-production',
+      url: '/production-balance',
       color: 'bg-purple-500',
     },
+
   ];
 
   return (

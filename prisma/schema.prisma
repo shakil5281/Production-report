@@ -305,7 +305,6 @@ model ProductionList {
   // Relations
   targets Target[]
   dailyReports DailyProductionReport[]
-  balance      ProductionBalance?
   
   @@map("production_list")
 }
@@ -438,22 +437,7 @@ model DailyProductionReport {
   @@map("daily_production_reports")
 }
 
-// Production Balance tracking by styleNo
-model ProductionBalance {
-  id            String   @id @default(uuid())
-  styleNo       String   @unique
-  totalTarget   Int      // Total target quantity
-  totalProduced Int      @default(0) // Total produced so far
-  currentBalance Int     @default(0) // Current balance (can be positive or negative)
-  lastUpdated   DateTime @default(now())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  productionList ProductionList @relation(fields: [styleNo], references: [styleNo], onDelete: Cascade)
-  
-  @@map("production_balances")
-}
+
 
 // Audit Log
 model AuditLog {

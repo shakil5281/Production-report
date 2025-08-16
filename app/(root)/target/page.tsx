@@ -205,14 +205,7 @@ export default function TargetPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-                              <Button 
-                    variant="outline" 
-                    onClick={() => router.push('/target/daily-report')}
-                    className="flex items-center gap-2"
-                  >
-                    <IconChartBar className="h-4 w-4" />
-                    View Daily Target Report
-                  </Button>
+
                   <Button 
                     variant="outline" 
                     onClick={() => router.push('/target/comprehensive-report')}
