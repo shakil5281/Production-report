@@ -121,3 +121,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Fix for browser extension hydration mismatches */
+/* Browser extensions like Bitwarden add attributes like bis_skin_checked */
+/* This ensures these attributes don't cause hydration errors */
+[bis_skin_checked],
+[__processed_8b60b9ad-9a39-44b3-8baa-1eb42262c19c],
+[data-bitwarden-watching] {
+  /* These selectors help with hydration consistency */
+}

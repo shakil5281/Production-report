@@ -568,10 +568,10 @@ model OvertimeRecord {
   id              String            @id @default(uuid())
   date            DateTime
   section         String            // Operator, Helper, Cutting, Finishing, Quality, etc.
-  workerCount     Int               @default(0)
-  otHours         Decimal           @default(0)
-  totalOtHours    Decimal           @default(0) // workerCount * otHours
-  remarks         String?
+  presentWorkers  Int               @default(0) // Present workers for the day
+  totalWorkers    Int               @default(0) // Total workers in section
+  overtimeDetails Json?             // JSON array of {hours: number, workerCount: number}
+  totalOtHours    Decimal           @default(0) // Total calculated OT hours
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 

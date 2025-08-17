@@ -70,7 +70,8 @@ export async function GET(request: NextRequest) {
         type: 'section',
         presentWorkers: Number(section.present_workers),
         totalWorkers: Number(section.total_workers),
-        suggestedWorkers: Number(section.present_workers) // Default to present workers
+        suggestedWorkers: Number(section.present_workers), // Default to present workers
+        manpowerDisplay: `${section.present_workers}/${section.total_workers}` // Display like "22/28"
       });
     });
 
@@ -80,25 +81,29 @@ export async function GET(request: NextRequest) {
 
     if (helperLines.length > 0) {
       const totalHelperWorkers = helperLines.reduce((sum, line) => sum + Number(line.present_workers), 0);
+      const totalHelperWorkersTotal = helperLines.reduce((sum, line) => sum + Number(line.total_workers), 0);
       overtimeSections.push({
         section: 'Helper',
         type: 'line_group',
         presentWorkers: totalHelperWorkers,
-        totalWorkers: helperLines.reduce((sum, line) => sum + Number(line.total_workers), 0),
+        totalWorkers: totalHelperWorkersTotal,
         suggestedWorkers: totalHelperWorkers,
-        lineCount: helperLines.length
+        lineCount: helperLines.length,
+        manpowerDisplay: `${totalHelperWorkers}/${totalHelperWorkersTotal}`
       });
     }
 
     if (operatorLines.length > 0) {
       const totalOperatorWorkers = operatorLines.reduce((sum, line) => sum + Number(line.present_workers), 0);
+      const totalOperatorWorkersTotal = operatorLines.reduce((sum, line) => sum + Number(line.total_workers), 0);
       overtimeSections.push({
         section: 'Operator',
         type: 'line_group',
         presentWorkers: totalOperatorWorkers,
-        totalWorkers: operatorLines.reduce((sum, line) => sum + Number(line.total_workers), 0),
+        totalWorkers: totalOperatorWorkersTotal,
         suggestedWorkers: totalOperatorWorkers,
-        lineCount: operatorLines.length
+        lineCount: operatorLines.length,
+        manpowerDisplay: `${totalOperatorWorkers}/${totalOperatorWorkersTotal}`
       });
     }
 

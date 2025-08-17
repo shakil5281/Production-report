@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { randomUUID } from 'crypto';
 
 // GET daily salary records for a specific date
 export async function GET(request: NextRequest) {
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { date, records } = body;
+    const { date, records, autoCalculateOvertime = true } = body;
 
     if (!date || !records || !Array.isArray(records)) {
       return NextResponse.json(
@@ -93,6 +94,28 @@ export async function POST(request: NextRequest) {
     }
 
     const dateString = date;
+
+    // Get overtime data from overtime management if auto-calculation is enabled
+    let overtimeDataBySection: Record<string, number> = {};
+    
+    if (autoCalculateOvertime) {
+      try {
+        // Query overtime data directly from database
+        const overtimeData = await prisma.$queryRaw`
+          SELECT 
+            section,
+            "totalOtHours" as total_overtime_hours
+          FROM overtime_records
+          WHERE date::date = ${dateString}::date
+        ` as any[];
+
+        overtimeData.forEach((record: any) => {
+          overtimeDataBySection[record.section] = Number(record.total_overtime_hours) || 0;
+        });
+      } catch (error) {
+        console.warn('Could not fetch overtime data for auto-calculation:', error);
+      }
+    }
 
     // Clear existing records for this date
     await prisma.$executeRaw`
@@ -123,14 +146,20 @@ export async function POST(request: NextRequest) {
         // Calculate amounts with proper number validation
         const workerCountVal = Number(workerCount) || 0;
         const regularRateVal = Number(regularRate) || 0;
-        const overtimeHoursVal = Number(overtimeHours) || 0;
+        
+        // Use overtime hours from overtime management if available, otherwise use provided value
+        let overtimeHoursVal = Number(overtimeHours) || 0;
+        if (autoCalculateOvertime && overtimeDataBySection[section] !== undefined) {
+          overtimeHoursVal = overtimeDataBySection[section];
+        }
+        
         const overtimeRateVal = Number(overtimeRate) || 0;
         
         const regularAmount = workerCountVal * regularRateVal;
         const overtimeAmount = overtimeHoursVal * overtimeRateVal;
         const totalAmount = regularAmount + overtimeAmount;
         
-        const recordId = `salary_${Date.now()}_${insertedCount}`;
+        const recordId = randomUUID();
         const recordDate = new Date(dateString + 'T12:00:00.000Z');
         const workerCountNum = workerCountVal;
         const regularRateNum = regularRateVal;
