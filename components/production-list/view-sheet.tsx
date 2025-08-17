@@ -59,13 +59,13 @@ export function ViewSheet({ open, onOpenChange, item }: ViewSheetProps) {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Price</label>
-                  <p className="text-lg">${item.price.toFixed(2)}</p>
+                  <p className="text-lg">${Number(item.price).toFixed(2)}</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Percentage</label>
-                  <p className="text-lg">{item.percentage.toFixed(1)}%</p>
+                  <p className="text-lg">{Number(item.percentage).toFixed(1)}%</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Status</label>

@@ -1,4 +1,4 @@
-import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings, IconChartBar, IconFileText, IconTrendingUp, IconUsers, IconUser, IconBook, IconCode, IconApps, IconCurrencyDollar, IconReceipt, IconCash, IconWallet, IconCut, IconScissors, IconClipboardData, IconTarget, IconBuilding } from "@tabler/icons-react"
+import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings, IconChartBar, IconFileText, IconTrendingUp, IconUsers, IconUser, IconBook, IconCode, IconApps, IconCurrencyDollar, IconReceipt, IconCash, IconWallet, IconCut, IconScissors, IconClipboardData, IconTarget, IconBuilding, IconClock } from "@tabler/icons-react"
 import { Book, ShieldCheck } from "lucide-react"
 
 
@@ -92,11 +92,6 @@ export const data = {
       roles: ["USER", "SUPER_ADMIN"], // Users with expense permissions
       items: [
         {
-          title: "Manpower",
-          url: "/expenses/manpower",
-          roles: ["USER", "SUPER_ADMIN"], // READ_EXPENSE permission
-        },
-        {
           title: "Daily Salary",
           url: "/expenses/daily-salary",
           roles: ["USER", "SUPER_ADMIN"], // READ_EXPENSE permission
@@ -181,6 +176,33 @@ export const data = {
           title: "Shipment Reports",
           url: "/shipments/reports",
           roles: ["USER", "SUPER_ADMIN"], // READ_REPORT permission
+        },
+      ],
+    },
+    {
+      title: "Manpower Management",
+      icon: IconClock,
+      roles: ["USER", "SUPER_ADMIN"], // Users with attendance permissions
+      items: [
+        {
+          title: "📊 View & Manage Data",
+          url: "/attendance/summary",
+          roles: ["USER", "SUPER_ADMIN"], // READ_ATTENDANCE permission
+        },
+        {
+          title: "📤 Import from Excel",
+          url: "/attendance/manpower-import",
+          roles: ["USER", "SUPER_ADMIN"], // MANAGE_ATTENDANCE permission
+        },
+        {
+          title: "⏰ Overtime Management",
+          url: "/overtime/management",
+          roles: ["USER", "SUPER_ADMIN"], // MANAGE_ATTENDANCE permission
+        },
+        {
+          title: "💰 Daily Salary",
+          url: "/salary/daily",
+          roles: ["USER", "SUPER_ADMIN"], // MANAGE_EXPENSE permission
         },
       ],
     },

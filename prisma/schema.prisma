@@ -458,4 +458,192 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// Attendance Management System
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  LEAVE
+  SICK_LEAVE
+  CASUAL_LEAVE
+  OVERTIME
+}
+
+enum Department {
+  CUTTING
+  SEWING
+  FINISHING
+  QUALITY
+  ADMIN
+  MAINTENANCE
+  SECURITY
+  STORE
+  ACCOUNTS
+  PRODUCTION
+}
+
+enum ShiftType {
+  DAY_SHIFT
+  NIGHT_SHIFT
+  GENERAL_SHIFT
+}
+
+// Employee Master for Attendance
+model Employee {
+  id           String     @id @default(uuid())
+  employeeId   String     @unique
+  name         String
+  department   Department
+  designation  String
+  shiftType    ShiftType  @default(DAY_SHIFT)
+  salary       Decimal?
+  joiningDate  DateTime?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  
+  // Relations
+  attendance   DailyAttendance[]
+  
+  @@map("employees")
+}
+
+// Daily Attendance Records
+model DailyAttendance {
+  id          String           @id @default(uuid())
+  date        DateTime
+  employeeId  String
+  status      AttendanceStatus
+  inTime      String?
+  outTime     String?
+  workHours   Decimal?
+  overtime    Decimal?
+  remarks     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  // Relations
+  employee    Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@unique([date, employeeId])
+  @@map("daily_attendance")
+}
+
+// Manpower Summary - Hierarchical Structure
+model ManpowerSummary {
+  id            String                @id @default(uuid())
+  date          DateTime
+  section       String                // Cutting, Finishing, Quality, Sewing, etc.
+  subsection    String?               // Helper, Operator, Iron/Input, Worker, Staff, etc.
+  lineNumber    String?               // Line-01, Line-02, etc.
+  itemType      ManpowerItemType      // SECTION, SUBSECTION, LINE, TOTAL
+  present       Int                   @default(0)
+  absent        Int                   @default(0)
+  leave         Int                   @default(0)
+  others        Int                   @default(0)
+  total         Int                   @default(0)
+  remarks       String?
+  parentId      String?               // For hierarchical structure
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  
+  // Self-referential relation for hierarchy
+  parent        ManpowerSummary?      @relation("ManpowerHierarchy", fields: [parentId], references: [id])
+  children      ManpowerSummary[]     @relation("ManpowerHierarchy")
+  
+  @@unique([date, section, subsection, lineNumber])
+  @@map("manpower_summary")
+}
+
+enum ManpowerItemType {
+  SECTION      // Main sections like Cutting, Sewing
+  SUBSECTION   // Helper, Operator, etc.
+  LINE         // Individual lines like Line-01(Helper)
+  TOTAL        // Total rows
+}
+
+// Overtime Management
+model OvertimeRecord {
+  id              String            @id @default(uuid())
+  date            DateTime
+  section         String            // Operator, Helper, Cutting, Finishing, Quality, etc.
+  workerCount     Int               @default(0)
+  otHours         Decimal           @default(0)
+  totalOtHours    Decimal           @default(0) // workerCount * otHours
+  remarks         String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@map("overtime_records")
+  @@unique([date, section])
+}
+
+// Daily Salary Management
+model SalaryRate {
+  id              String            @id @default(uuid())
+  section         String            // Staff, Operator, Helper, Cutting, Finishing, Quality, Security
+  rateType        SalaryRateType    // REGULAR, OVERTIME
+  amount          Decimal           @default(0)
+  isActive        Boolean           @default(true)
+  effectiveDate   DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@map("salary_rates")
+  @@unique([section, rateType, effectiveDate])
+}
+
+model DailySalary {
+  id              String            @id @default(uuid())
+  date            DateTime
+  section         String            // Staff, Operator, Helper, Cutting, Finishing, Quality, Security
+  workerCount     Int               @default(0)
+  regularRate     Decimal           @default(0)
+  overtimeHours   Decimal           @default(0)
+  overtimeRate    Decimal           @default(0)
+  regularAmount   Decimal           @default(0) // workerCount * regularRate
+  overtimeAmount  Decimal           @default(0) // overtimeHours * overtimeRate
+  totalAmount     Decimal           @default(0) // regularAmount + overtimeAmount
+  remarks         String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@map("daily_salaries")
+  @@unique([date, section])
+}
+
+enum SalaryRateType {
+  REGULAR
+  OVERTIME
+}
+
+// Monthly Attendance Report
+model MonthlyAttendanceReport {
+  id               String   @id @default(uuid())
+  month            Int      // 1-12
+  year             Int      // 2024, 2025, etc
+  department       Department
+  totalWorkingDays Int      @default(0)
+  totalPresent     Int      @default(0)
+  totalAbsent      Int      @default(0)
+  totalLeave       Int      @default(0)
+  totalOvertime    Decimal  @default(0)
+  averageAttendance Decimal @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@unique([month, year, department])
+  @@map("monthly_attendance_report")
+}
+
+
+
+
+
+
+
+
+
+
 

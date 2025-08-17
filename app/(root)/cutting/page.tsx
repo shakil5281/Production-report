@@ -279,7 +279,7 @@ export default function CuttingPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Today's Performance</CardTitle>
+            <CardTitle>Today&apos;s Performance</CardTitle>
             <CardDescription>Daily targets vs achievements</CardDescription>
           </CardHeader>
           <CardContent>

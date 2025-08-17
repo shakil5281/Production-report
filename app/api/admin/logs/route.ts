@@ -12,7 +12,7 @@ interface LogEntry {
   ipAddress?: string;
   userAgent?: string;
   endpoint?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 // Mock log data for now - in production, this would come from a real logging system

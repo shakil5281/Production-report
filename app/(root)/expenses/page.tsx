@@ -56,15 +56,15 @@ export default function ExpensesPage() {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     date: '',
-    lineId: '',
-    categoryId: '',
-    paymentMethod: ''
+    lineId: 'all',
+    categoryId: 'all',
+    paymentMethod: 'all'
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    lineId: '',
+    lineId: 'general',
     categoryId: '',
     amount: 0,
     description: '',
@@ -84,9 +84,9 @@ export default function ExpensesPage() {
       setLoading(true);
       const queryParams = new URLSearchParams({
         ...(filters.date && { date: filters.date }),
-        ...(filters.lineId && { lineId: filters.lineId }),
-        ...(filters.categoryId && { categoryId: filters.categoryId }),
-        ...(filters.paymentMethod && { paymentMethod: filters.paymentMethod })
+        ...(filters.lineId && filters.lineId !== 'all' && { lineId: filters.lineId }),
+        ...(filters.categoryId && filters.categoryId !== 'all' && { categoryId: filters.categoryId }),
+        ...(filters.paymentMethod && filters.paymentMethod !== 'all' && { paymentMethod: filters.paymentMethod })
       });
 
       const response = await fetch(`/api/expenses?${queryParams}`);
@@ -138,6 +138,7 @@ export default function ExpensesPage() {
       const method = editingExpense ? 'PUT' : 'POST';
       const body = {
         ...formData,
+        lineId: formData.lineId === 'general' ? null : formData.lineId,
         amount: parseFloat(formData.amount.toString())
       };
 
@@ -166,7 +167,7 @@ export default function ExpensesPage() {
     setEditingExpense(expense);
     setFormData({
       date: expense.date,
-      lineId: expense.lineId || '',
+      lineId: expense.lineId || 'general',
       categoryId: expense.categoryId,
       amount: expense.amount,
       description: expense.description || '',
@@ -197,7 +198,7 @@ export default function ExpensesPage() {
   const resetForm = () => {
     setFormData({
       date: new Date().toISOString().split('T')[0],
-      lineId: '',
+      lineId: 'general',
       categoryId: '',
       amount: 0,
       description: '',
@@ -221,7 +222,7 @@ export default function ExpensesPage() {
   };
 
   const getTotalAmount = () => {
-    return expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    return expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
   };
 
   if (loading && expenses.length === 0) {
@@ -322,7 +323,7 @@ export default function ExpensesPage() {
                     <SelectValue placeholder="Select line (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">General (No specific line)</SelectItem>
+                    <SelectItem value="general">General (No specific line)</SelectItem>
                     {lines?.map((line) => (
                       <SelectItem key={line.id} value={line.id}>
                         {line.name} ({line.code})
@@ -444,7 +445,7 @@ export default function ExpensesPage() {
                   <SelectValue placeholder="All lines" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All lines</SelectItem>
+                  <SelectItem value="all">All lines</SelectItem>
                   {lines?.map((line) => (
                     <SelectItem key={line.id} value={line.id}>
                       {line.name} ({line.code})
@@ -463,7 +464,7 @@ export default function ExpensesPage() {
                   <SelectValue placeholder="All categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All categories</SelectItem>
+                  <SelectItem value="all">All categories</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
@@ -482,7 +483,7 @@ export default function ExpensesPage() {
                   <SelectValue placeholder="All methods" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All methods</SelectItem>
+                  <SelectItem value="all">All methods</SelectItem>
                   <SelectItem value="CASH">Cash</SelectItem>
                   <SelectItem value="MFS">MFS</SelectItem>
                   <SelectItem value="BANK">Bank Transfer</SelectItem>
@@ -562,7 +563,7 @@ export default function ExpensesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        ${expense.amount.toFixed(2)}
+                        ${Number(expense.amount).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">

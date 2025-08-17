@@ -46,6 +46,7 @@ export function NavMain({
     
     // Check URL-based permissions if URL exists
     if (item.url) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { canAccessPage } = require('@/lib/permissions');
       return canAccessPage(user, item.url);
     }

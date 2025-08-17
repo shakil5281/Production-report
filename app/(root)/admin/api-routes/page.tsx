@@ -40,7 +40,7 @@ interface ApiRoute {
   description: string;
   permissions: string[];
   parameters?: string[];
-  example?: any;
+  example?: Record<string, unknown>;
   status: 'active' | 'deprecated' | 'beta';
 }
 

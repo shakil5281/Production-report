@@ -33,8 +33,8 @@ export function ProductionRow({ item, index, onView, onEdit, onDelete }: Product
       <TableCell>{item.buyer}</TableCell>
       <TableCell>{item.item}</TableCell>
       <TableCell className="text-right">{item.quantity.toLocaleString()}</TableCell>
-      <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
-      <TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell>
+      <TableCell className="text-right">${Number(item.price).toFixed(2)}</TableCell>
+      <TableCell className="text-right">{Number(item.percentage).toFixed(1)}%</TableCell>
       <TableCell>
         <StatusBadge status={item.status} />
       </TableCell>
