@@ -232,6 +232,11 @@ export const data = {
           roles: ["SUPER_ADMIN"], // MANAGE_ROLES permission
         },
         {
+          title: "Salary Rates",
+          url: "/admin/salary-rates",
+          roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
+        },
+        {
           title: "System Settings",
           url: "/admin/settings",
           roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission

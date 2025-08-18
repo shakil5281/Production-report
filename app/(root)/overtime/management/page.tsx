@@ -61,17 +61,19 @@ export default function OvertimeManagementPage() {
       // Fetch overtime data first, then manpower data
       // This ensures overtime details are loaded before manpower data overwrites them
       const loadData = async () => {
-        await fetchOvertimeData();
-        await fetchManpowerData();
+        const overtimeData = await fetchOvertimeDataAndReturn();
+        await fetchManpowerDataWithOvertimeData(overtimeData);
       };
       loadData();
     }
   }, [selectedDate, mounted]);
 
-  const fetchManpowerData = async () => {
+
+  const fetchManpowerDataWithOvertimeData = async (currentOvertimeRecords: OvertimeRecord[]) => {
     try {
       setLoading(true);
       const formattedDate = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format, consistent with timezone
+      console.log('Fetching manpower data, received overtimeRecords length:', currentOvertimeRecords.length);
       const response = await fetch(`/api/overtime/manpower?date=${formattedDate}`);
       
       if (!response.ok) {
@@ -83,6 +85,80 @@ export default function OvertimeManagementPage() {
       if (result.success) {
         setManpowerSections(result.data.sections);
         setHasManpowerData(result.data.hasManpowerData);
+        
+        console.log('Before manpower merge - current overtime records:', currentOvertimeRecords);
+        
+        // Always update manpower data, but preserve overtime details if they exist
+        if (currentOvertimeRecords.length === 0) {
+          // No existing records, create new ones with empty overtime details
+          const initialRecords = result.data.sections.map((section: ManpowerSection) => ({
+            section: section.section,
+            presentWorkers: section.presentWorkers,
+            totalWorkers: section.totalWorkers,
+            overtimeDetails: [],
+            totalOtHours: 0
+          }));
+          console.log('Setting initial records:', initialRecords);
+          setOvertimeRecords(initialRecords);
+        } else {
+          // Update manpower data for existing records, preserve overtime details
+          const updatedRecords = result.data.sections.map((manpowerSection: ManpowerSection) => {
+            const existingRecord = currentOvertimeRecords.find(r => r.section === manpowerSection.section);
+            if (existingRecord) {
+              // Keep existing overtime details, update manpower data
+              console.log(`Preserving overtime data for ${manpowerSection.section}: ${existingRecord.overtimeDetails?.length || 0} details`);
+              return {
+                ...existingRecord,
+                presentWorkers: manpowerSection.presentWorkers,
+                totalWorkers: manpowerSection.totalWorkers
+              };
+            } else {
+              // New section found in manpower data
+              return {
+                section: manpowerSection.section,
+                presentWorkers: manpowerSection.presentWorkers,
+                totalWorkers: manpowerSection.totalWorkers,
+                overtimeDetails: [],
+                totalOtHours: 0
+              };
+            }
+          });
+          
+          console.log('Setting updated records with preserved overtime:', updatedRecords);
+          setOvertimeRecords(updatedRecords);
+        }
+      } else {
+        setHasManpowerData(false);
+        setManpowerSections([]);
+        toast.error(result.error || 'Failed to fetch manpower data');
+      }
+    } catch (err) {
+      console.error('Error fetching manpower data:', err);
+      setHasManpowerData(false);
+      toast.error('Failed to fetch manpower data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchManpowerData = async () => {
+    try {
+      setLoading(true);
+      const formattedDate = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format, consistent with timezone
+      console.log('Fetching manpower data, current overtimeRecords length:', overtimeRecords.length);
+      const response = await fetch(`/api/overtime/manpower?date=${formattedDate}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch manpower data');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setManpowerSections(result.data.sections);
+        setHasManpowerData(result.data.hasManpowerData);
+        
+        console.log('Before manpower merge - overtimeRecords:', overtimeRecords);
         
         // Always update manpower data, but preserve overtime details if they exist
         if (overtimeRecords.length === 0) {
@@ -153,6 +229,35 @@ export default function OvertimeManagementPage() {
     }
   };
 
+  const fetchOvertimeDataAndReturn = async (): Promise<OvertimeRecord[]> => {
+    try {
+      const formattedDate = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format, consistent with timezone
+      const response = await fetch(`/api/overtime?date=${formattedDate}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data.records.length > 0) {
+          const mappedRecords = result.data.records.map((record: any) => ({
+            section: record.section,
+            presentWorkers: record.presentWorkers,
+            totalWorkers: record.totalWorkers,
+            overtimeDetails: record.overtimeDetails || [],
+            totalOtHours: record.totalOtHours
+          }));
+          
+          // console.log('Setting overtime records with mappedRecords:', mappedRecords);
+          setOvertimeRecords(mappedRecords);
+          setSummary(result.data.summary);
+          
+          return mappedRecords;
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching overtime data:', err);
+    }
+    return [];
+  };
+
   const fetchOvertimeData = async () => {
     try {
       const formattedDate = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format, consistent with timezone
@@ -169,9 +274,15 @@ export default function OvertimeManagementPage() {
             totalOtHours: record.totalOtHours
           }));
           
-          // Always prioritize database data for overtime details, but merge with manpower data
-          setOvertimeRecords(mappedRecords);
-          setSummary(result.data.summary);
+                      // Always prioritize database data for overtime details, but merge with manpower data
+            console.log('Setting overtime records with mappedRecords:', mappedRecords);
+            setOvertimeRecords(mappedRecords);
+            setSummary(result.data.summary);
+            
+            // Verify the state was set
+            setTimeout(() => {
+              console.log('Overtime records after setState (with timeout):', overtimeRecords);
+            }, 100);
         } else {
           // No overtime data found, but keep existing records if they have manpower data
           if (overtimeRecords.length > 0) {
@@ -335,47 +446,49 @@ export default function OvertimeManagementPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6" suppressHydrationWarning={true}>
+    <div className="container mx-auto py-4 md:py-6 space-y-4 md:space-y-6 px-4 md:px-6" suppressHydrationWarning={true}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Clock className="h-8 w-8 text-primary" />
-            Overtime Management
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="text-center sm:text-left">
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center justify-center sm:justify-start gap-2">
+            <Clock className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+            <span className="break-words">Overtime Management</span>
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">
             Manage daily overtime hours by section
           </p>
         </div>
       </div>
 
       {/* Date Selection & Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Date Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
+        <Card className="md:col-span-2 lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CalendarIcon className="h-4 w-4 md:h-5 md:w-5" />
               Select Date
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
+                    "w-full justify-start text-left font-normal text-sm md:text-base h-10 md:h-11",
                     !selectedDate && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? selectedDate.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  }) : <span>Pick a date</span>}
+                  <span className="truncate">
+                    {selectedDate ? selectedDate.toLocaleDateString('en-US', { 
+                      weekday: 'short', 
+                      year: 'numeric', 
+                      month: 'short', 
+                      day: 'numeric' 
+                    }) : 'Pick a date'}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -388,24 +501,28 @@ export default function OvertimeManagementPage() {
               </PopoverContent>
             </Popover>
 
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button 
                 onClick={fetchManpowerData} 
                 disabled={loading}
                 variant="outline"
-                className="flex-1"
+                className="h-10 md:h-11 text-sm md:text-base"
+                size="sm"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                {loading ? 'Loading...' : 'Refresh'}
+                <RefreshCw className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">{loading ? 'Loading...' : 'Refresh'}</span>
+                <span className="sm:hidden">{loading ? '...' : 'Refresh'}</span>
               </Button>
               
               <Button 
                 onClick={saveOvertimeData} 
                 disabled={saving || !hasManpowerData}
-                className="flex-1"
+                className="h-10 md:h-11 text-sm md:text-base"
+                size="sm"
               >
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Saving...' : 'Save'}
+                <Save className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
+                <span className="sm:hidden">{saving ? '...' : 'Save'}</span>
               </Button>
             </div>
           </CardContent>
@@ -413,43 +530,43 @@ export default function OvertimeManagementPage() {
 
         {/* Summary Cards */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Users className="h-4 w-4 md:h-5 md:w-5" />
               Workers Summary
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Total Sections:</span>
-              <span className="font-medium">{summary.totalSections}</span>
+          <CardContent className="space-y-2 md:space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs md:text-sm text-muted-foreground">Total Sections:</span>
+              <span className="font-medium text-sm md:text-base">{summary.totalSections}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Present Workers:</span>
-              <span className="font-medium text-green-600">{summary.totalPresentWorkers}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-xs md:text-sm text-muted-foreground">Present Workers:</span>
+              <span className="font-medium text-green-600 text-sm md:text-base">{summary.totalPresentWorkers}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Total Workers:</span>
-              <span className="font-medium">{summary.totalWorkers}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-xs md:text-sm text-muted-foreground">Total Workers:</span>
+              <span className="font-medium text-sm md:text-base">{summary.totalWorkers}</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Calculator className="h-4 w-4 md:h-5 md:w-5" />
               Overtime Summary
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Total OT Hours:</span>
-              <span className="font-bold text-2xl text-primary">{summary.totalOtHours}</span>
+          <CardContent className="space-y-2 md:space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs md:text-sm text-muted-foreground">Total OT Hours:</span>
+              <span className="font-bold text-lg md:text-2xl text-primary">{summary.totalOtHours}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Average OT/Worker:</span>
-              <span className="font-medium">
+            <div className="flex justify-between items-center">
+              <span className="text-xs md:text-sm text-muted-foreground">Average OT/Worker:</span>
+              <span className="font-medium text-sm md:text-base">
                 {summary.totalPresentWorkers > 0 ? (summary.totalOtHours / summary.totalPresentWorkers).toFixed(1) : '0'}h
               </span>
             </div>
@@ -459,24 +576,30 @@ export default function OvertimeManagementPage() {
 
       {/* Overtime Data Entry */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Overtime Hours Entry - {selectedDate.toLocaleDateString('en-US', { 
-                month: 'long', 
-                day: 'numeric', 
-                year: 'numeric' 
-              })}
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+            <span className="flex items-center gap-2 text-lg md:text-xl">
+              <Calculator className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="break-words">
+                Overtime Hours Entry
+                <span className="hidden sm:inline"> - </span>
+                <span className="block sm:inline text-sm md:text-base font-normal text-muted-foreground">
+                  {selectedDate.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                  })}
+                </span>
+              </span>
             </span>
             {hasManpowerData && (
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="text-xs md:text-sm self-start sm:self-center">
                 {overtimeRecords.length} sections
               </Badge>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 md:px-6">
           {loading ? (
             <div className="flex items-center justify-center py-12" suppressHydrationWarning={true}>
               <div className="text-center space-y-3" suppressHydrationWarning={true}>
@@ -497,38 +620,38 @@ export default function OvertimeManagementPage() {
               </AlertDescription>
             </Alert>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {overtimeRecords.map((record) => {
                 const manpowerSection = manpowerSections.find(s => s.section === record.section);
                 return (
                   <Card key={record.section} className="border-2">
                     <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge className={getSectionBadgeColor(record.section)}>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                          <Badge className={`${getSectionBadgeColor(record.section)} text-xs md:text-sm`}>
                             {record.section}
                           </Badge>
                           {manpowerSection?.type === 'line_group' && manpowerSection.lineCount && (
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-xs md:text-sm text-muted-foreground">
                               ({manpowerSection.lineCount} lines)
                             </span>
                           )}
                         </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-green-600">
+                        <div className="text-left sm:text-right">
+                          <div className="text-xl md:text-2xl font-bold text-green-600">
                             {manpowerSection?.manpowerDisplay || `${record.presentWorkers}/${record.totalWorkers}`}
                           </div>
                           <div className="text-xs text-muted-foreground">Present/Total</div>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="px-3 md:px-6">
                       {/* Overtime Details */}
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Label className="text-sm font-medium">Overtime Breakdown:</Label>
-                            <div className="text-xs text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                            <Label className="text-sm md:text-base font-medium">Overtime Breakdown:</Label>
+                            <div className="text-xs md:text-sm text-muted-foreground">
                               Available: <span className="font-medium text-green-600">{getAvailableWorkers(record)}</span> / 
                               <span className="font-medium">{record.presentWorkers}</span> workers
                             </div>
@@ -538,9 +661,9 @@ export default function OvertimeManagementPage() {
                             size="sm"
                             onClick={() => addOvertimeDetail(record.section)}
                             disabled={getAvailableWorkers(record) === 0}
-                            className="h-7 px-3 text-xs"
+                            className="h-9 md:h-8 px-4 md:px-3 text-sm md:text-xs self-start sm:self-center"
                           >
-                            <Plus className="h-3 w-3 mr-1" />
+                            <Plus className="h-4 w-4 md:h-3 md:w-3 mr-2 md:mr-1" />
                             Add
                           </Button>
                         </div>
@@ -550,62 +673,62 @@ export default function OvertimeManagementPage() {
                             No overtime assigned. Click "Add" to assign overtime hours.
                           </div>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="space-y-3 md:space-y-2">
                             {record.overtimeDetails.map((detail, index) => (
-                              <div key={index} className="flex items-center gap-3 p-3 border rounded-lg bg-blue-50">
+                              <div key={index} className="flex flex-col lg:flex-row lg:items-center gap-3 p-3 md:p-4 border rounded-lg bg-blue-50">
                                 
-                                <div className="flex items-center gap-3 flex-1">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
                                   {/* People Input */}
-                                  <div className="flex items-center gap-2">
-                                    <Label className="text-sm font-medium min-w-[60px]">People:</Label>
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <Label className="text-sm md:text-base font-medium min-w-[60px] md:min-w-[70px]">People:</Label>
                                     <div className="flex items-center gap-1">
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-7 w-7 p-0"
+                                        className="h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
                                         onClick={() => updateOvertimeDetail(record.section, index, 'workerCount', Math.max(0, detail.workerCount - 1))}
                                         disabled={detail.workerCount <= 0}
                                       >
-                                        <Minus className="h-3 w-3" />
+                                        <Minus className="h-4 w-4 md:h-3 md:w-3" />
                                       </Button>
                                       <Input
                                         type="number"
                                         value={detail.workerCount}
                                         onChange={(e) => updateOvertimeDetail(record.section, index, 'workerCount', parseInt(e.target.value) || 0)}
-                                        className="w-16 text-center h-7"
+                                        className="w-16 md:w-14 text-center h-9 md:h-8 text-sm md:text-base"
                                         min="0"
                                         max={getAvailableWorkers(record) + detail.workerCount}
                                       />
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-7 w-7 p-0"
+                                        className="h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
                                         onClick={() => updateOvertimeDetail(record.section, index, 'workerCount', detail.workerCount + 1)}
                                         disabled={getAvailableWorkers(record) <= 0}
                                       >
-                                        <Plus className="h-3 w-3" />
+                                        <Plus className="h-4 w-4 md:h-3 md:w-3" />
                                       </Button>
                                     </div>
                                   </div>
 
                                   {/* Hours Input */}
-                                  <div className="flex items-center gap-2">
-                                    <Label className="text-sm font-medium min-w-[45px]">Hours:</Label>
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <Label className="text-sm md:text-base font-medium min-w-[50px] md:min-w-[55px]">Hours:</Label>
                                     <div className="flex items-center gap-1">
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-7 w-7 p-0"
+                                        className="h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
                                         onClick={() => updateOvertimeDetail(record.section, index, 'hours', Math.max(0, detail.hours - 0.5))}
                                         disabled={detail.hours <= 0}
                                       >
-                                        <Minus className="h-3 w-3" />
+                                        <Minus className="h-4 w-4 md:h-3 md:w-3" />
                                       </Button>
                                       <Input
                                         type="number"
                                         value={detail.hours}
                                         onChange={(e) => updateOvertimeDetail(record.section, index, 'hours', parseFloat(e.target.value) || 0)}
-                                        className="w-16 text-center h-7"
+                                        className="w-16 md:w-14 text-center h-9 md:h-8 text-sm md:text-base"
                                         min="0"
                                         max="24"
                                         step="0.5"
@@ -613,17 +736,17 @@ export default function OvertimeManagementPage() {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-7 w-7 p-0"
+                                        className="h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
                                         onClick={() => updateOvertimeDetail(record.section, index, 'hours', Math.min(24, detail.hours + 0.5))}
                                         disabled={detail.hours >= 24}
                                       >
-                                        <Plus className="h-3 w-3" />
+                                        <Plus className="h-4 w-4 md:h-3 md:w-3" />
                                       </Button>
                                     </div>
                                   </div>
 
                                   {/* Total Calculation */}
-                                  <div className="text-sm font-medium text-purple-600 min-w-[80px]">
+                                  <div className="text-sm md:text-base font-medium text-purple-600 min-w-[90px] md:min-w-[100px] text-center sm:text-left">
                                     = {(detail.workerCount * detail.hours).toFixed(1)} hrs
                                   </div>
                                 </div>
@@ -632,10 +755,10 @@ export default function OvertimeManagementPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  className="h-9 w-9 md:h-8 md:w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 self-end lg:self-center touch-manipulation"
                                   onClick={() => removeOvertimeDetail(record.section, index)}
                                 >
-                                  <Minus className="h-3 w-3" />
+                                  <Minus className="h-4 w-4 md:h-3 md:w-3" />
                                 </Button>
                               </div>
                             ))}
@@ -643,21 +766,21 @@ export default function OvertimeManagementPage() {
                         )}
 
                         {/* Total for this section */}
-                        <div className="flex justify-between items-center pt-3 border-t">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">Section Total:</span>
-                            <div className="text-xs text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-3 border-t">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <span className="font-medium text-sm md:text-base">Section Total:</span>
+                            <div className="text-xs md:text-sm text-muted-foreground">
                               ({getTotalAssignedWorkers(record)} of {record.presentWorkers} workers assigned)
                             </div>
                           </div>
-                          <span className="font-bold text-xl text-primary">
+                          <span className="font-bold text-lg md:text-xl text-primary self-start sm:self-center">
                             {record.totalOtHours.toFixed(1)} hours
                           </span>
                         </div>
 
                         {/* Full allocation warning */}
                         {getAvailableWorkers(record) === 0 && record.presentWorkers > 0 && (
-                          <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                          <div className="text-xs md:text-sm text-amber-600 bg-amber-50 p-2 md:p-3 rounded border border-amber-200">
                             ⚠️ All available workers ({record.presentWorkers}) have been assigned overtime
                           </div>
                         )}
@@ -669,10 +792,10 @@ export default function OvertimeManagementPage() {
 
               {/* Grand Total */}
               <Card className="border-2 border-primary bg-primary/5">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-lg">Grand Total Overtime Hours:</span>
-                    <span className="font-bold text-3xl text-primary">
+                <CardContent className="pt-4 md:pt-6 px-4 md:px-6">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-center sm:text-left">
+                    <span className="font-semibold text-base md:text-lg">Grand Total Overtime Hours:</span>
+                    <span className="font-bold text-2xl md:text-3xl text-primary">
                       {summary.totalOtHours} hours
                     </span>
                   </div>
