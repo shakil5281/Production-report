@@ -27,6 +27,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
     item: '',
     price: 0,
     percentage: 0,
+    status: 'PENDING',
   });
   const [loading, setLoading] = useState(false);
 
@@ -40,6 +41,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
         item: item.item,
         price: item.price,
         percentage: item.percentage,
+        status: item.status || 'PENDING',
       });
     }
   }, [item, mode]);
@@ -184,6 +186,46 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                   onChange={(e) => handleInputChange('percentage', e.target.value)}
                   placeholder="e.g., 25.5"
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="status">Status *</Label>
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED') => 
+                    setFormData(prev => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select production status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDING">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                        Pending
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="RUNNING">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        Running
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="COMPLETE">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        Complete
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="CANCELLED">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        Cancelled
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

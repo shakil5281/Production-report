@@ -1,25 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { targetService } from '@/lib/db/target';
 
-// GET all targets or targets by date
+// GET all targets with advanced filtering and pagination
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
+    const lineNo = searchParams.get('lineNo');
+    const styleNo = searchParams.get('styleNo');
+    const search = searchParams.get('search');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
 
-    let targets;
-    if (date) {
-      targets = await targetService.getByDate(date);
-    } else {
-      targets = await targetService.getAll();
-    }
+    // Build filters object
+    const filters = {
+      date: date || undefined,
+      lineNo: lineNo || undefined,
+      styleNo: styleNo || undefined,
+      search: search || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined
+    };
+
+    // Get filtered and paginated targets
+    const result = await targetService.getFilteredPaginated({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder: sortOrder as 'asc' | 'desc'
+    });
 
     return NextResponse.json({
       success: true,
-      data: targets,
-      total: targets.length
+      data: result.targets,
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit),
+      hasMore: page * limit < result.total
     });
   } catch (error) {
+    console.error('Error fetching targets:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message || 'Failed to fetch targets' },
       { status: 500 }

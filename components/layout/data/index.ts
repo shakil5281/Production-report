@@ -18,13 +18,7 @@ export const data = {
       isActive: false,
       roles: ["USER", "SUPER_ADMIN"],
     },
-    {
-      title: "Production Reports",
-      url: "/production-reports",
-      icon: IconFileText,
-      isActive: false,
-      roles: ["USER", "SUPER_ADMIN"], // Users with READ_REPORT permission
-    },
+
   ],
   navGroup: [
     {
@@ -32,6 +26,11 @@ export const data = {
       icon: IconBuilding,
       roles: ["USER", "SUPER_ADMIN"], // Users with production permissions
       items: [
+        {
+          title: "Production Management",
+          url: "/production-management",
+          roles: ["USER", "SUPER_ADMIN"], // READ_PRODUCTION permission
+        },
         {
           title: "Production List",
           url: "/production-list",
@@ -47,31 +46,15 @@ export const data = {
           url: "/line-assignments",
           roles: ["USER", "SUPER_ADMIN"], // READ_PRODUCTION permission
         },
-
-      ],
-    },
-    {
-      title: "Production Reports",
-      icon: IconClipboardData,
-      roles: ["USER", "SUPER_ADMIN"], // Users with report permissions
-      items: [
         {
           title: "Daily Production Report",
           url: "/daily-production-report",
-          roles: ["USER", "SUPER_ADMIN"], // READ_PRODUCTION, READ_REPORT permissions
+          roles: ["USER", "SUPER_ADMIN"], // READ_PRODUCTION permission
         },
-        {
-          title: "Production Analytics",
-          url: "/production-reports",
-          roles: ["USER", "SUPER_ADMIN"], // READ_REPORT permission
-        },
-        {
-          title: "Profit & Loss Report",
-          url: "/profit-loss",
-          roles: ["USER", "SUPER_ADMIN"], // READ_REPORT permission
-        },
+
       ],
     },
+
     {
       title: "Target Management",
       icon: IconTarget,
@@ -82,7 +65,6 @@ export const data = {
           url: "/target",
           roles: ["USER", "SUPER_ADMIN"], // READ_TARGET permission
         },
-
         {
           title: "Comprehensive Target Report",
           url: "/target/comprehensive-report",
