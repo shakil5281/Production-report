@@ -27,6 +27,7 @@ export interface ProductionFormData {
   price: number;
   percentage: number;
   quantities: QuantityItem[];
+  status: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED';
 }
 
 export function formatDate(dateString?: string): string {

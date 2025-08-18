@@ -1,25 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { productionService } from '@/lib/db/production';
 
-// GET all production items or filter by status
+// GET all production items with advanced filtering and pagination
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const search = searchParams.get('search');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const buyer = searchParams.get('buyer');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
     
-    let items;
-    if (status && ['PENDING', 'RUNNING', 'COMPLETE', 'CANCELLED'].includes(status)) {
-      items = await productionService.getByStatus(status as any);
-    } else {
-      items = await productionService.getAll();
-    }
+    // Build filters object
+    const filters = {
+      status: status && ['PENDING', 'RUNNING', 'COMPLETE', 'CANCELLED'].includes(status) ? status : undefined,
+      search: search || undefined,
+      buyer: buyer || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined
+    };
+    
+    // Get filtered and paginated items
+    const result = await productionService.getFilteredPaginated({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder: sortOrder as 'asc' | 'desc'
+    });
     
     return NextResponse.json({
       success: true,
-      data: items,
-      total: items.length
+      data: result.items,
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit),
+      hasMore: page * limit < result.total
     });
   } catch (error) {
+    console.error('Error fetching production items:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message || 'Failed to fetch production items' },
       { status: 500 }

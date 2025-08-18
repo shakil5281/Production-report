@@ -1,4 +1,4 @@
-import { Decimal } from 'decimal.js';
+
 import { prisma } from './prisma';
 
 // Define a proper error type for Prisma errors
@@ -234,6 +234,142 @@ export const targetService = {
     } catch (error) {
       console.error('Error fetching targets by date:', error);
       throw new Error('Failed to fetch targets by date');
+    }
+  },
+
+  // Get filtered and paginated targets
+  async getFilteredPaginated({
+    filters,
+    page = 1,
+    limit = 10,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  }: {
+    filters: {
+      date?: string;
+      lineNo?: string;
+      styleNo?: string;
+      search?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    };
+    page: number;
+    limit: number;
+    sortBy: string;
+    sortOrder: 'asc' | 'desc';
+  }) {
+    try {
+      const where: Record<string, any> = {};
+
+      // Apply filters
+      if (filters.date) {
+        const [year, month, day] = filters.date.split('-').map(Number);
+        const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+        const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+        where.date = {
+          gte: startOfDay,
+          lte: endOfDay
+        };
+      }
+
+      if (filters.lineNo) {
+        where.lineNo = {
+          contains: filters.lineNo,
+          mode: 'insensitive'
+        };
+      }
+
+      if (filters.styleNo) {
+        where.styleNo = {
+          contains: filters.styleNo,
+          mode: 'insensitive'
+        };
+      }
+
+      if (filters.search) {
+        where.OR = [
+          { lineNo: { contains: filters.search, mode: 'insensitive' } },
+          { styleNo: { contains: filters.search, mode: 'insensitive' } }
+        ];
+      }
+
+      if (filters.dateFrom || filters.dateTo) {
+        where.date = where.date || {};
+        if (filters.dateFrom) {
+          const [year, month, day] = filters.dateFrom.split('-').map(Number);
+          where.date.gte = new Date(year, month - 1, day, 0, 0, 0, 0);
+        }
+        if (filters.dateTo) {
+          const [year, month, day] = filters.dateTo.split('-').map(Number);
+          where.date.lte = new Date(year, month - 1, day, 23, 59, 59, 999);
+        }
+      }
+
+      // Get total count
+      const total = await prisma.target.count({ where });
+
+      // Get paginated targets
+      const targets = await prisma.target.findMany({
+        where,
+        include: {
+          productionList: true
+        },
+        orderBy: { [sortBy]: sortOrder },
+        skip: (page - 1) * limit,
+        take: limit
+      });
+
+      return {
+        targets: targets.map(transformTarget),
+        total,
+        page,
+        limit
+      };
+    } catch (error) {
+      console.error('Error fetching filtered targets:', error);
+      throw new Error('Failed to fetch filtered targets');
+    }
+  },
+
+  // Get target summary statistics
+  async getStats() {
+    try {
+      const total = await prisma.target.count();
+      
+      const totalTargetSum = await prisma.target.aggregate({
+        _sum: {
+          lineTarget: true,
+          hourlyProduction: true
+        },
+        _avg: {
+          lineTarget: true,
+          hourlyProduction: true
+        }
+      });
+
+      // Get targets by date range (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const recentTargets = await prisma.target.count({
+        where: {
+          createdAt: {
+            gte: thirtyDaysAgo
+          }
+        }
+      });
+
+      return {
+        total,
+        recentTargets,
+        totalLineTarget: totalTargetSum._sum.lineTarget || 0,
+        totalHourlyProduction: totalTargetSum._sum.hourlyProduction || 0,
+        avgLineTarget: Math.round((totalTargetSum._avg.lineTarget || 0) * 100) / 100,
+        avgHourlyProduction: Math.round((totalTargetSum._avg.hourlyProduction || 0) * 100) / 100
+      };
+    } catch (error) {
+      console.error('Error fetching target stats:', error);
+      throw new Error('Failed to fetch target stats');
     }
   }
 };

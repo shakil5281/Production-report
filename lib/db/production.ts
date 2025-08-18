@@ -226,5 +226,130 @@ export const productionService = {
       console.error('Error fetching production items by status:', error);
       throw new Error('Failed to fetch production items by status');
     }
+  },
+
+  // Get filtered and paginated production items
+  async getFilteredPaginated({
+    filters,
+    page = 1,
+    limit = 10,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  }: {
+    filters: {
+      status?: string;
+      search?: string;
+      buyer?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    };
+    page: number;
+    limit: number;
+    sortBy: string;
+    sortOrder: 'asc' | 'desc';
+  }) {
+    try {
+      const where: Record<string, any> = {};
+
+      // Apply filters
+      if (filters.status && filters.status !== 'all') {
+        where.status = filters.status;
+      }
+
+      if (filters.buyer) {
+        where.buyer = {
+          contains: filters.buyer,
+          mode: 'insensitive'
+        };
+      }
+
+      if (filters.search) {
+        where.OR = [
+          { programCode: { contains: filters.search, mode: 'insensitive' } },
+          { styleNo: { contains: filters.search, mode: 'insensitive' } },
+          { buyer: { contains: filters.search, mode: 'insensitive' } },
+          { item: { contains: filters.search, mode: 'insensitive' } }
+        ];
+      }
+
+      if (filters.dateFrom || filters.dateTo) {
+        where.createdAt = {};
+        if (filters.dateFrom) {
+          where.createdAt.gte = new Date(filters.dateFrom);
+        }
+        if (filters.dateTo) {
+          const toDate = new Date(filters.dateTo);
+          toDate.setHours(23, 59, 59, 999);
+          where.createdAt.lte = toDate;
+        }
+      }
+
+      // Get total count
+      const total = await prisma.productionList.count({ where });
+
+      // Get paginated items
+      const items = await prisma.productionList.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip: (page - 1) * limit,
+        take: limit
+      });
+
+      return {
+        items: items.map(transformProductionItem),
+        total,
+        page,
+        limit
+      };
+    } catch (error) {
+      console.error('Error fetching filtered production items:', error);
+      throw new Error('Failed to fetch filtered production items');
+    }
+  },
+
+  // Get production summary statistics
+  async getStats() {
+    try {
+      const [total, pending, running, complete, cancelled] = await Promise.all([
+        prisma.productionList.count(),
+        prisma.productionList.count({ where: { status: 'PENDING' } }),
+        prisma.productionList.count({ where: { status: 'RUNNING' } }),
+        prisma.productionList.count({ where: { status: 'COMPLETE' } }),
+        prisma.productionList.count({ where: { status: 'CANCELLED' } })
+      ]);
+
+      const totalValue = await prisma.productionList.aggregate({
+        _sum: {
+          totalQty: true
+        }
+      });
+
+      const totalRevenue = await prisma.productionList.findMany({
+        select: {
+          price: true,
+          totalQty: true
+        }
+      });
+
+      const revenue = totalRevenue.reduce((sum, item) => {
+        const price = typeof item.price === 'object' && 'toNumber' in item.price 
+          ? (item.price as any).toNumber() 
+          : Number(item.price);
+        return sum + (price * item.totalQty);
+      }, 0);
+
+      return {
+        total,
+        pending,
+        running,
+        complete,
+        cancelled,
+        totalQuantity: totalValue._sum.totalQty || 0,
+        totalRevenue: revenue
+      };
+    } catch (error) {
+      console.error('Error fetching production stats:', error);
+      throw new Error('Failed to fetch production stats');
+    }
   }
 };
