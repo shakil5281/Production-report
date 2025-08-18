@@ -294,10 +294,11 @@ model ProductionList {
   programCode  String
   styleNo      String           @unique
   buyer        String
-  quantity     Int
   item         String
   price        Decimal
   percentage   Decimal          @default(0)
+  quantities   Json             @default("[]") // Array of {variant: string, color: string, qty: number}
+  totalQty     Int              @default(0) // Calculated sum of all quantities
   status       ProductionStatus @default(PENDING)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt

@@ -2,11 +2,18 @@ import { ProductionStatus, Prisma } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 import { prisma } from './prisma';
 
+export interface QuantityItem {
+  variant: string;
+  color: string;
+  qty: number;
+}
+
 export interface CreateProductionItemData {
   programCode: string;
   styleNo: string;
   buyer: string;
-  quantity: number;
+  quantities: QuantityItem[];
+  totalQty: number;
   item: string;
   price: number;
   percentage: number;
@@ -17,7 +24,8 @@ export interface UpdateProductionItemData {
   programCode?: string;
   styleNo?: string;
   buyer?: string;
-  quantity?: number;
+  quantities?: QuantityItem[];
+  totalQty?: number;
   item?: string;
   price?: number;
   percentage?: number;
@@ -29,7 +37,8 @@ interface PrismaUpdateData {
   programCode?: string;
   styleNo?: string;
   buyer?: string;
-  quantity?: number;
+  quantities?: Prisma.InputJsonValue;
+  totalQty?: number;
   item?: string;
   price?: Decimal;
   percentage?: Decimal;
@@ -49,7 +58,8 @@ function transformProductionItem(item: Record<string, unknown>) {
   return {
     ...item,
     price: convertDecimalToNumber(item.price),
-    percentage: convertDecimalToNumber(item.percentage)
+    percentage: convertDecimalToNumber(item.percentage),
+    quantities: Array.isArray(item.quantities) ? item.quantities : []
   };
 }
 
@@ -88,6 +98,7 @@ export const productionService = {
           ...data,
           price: new Decimal(data.price),
           percentage: new Decimal(data.percentage),
+          quantities: JSON.parse(JSON.stringify(data.quantities)),
         }
       });
       return transformProductionItem(item);
@@ -114,7 +125,8 @@ export const productionService = {
       if (data.programCode !== undefined) updateData.programCode = data.programCode;
       if (data.styleNo !== undefined) updateData.styleNo = data.styleNo;
       if (data.buyer !== undefined) updateData.buyer = data.buyer;
-      if (data.quantity !== undefined) updateData.quantity = data.quantity;
+      if (data.quantities !== undefined) updateData.quantities = JSON.parse(JSON.stringify(data.quantities));
+      if (data.totalQty !== undefined) updateData.totalQty = data.totalQty;
       if (data.item !== undefined) updateData.item = data.item;
       if (data.status !== undefined) updateData.status = data.status;
       
@@ -181,8 +193,6 @@ export const productionService = {
       throw new Error('Failed to delete production item');
     }
   },
-
-
 
   // Check if style number exists
   async styleNoExists(styleNo: string, excludeId?: string) {

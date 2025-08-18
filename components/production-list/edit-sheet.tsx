@@ -2,7 +2,7 @@
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import type { ProductionItem, ProductionFormData } from './schema';
-import { ProductionForm } from '@/components/production-form';
+import { ProductionForm } from './production-form';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface EditSheetProps {

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { IconDotsVertical, IconEye, IconEdit, IconTrash, IconCircleCheckFilled, IconCircleX, IconLoader } from '@tabler/icons-react';
 import type { ProductionItem } from './schema';
+import { QuantityCell } from './quantity-cell';
 
 function StatusBadge({ status }: { status: ProductionItem['status'] }) {
   const config = {
@@ -57,9 +58,20 @@ export const columns: ColumnDef<ProductionItem>[] = [
     cell: ({ row }) => <div>{row.getValue('item')}</div>,
   },
   {
-    accessorKey: 'quantity',
-    header: 'Quantity',
-    cell: ({ row }) => <div className="text-left">{Number(row.getValue('quantity')).toLocaleString()}</div>,
+    accessorKey: 'quantities',
+    header: 'Quantities',
+    cell: ({ row }) => {
+      const quantities = row.getValue('quantities') as any[];
+      const totalQty = row.original.totalQty || 0;
+      
+      return (
+        <QuantityCell 
+          quantities={quantities || []} 
+          totalQty={totalQty} 
+        />
+      );
+    },
+    size: 300,
   },
   {
     accessorKey: 'price',
