@@ -25,22 +25,30 @@ interface SalaryRecord {
   regularAmount: number;
   overtimeAmount: number;
   totalAmount: number;
-  remarks: string;
 }
 
-interface SalaryRate {
-  section: string;
-  regular: { amount: number };
-  overtime: { amount: number };
-}
+
 
 export default function DailySalaryPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
-  const [salaryRates, setSalaryRates] = useState<SalaryRate[]>([]);
+  // Default hardcoded salary rates
+  const defaultSalaryRates = {
+    'Staff': { regular: 835, overtime: 0 },
+    'Operator': { regular: 487, overtime: 80 },
+    'Helper': { regular: 355, overtime: 57 },
+    'Cutting': { regular: 410, overtime: 66 },
+    'Finishing': { regular: 420, overtime: 69 },
+    'Quality': { regular: 410, overtime: 66 },
+    'Inputman': { regular: 345, overtime: 0 },
+    'Ironman': { regular: 345, overtime: 0 },
+    'Cleaner': { regular: 345, overtime: 0 },
+    'Loader': { regular: 345, overtime: 0 },
+    'Security': { regular: 345, overtime: 0 }
+  };
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showRatesDialog, setShowRatesDialog] = useState(false);
+
   const [summary, setSummary] = useState({
     totalSections: 0,
     totalWorkers: 0,
@@ -49,31 +57,32 @@ export default function DailySalaryPage() {
     grandTotalAmount: 0,
     totalOvertimeHours: 0
   });
+  const [manpowerSummary, setManpowerSummary] = useState({
+    totalPresentWorkers: 0,
+    totalWorkers: 0,
+    attendanceRate: 0
+  });
+  const [hasManpowerData, setHasManpowerData] = useState(false);
+  const [loadingManpower, setLoadingManpower] = useState(false);
 
-  // Default sections as per your image
+  const [availableManpowerSections, setAvailableManpowerSections] = useState<any[]>([]);
+
+  // Default sections with new structure
   const defaultSections = [
-    'Staff', 'Operator', 'Helper', 'Cutting', 'Finishing', 'Quality', 'Security'
+    'Staff', 'Operator', 'Helper', 'Cutting', 'Finishing', 'Quality', 
+    'Inputman', 'Ironman', 'Cleaner', 'Loader'
   ];
 
   useEffect(() => {
-    fetchSalaryRates();
-    fetchSalaryData();
-    fetchOvertimeData();
+    const loadData = async () => {
+      await fetchSalaryData();
+      await fetchManpowerData();
+      await fetchOvertimeData(); // Fetch overtime data last to update records
+    };
+    loadData();
   }, [selectedDate]);
 
-  const fetchSalaryRates = async () => {
-    try {
-      const response = await fetch('/api/salary/rates');
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setSalaryRates(result.data.rates);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching salary rates:', err);
-    }
-  };
+
 
   const fetchSalaryData = async () => {
     try {
@@ -104,19 +113,27 @@ export default function DailySalaryPage() {
   const fetchOvertimeData = async () => {
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      console.log('Fetching overtime data for date:', formattedDate);
       const response = await fetch(`/api/overtime?date=${formattedDate}`);
       
       if (response.ok) {
         const result = await response.json();
-        if (result.success && result.data.records.length > 0) {
+        console.log('Overtime API response:', result);
+        
+        if (result.success && result.data && result.data.records && result.data.records.length > 0) {
+          console.log('Found overtime records:', result.data.records);
+          
           // Update salary records with overtime hours from overtime management
-          setSalaryRecords(current => 
-            current.map(record => {
+          setSalaryRecords(current => {
+            console.log('Current salary records before overtime update:', current);
+            
+            const updated = current.map(record => {
               const overtimeRecord = result.data.records.find((ot: any) => ot.section === record.section);
-              if (overtimeRecord) {
+              if (overtimeRecord && overtimeRecord.totalOtHours > 0) {
+                console.log(`Updating ${record.section} with ${overtimeRecord.totalOtHours} OT hours`);
                 const updatedRecord = {
                   ...record,
-                  overtimeHours: overtimeRecord.totalOtHours || 0
+                  overtimeHours: Number(overtimeRecord.totalOtHours) || 0
                 };
                 // Recalculate amounts
                 updatedRecord.overtimeAmount = updatedRecord.overtimeHours * updatedRecord.overtimeRate;
@@ -124,31 +141,234 @@ export default function DailySalaryPage() {
                 return updatedRecord;
               }
               return record;
-            })
-          );
+            });
+            
+            console.log('Updated salary records with overtime hours:', updated);
+            return updated;
+          });
+          
+          toast.success('Overtime hours loaded successfully');
+        } else {
+          console.log('No overtime records found for this date');
         }
+      } else {
+        console.error('Failed to fetch overtime data, status:', response.status);
       }
     } catch (err) {
       console.error('Error fetching overtime data:', err);
     }
   };
 
+  const fetchManpowerData = async () => {
+    try {
+      setLoadingManpower(true);
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const response = await fetch(`/api/overtime/manpower?date=${formattedDate}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setHasManpowerData(result.data.hasManpowerData);
+          setAvailableManpowerSections(result.data.sections);
+          
+          // Transform overtime manpower data to salary format
+          const salaryManpowerSummary = {
+            totalPresentWorkers: result.data.sections.reduce((sum: number, section: any) => sum + (section.presentWorkers || 0), 0),
+            totalWorkers: result.data.sections.reduce((sum: number, section: any) => sum + (section.totalWorkers || 0), 0),
+            attendanceRate: 0
+          };
+          
+          if (salaryManpowerSummary.totalWorkers > 0) {
+            salaryManpowerSummary.attendanceRate = Number(((salaryManpowerSummary.totalPresentWorkers / salaryManpowerSummary.totalWorkers) * 100).toFixed(1));
+          }
+          
+          setManpowerSummary(salaryManpowerSummary);
+          
+          // Create salary records for all manpower sections if we don't have any existing data
+          if (result.data.hasManpowerData && result.data.sections.length > 0) {
+            initializeFromManpowerData(result.data.sections);
+          }
+        } else {
+          setHasManpowerData(false);
+          setAvailableManpowerSections([]);
+          // Fall back to default sections if no manpower data
+          if (salaryRecords.length === 0) {
+            initializeDefaultRecords();
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching manpower data:', err);
+      setHasManpowerData(false);
+      setAvailableManpowerSections([]);
+      // Fall back to default sections on error
+      if (salaryRecords.length === 0) {
+        initializeDefaultRecords();
+      }
+    } finally {
+      setLoadingManpower(false);
+    }
+  };
+
+  const syncWithManpowerData = async (manpowerSections?: any[]) => {
+    try {
+      let sectionsData = manpowerSections;
+      
+      if (!sectionsData) {
+        setLoadingManpower(true);
+        const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+        const response = await fetch(`/api/overtime/manpower?date=${formattedDate}`);
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data.hasManpowerData) {
+            sectionsData = result.data.sections;
+            setAvailableManpowerSections(result.data.sections);
+            setHasManpowerData(true);
+          } else {
+            toast.error('No manpower data found for this date');
+            setHasManpowerData(false);
+            return;
+          }
+        } else {
+          toast.error('Failed to fetch manpower data');
+          return;
+        }
+      }
+
+      // Define section mapping and aggregation rules (same as initialization)
+      const sectionMapping = {
+        'Office Staff': 'Staff',
+        'Mechanical Staff': 'Staff',
+        'Production Staff': 'Staff',
+        'Inputman': 'Inputman',
+        'Ironman': 'Ironman',
+        'Cleaner': 'Cleaner',
+        'Loader': 'Loader',
+        'Cutting': 'Cutting',
+        'Finishing': 'Finishing',
+        'Quality': 'Quality',
+        'Helper': 'Helper',
+        'Operator': 'Operator'
+      };
+
+      // Aggregate workers by salary section
+      const aggregatedWorkers: Record<string, number> = {};
+
+      sectionsData?.forEach((section: any) => {
+        const salarySection = sectionMapping[section.section as keyof typeof sectionMapping] || section.section;
+        
+        if (!aggregatedWorkers[salarySection]) {
+          aggregatedWorkers[salarySection] = 0;
+        }
+        
+        aggregatedWorkers[salarySection] += section.presentWorkers || 0;
+      });
+
+      // Update salary records with aggregated worker counts
+      setSalaryRecords(current => 
+        current.map(record => {
+          const presentWorkers = aggregatedWorkers[record.section] || 0;
+          const updatedRecord = {
+            ...record,
+            workerCount: presentWorkers
+          };
+          // Recalculate amounts
+          updatedRecord.regularAmount = updatedRecord.workerCount * updatedRecord.regularRate;
+          updatedRecord.totalAmount = updatedRecord.regularAmount + updatedRecord.overtimeAmount;
+          return updatedRecord;
+        })
+      );
+
+      const updatedSections = sectionsData?.map((section: any) => section.section) || [];
+      console.log('Synced worker counts for sections:', updatedSections);
+      toast.success('Worker counts updated from manpower data');
+    } catch (err) {
+      console.error('Error syncing with manpower data:', err);
+      toast.error('Failed to sync with manpower data');
+    } finally {
+      setLoadingManpower(false);
+    }
+  };
+
   const initializeDefaultRecords = () => {
     const records = defaultSections.map(section => {
-      const rate = salaryRates.find(r => r.section === section);
+      const rate = defaultSalaryRates[section as keyof typeof defaultSalaryRates] || { regular: 345, overtime: 0 };
       return {
         section,
         workerCount: 0,
-        regularRate: rate?.regular?.amount || 0,
+        regularRate: rate.regular,
         overtimeHours: 0,
-        overtimeRate: rate?.overtime?.amount || 0,
+        overtimeRate: rate.overtime,
         regularAmount: 0,
         overtimeAmount: 0,
-        totalAmount: 0,
-        remarks: ''
+        totalAmount: 0
       };
     });
     setSalaryRecords(records);
+  };
+
+  const initializeFromManpowerData = (manpowerSections: any[]) => {
+    // Always initialize/update from manpower data to show all sections
+
+    // Define section mapping and aggregation rules
+    const sectionMapping = {
+      'Office Staff': 'Staff',
+      'Mechanical Staff': 'Staff',
+      'Production Staff': 'Staff',
+      'Inputman': 'Inputman',
+      'Ironman': 'Ironman',
+      'Cleaner': 'Cleaner',
+      'Loader': 'Loader',
+      'Cutting': 'Cutting',
+      'Finishing': 'Finishing',
+      'Quality': 'Quality',
+      'Helper': 'Helper',
+      'Operator': 'Operator'
+    };
+
+    // Aggregate workers by salary section
+    const aggregatedSections: Record<string, { presentWorkers: number; totalWorkers: number; sections: string[] }> = {};
+
+    manpowerSections.forEach(section => {
+      const salarySection = sectionMapping[section.section as keyof typeof sectionMapping] || section.section;
+      
+      if (!aggregatedSections[salarySection]) {
+        aggregatedSections[salarySection] = {
+          presentWorkers: 0,
+          totalWorkers: 0,
+          sections: []
+        };
+      }
+      
+      aggregatedSections[salarySection].presentWorkers += section.presentWorkers || 0;
+      aggregatedSections[salarySection].totalWorkers += section.totalWorkers || 0;
+      aggregatedSections[salarySection].sections.push(section.section);
+    });
+
+    // Create salary records for aggregated sections
+    const records = Object.entries(aggregatedSections).map(([sectionName, data]) => {
+      const rate = defaultSalaryRates[sectionName as keyof typeof defaultSalaryRates] || { regular: 345, overtime: 0 };
+      return {
+        section: sectionName,
+        workerCount: data.presentWorkers,
+        regularRate: rate.regular,
+        overtimeHours: 0,
+        overtimeRate: rate.overtime,
+        regularAmount: data.presentWorkers * rate.regular,
+        overtimeAmount: 0,
+        totalAmount: data.presentWorkers * rate.regular
+      };
+    });
+    
+    setSalaryRecords(records);
+    console.log('Initialized salary records with aggregated sections:', records);
+    console.log('Section aggregation details:', aggregatedSections);
+    
+    // Fetch overtime data after initializing records
+    setTimeout(() => {
+      fetchOvertimeData();
+    }, 100);
   };
 
   const updateSalaryRecord = (section: string, field: keyof SalaryRecord, value: any) => {
@@ -216,50 +436,9 @@ export default function DailySalaryPage() {
     }
   };
 
-  const updateSalaryRates = async (updatedRates: SalaryRate[]) => {
-    try {
-      const response = await fetch('/api/salary/rates', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ rates: updatedRates }),
-      });
 
-      const result = await response.json();
-      
-      if (result.success) {
-        toast.success('Salary rates updated successfully');
-        setSalaryRates(updatedRates);
-        setShowRatesDialog(false);
-        
-        // Update current records with new rates
-        setSalaryRecords(current => 
-          current.map(record => {
-            const rate = updatedRates.find(r => r.section === record.section);
-            if (rate) {
-              const updatedRecord = {
-                ...record,
-                regularRate: rate.regular.amount,
-                overtimeRate: rate.overtime.amount
-              };
-              // Recalculate amounts
-              updatedRecord.regularAmount = updatedRecord.workerCount * updatedRecord.regularRate;
-              updatedRecord.overtimeAmount = updatedRecord.overtimeHours * updatedRecord.overtimeRate;
-              updatedRecord.totalAmount = updatedRecord.regularAmount + updatedRecord.overtimeAmount;
-              return updatedRecord;
-            }
-            return record;
-          })
-        );
-      } else {
-        toast.error(result.error || 'Failed to update salary rates');
-      }
-    } catch (err) {
-      console.error('Error updating salary rates:', err);
-      toast.error('Failed to update salary rates');
-    }
-  };
+
+
 
   const getSectionBadgeColor = (section: string) => {
     switch (section) {
@@ -284,181 +463,200 @@ export default function DailySalaryPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-2 sm:py-4 md:py-6 space-y-3 sm:space-y-4 md:space-y-6 px-2 sm:px-4 md:px-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <DollarSign className="h-8 w-8 text-primary" />
-            Daily Salary Management
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="text-center sm:text-left">
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-bold flex items-center justify-center sm:justify-start gap-2">
+            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+            <span className="break-words">Daily Salary Management</span>
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-xs sm:text-sm md:text-base">
             Calculate daily salary including regular and overtime payments
           </p>
         </div>
       </div>
 
-      {/* Date Selection & Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Date Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
-              Select Date
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(newDate) => newDate && setSelectedDate(newDate)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-
-            <div className="flex gap-2">
-              <Button 
-                onClick={fetchSalaryData} 
-                disabled={loading}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Refresh
-              </Button>
-              
-              <Dialog open={showRatesDialog} onOpenChange={setShowRatesDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Settings className="h-4 w-4 mr-1" />
-                    Rates
+      {/* Date Selection - Full Width */}
+      <Card className="w-full">
+        <CardHeader className="pb-2 sm:pb-3">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+            Select Date & Controls
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row lg:flex-row gap-3 sm:gap-4 lg:gap-6 items-start sm:items-center lg:items-center">
+            {/* Date Picker */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm font-medium">Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full sm:w-48 justify-start text-left font-normal text-xs sm:text-sm md:text-base h-9 sm:h-10 md:h-11",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <span className="truncate">
+                      {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Pick a date"}
+                    </span>
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Manage Salary Rates</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Section</TableHead>
-                          <TableHead>Regular Rate</TableHead>
-                          <TableHead>Overtime Rate</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {salaryRates.map((rate, index) => (
-                          <TableRow key={rate.section}>
-                            <TableCell>{rate.section}</TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                value={rate.regular.amount}
-                                onChange={(e) => {
-                                  const updated = [...salaryRates];
-                                  updated[index].regular.amount = parseFloat(e.target.value) || 0;
-                                  setSalaryRates(updated);
-                                }}
-                                className="w-24"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                value={rate.overtime.amount}
-                                onChange={(e) => {
-                                  const updated = [...salaryRates];
-                                  updated[index].overtime.amount = parseFloat(e.target.value) || 0;
-                                  setSalaryRates(updated);
-                                }}
-                                className="w-24"
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <Button onClick={() => updateSalaryRates(salaryRates)}>
-                      Update Rates
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(newDate) => newDate && setSelectedDate(newDate)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Summary Cards */}
+            {/* Manpower Status */}
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
+              <Label className="text-xs sm:text-sm font-medium">Manpower Status</Label>
+              {hasManpowerData ? (
+                <div className="p-2 sm:p-3 bg-green-50 border border-green-200 rounded-lg min-w-full sm:min-w-48">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                    <span className="text-xs sm:text-sm font-medium text-green-800">Available</span>
+                  </div>
+                  <div className="mt-1 text-xs sm:text-sm text-green-700">
+                    {manpowerSummary.totalPresentWorkers} workers present
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2 sm:p-3 bg-orange-50 border border-orange-200 rounded-lg min-w-full sm:min-w-48">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
+                    <span className="text-xs sm:text-sm font-medium text-orange-800">Not Found</span>
+                  </div>
+                  <div className="mt-1 text-xs sm:text-sm text-orange-700">
+                    No manpower data for this date
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2 w-full sm:flex-1">
+              <Label className="text-xs sm:text-sm font-medium">Actions</Label>
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-2">
+                <Button
+                  onClick={fetchSalaryData}
+                  disabled={loading}
+                  variant="outline"
+                  className="h-8 sm:h-10 text-xs sm:text-sm flex-1 sm:flex-none"
+                  size="sm"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1 sm:mr-2" />
+                  {loading ? 'Loading...' : 'Refresh'}
+                </Button>
+
+                <Button
+                  onClick={() => syncWithManpowerData()} 
+                  disabled={loadingManpower || !hasManpowerData}
+                  variant="default"
+                  className="h-8 sm:h-10 text-xs sm:text-sm flex-1 sm:flex-none"
+                  size="sm"
+                >
+                  <Users className="h-3 w-3 mr-1 sm:mr-2" />
+                  {loadingManpower ? 'Syncing...' : 'Sync Workers'}
+                </Button>
+                
+                <Button
+                  onClick={() => fetchOvertimeData()} 
+                  disabled={loading}
+                  variant="outline"
+                  className="h-8 sm:h-10 text-xs sm:text-sm flex-1 sm:flex-none"
+                  size="sm"
+                >
+                  <Clock className="h-3 w-3 mr-1 sm:mr-2" />
+                  Load OT Hours
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
               Workers
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Total:</span>
-              <span className="font-bold">{summary.totalWorkers}</span>
+          <CardContent className="space-y-2 sm:space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs sm:text-sm text-muted-foreground">Total in Salary:</span>
+              <span className="font-bold text-sm sm:text-base">{summary.totalWorkers}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Sections:</span>
-              <span className="font-medium">{summary.totalSections}</span>
+            {hasManpowerData && (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs sm:text-sm text-muted-foreground">Present Today:</span>
+                  <span className="font-bold text-green-600 text-sm sm:text-base">{manpowerSummary.totalPresentWorkers}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs sm:text-sm text-muted-foreground">Attendance:</span>
+                  <span className="font-medium text-sm sm:text-base">{manpowerSummary.attendanceRate}%</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="text-xs sm:text-sm text-muted-foreground">Sections:</span>
+              <span className="font-medium text-sm sm:text-base">{summary.totalSections}</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
               Overtime
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Total Hours:</span>
-              <span className="font-bold">{summary.totalOvertimeHours}</span>
+          <CardContent className="space-y-2 sm:space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs sm:text-sm text-muted-foreground">Total Hours:</span>
+              <span className="font-bold text-sm sm:text-base">{summary.totalOvertimeHours}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Amount:</span>
-              <span className="font-medium text-green-600">{formatCurrency(summary.totalOvertimeAmount)}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-xs sm:text-sm text-muted-foreground">OT Data:</span>
+              <Badge variant={summary.totalOvertimeHours > 0 ? "default" : "secondary"} className="text-xs">
+                {summary.totalOvertimeHours > 0 ? "Loaded" : "No Data"}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs sm:text-sm text-muted-foreground">Amount:</span>
+              <span className="font-medium text-green-600 text-sm sm:text-base">{formatCurrency(summary.totalOvertimeAmount)}</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
               Total Amount
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Regular:</span>
-              <span className="font-medium">{formatCurrency(summary.totalRegularAmount)}</span>
+          <CardContent className="space-y-2 sm:space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs sm:text-sm text-muted-foreground">Regular:</span>
+              <span className="font-medium text-sm sm:text-base">{formatCurrency(summary.totalRegularAmount)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Grand Total:</span>
-              <span className="font-bold text-2xl text-primary">{formatCurrency(summary.grandTotalAmount)}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-xs sm:text-sm text-muted-foreground">Grand Total:</span>
+              <span className="font-bold text-base sm:text-lg md:text-2xl text-primary">{formatCurrency(summary.grandTotalAmount)}</span>
             </div>
           </CardContent>
         </Card>
@@ -466,42 +664,48 @@ export default function DailySalaryPage() {
 
       {/* Salary Calculation Table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Daily Salary Calculation - {format(selectedDate, "MMMM dd, yyyy")}
+        <CardHeader className="pb-2 sm:pb-3 md:pb-6">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+            <span className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
+              <Calculator className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="break-words">
+                Daily Salary Calculation
+                <span className="hidden sm:inline"> - </span>
+                <span className="block sm:inline text-xs sm:text-sm md:text-base font-normal text-muted-foreground">
+                  {format(selectedDate, "MMM dd, yyyy")}
+                </span>
+              </span>
             </span>
             <Button 
               onClick={saveSalaryData} 
               disabled={saving}
+              className="h-8 sm:h-10 md:h-11 text-xs sm:text-sm md:text-base self-start sm:self-center"
             >
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               {saving ? 'Saving...' : 'Save'}
             </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-3 md:px-6">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Section</TableHead>
-                  <TableHead className="text-center">Workers</TableHead>
-                  <TableHead className="text-center">Regular Rate</TableHead>
-                  <TableHead className="text-center">Regular Amount</TableHead>
-                  <TableHead className="text-center">OT Hours</TableHead>
-                  <TableHead className="text-center">OT Rate</TableHead>
-                  <TableHead className="text-center">OT Amount</TableHead>
-                  <TableHead className="text-center">Total Amount</TableHead>
-                  <TableHead>Remarks</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Section</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">Workers</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">Regular Rate</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">Regular Amount</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">OT Hours</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">OT Rate</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">OT Amount</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">Total Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {salaryRecords.map((record) => (
                   <TableRow key={record.section}>
                     <TableCell>
-                      <Badge className={getSectionBadgeColor(record.section)}>
+                      <Badge className={`${getSectionBadgeColor(record.section)} text-xs sm:text-sm`}>
                         {record.section}
                       </Badge>
                     </TableCell>
@@ -511,7 +715,7 @@ export default function DailySalaryPage() {
                         type="number"
                         value={record.workerCount}
                         onChange={(e) => updateSalaryRecord(record.section, 'workerCount', parseInt(e.target.value) || 0)}
-                        className="w-16 text-center"
+                        className="w-12 sm:w-14 md:w-16 text-center h-7 sm:h-8 md:h-10 text-xs sm:text-sm"
                         min="0"
                       />
                     </TableCell>
@@ -521,13 +725,13 @@ export default function DailySalaryPage() {
                         type="number"
                         value={record.regularRate}
                         onChange={(e) => updateSalaryRecord(record.section, 'regularRate', parseFloat(e.target.value) || 0)}
-                        className="w-20 text-center"
+                        className="w-14 sm:w-16 md:w-20 text-center h-7 sm:h-8 md:h-10 text-xs sm:text-sm"
                         min="0"
                       />
                     </TableCell>
                     
                     <TableCell className="text-center">
-                      <span className="font-medium text-blue-600">
+                      <span className="font-medium text-blue-600 text-xs sm:text-sm">
                         {formatCurrency(record.regularAmount)}
                       </span>
                     </TableCell>
@@ -537,7 +741,7 @@ export default function DailySalaryPage() {
                         type="number"
                         value={record.overtimeHours}
                         onChange={(e) => updateSalaryRecord(record.section, 'overtimeHours', parseFloat(e.target.value) || 0)}
-                        className="w-20 text-center"
+                        className="w-12 sm:w-16 md:w-20 text-center h-7 sm:h-8 md:h-10 text-xs sm:text-sm"
                         min="0"
                         step="0.5"
                       />
@@ -548,54 +752,47 @@ export default function DailySalaryPage() {
                         type="number"
                         value={record.overtimeRate}
                         onChange={(e) => updateSalaryRecord(record.section, 'overtimeRate', parseFloat(e.target.value) || 0)}
-                        className="w-20 text-center"
+                        className="w-12 sm:w-16 md:w-20 text-center h-7 sm:h-8 md:h-10 text-xs sm:text-sm"
                         min="0"
                       />
                     </TableCell>
                     
                     <TableCell className="text-center">
-                      <span className="font-medium text-green-600">
+                      <span className="font-medium text-green-600 text-xs sm:text-sm">
                         {formatCurrency(record.overtimeAmount)}
                       </span>
                     </TableCell>
                     
                     <TableCell className="text-center">
-                      <span className="font-bold text-primary">
+                      <span className="font-bold text-primary text-xs sm:text-sm">
                         {formatCurrency(record.totalAmount)}
                       </span>
-                    </TableCell>
-                    
-                    <TableCell>
-                      <Input
-                        placeholder="Optional remarks..."
-                        value={record.remarks}
-                        onChange={(e) => updateSalaryRecord(record.section, 'remarks', e.target.value)}
-                        className="w-full"
-                      />
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
 
+
+
             {/* Total Row */}
-            <div className="mt-4 p-4 bg-primary/5 rounded-lg">
-              <div className="grid grid-cols-4 gap-4 text-center">
+            <div className="mt-3 sm:mt-4 p-2 sm:p-3 md:p-4 bg-primary/5 rounded-lg">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 text-center">
                 <div>
-                  <span className="block text-sm text-muted-foreground">Total Workers</span>
-                  <span className="font-bold text-lg">{summary.totalWorkers}</span>
+                  <span className="block text-xs sm:text-sm text-muted-foreground">Total Workers</span>
+                  <span className="font-bold text-sm sm:text-base md:text-lg">{summary.totalWorkers}</span>
                 </div>
                 <div>
-                  <span className="block text-sm text-muted-foreground">Regular Amount</span>
-                  <span className="font-bold text-lg text-blue-600">{formatCurrency(summary.totalRegularAmount)}</span>
+                  <span className="block text-xs sm:text-sm text-muted-foreground">Regular Amount</span>
+                  <span className="font-bold text-sm sm:text-base md:text-lg text-blue-600">{formatCurrency(summary.totalRegularAmount)}</span>
                 </div>
                 <div>
-                  <span className="block text-sm text-muted-foreground">Overtime Amount</span>
-                  <span className="font-bold text-lg text-green-600">{formatCurrency(summary.totalOvertimeAmount)}</span>
+                  <span className="block text-xs sm:text-sm text-muted-foreground">Overtime Amount</span>
+                  <span className="font-bold text-sm sm:text-base md:text-lg text-green-600">{formatCurrency(summary.totalOvertimeAmount)}</span>
                 </div>
-                <div>
-                  <span className="block text-sm text-muted-foreground">Grand Total</span>
-                  <span className="font-bold text-2xl text-primary">{formatCurrency(summary.grandTotalAmount)}</span>
+                <div className="col-span-1 sm:col-span-1 md:col-span-1">
+                  <span className="block text-xs sm:text-sm text-muted-foreground">Grand Total</span>
+                  <span className="font-bold text-base sm:text-xl md:text-2xl text-primary">{formatCurrency(summary.grandTotalAmount)}</span>
                 </div>
               </div>
             </div>
