@@ -6,7 +6,7 @@ import { IconList, IconFilter, IconPlus, IconX } from '@tabler/icons-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { ProductionForm } from '@/components/production-form';
+import { ProductionForm } from '@/components/production-list/production-form';
 import { useProduction } from '@/hooks/use-production';
 import { useState, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,7 +20,7 @@ import type { ProductionItem, ProductionFormData } from '@/components/production
 
 
 export default function ProductionListPage() {
-  const [statusFilter, setStatusFilter] = useState<'all' | 'RUNNING' | 'PENDING' | 'COMPLETE' | 'CANCELLED'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'RUNNING' | 'PENDING' | 'COMPLETE' | 'CANCELLED'>('RUNNING');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ProductionItem | null>(null);
   const [viewingItem, setViewingItem] = useState<ProductionItem | null>(null);

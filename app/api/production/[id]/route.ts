@@ -58,19 +58,36 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { programCode, styleNo, buyer, quantity, item, price, percentage, status } = body;
+    const { programCode, styleNo, buyer, quantities, item, price, percentage, status } = body;
 
     // Validation
-    if (!programCode || !styleNo || !buyer || !quantity || !item || !price) {
+    if (!programCode || !styleNo || !buyer || !quantities || !item || !price) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    if (quantity <= 0 || price <= 0) {
+    if (!Array.isArray(quantities) || quantities.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Quantity and price must be positive numbers' },
+        { success: false, error: 'Quantities must be a non-empty array' },
+        { status: 400 }
+      );
+    }
+
+    // Validate each quantity item
+    for (const qty of quantities) {
+      if (!qty.variant || !qty.color || !qty.qty || qty.qty <= 0) {
+        return NextResponse.json(
+          { success: false, error: 'Each quantity item must have variant, color, and positive qty' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (price <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Price must be positive' },
         { status: 400 }
       );
     }
@@ -82,8 +99,6 @@ export async function PUT(
       );
     }
 
-
-
     // Check if style number already exists for other items
     const styleNoExists = await productionService.styleNoExists(styleNo, id);
     if (styleNoExists) {
@@ -93,13 +108,17 @@ export async function PUT(
       );
     }
 
+    // Calculate total quantity
+    const totalQty = quantities.reduce((total: number, item: any) => total + Number(item.qty), 0);
+
     // Update the item
     console.log('Updating production item with data:', {
       id,
       programCode,
       styleNo,
       buyer,
-      quantity: Number(quantity),
+      quantities,
+      totalQty,
       item,
       price: Number(price),
       percentage: Number(percentage) || 0,
@@ -110,7 +129,8 @@ export async function PUT(
       programCode,
       styleNo,
       buyer,
-      quantity: Number(quantity),
+      quantities,
+      totalQty,
       item,
       price: Number(price),
       percentage: Number(percentage) || 0,

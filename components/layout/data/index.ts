@@ -1,4 +1,4 @@
-import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings, IconChartBar, IconFileText, IconTrendingUp, IconUsers, IconUser, IconBook, IconCode, IconApps, IconCurrencyDollar, IconReceipt, IconCash, IconWallet, IconCut, IconScissors, IconClipboardData, IconTarget, IconBuilding, IconClock } from "@tabler/icons-react"
+import { IconDashboard, IconDatabase, IconFileWord, IconHelp, IconReport, IconSearch, IconSettings, IconChartBar, IconFileText, IconTrendingUp, IconUsers, IconUser, IconBook, IconCode, IconApps, IconCurrencyDollar, IconReceipt, IconCash, IconWallet, IconCut, IconScissors, IconClipboardData, IconTarget, IconBuilding, IconClock, IconLink } from "@tabler/icons-react"
 import { Book, ShieldCheck } from "lucide-react"
 
 
@@ -42,7 +42,11 @@ export const data = {
           url: "/lines",
           roles: ["USER", "SUPER_ADMIN"], // READ_LINE permission
         },
-
+        {
+          title: "Line Assignments",
+          url: "/line-assignments",
+          roles: ["USER", "SUPER_ADMIN"], // READ_PRODUCTION permission
+        },
 
       ],
     },

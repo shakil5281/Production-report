@@ -21,15 +21,22 @@ export interface TargetFormData {
   hourlyProduction: number;
 }
 
+export interface QuantityItem {
+  variant: string;
+  color: string;
+  qty: number;
+}
+
 export interface ProductionListItem {
   id: string;
   programCode: string;
   styleNo: string;
   buyer: string;
-  quantity: number;
   item: string;
   price: number;
   percentage: number;
+  quantities: QuantityItem[];
+  totalQty: number;
   status: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED';
   createdAt: string;
   updatedAt: string;
