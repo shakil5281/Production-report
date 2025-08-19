@@ -125,14 +125,13 @@ export default function ProductionListPage() {
               Add Item
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-full sm:w-[600px] max-w-full">
+          <SheetContent side="right" className="w-full sm:w-[600px] max-w-full overflow-x-scroll">
             <SheetHeader>
               <SheetTitle>Add New Production Item</SheetTitle>
               <SheetDescription>
                 Create a new production item with all required details
               </SheetDescription>
             </SheetHeader>
-            <ScrollArea  className='h-[calc(100vh-100px)]'>
               <div className="mt-6">
                 <ProductionForm
                   mode="create"
@@ -140,7 +139,6 @@ export default function ProductionListPage() {
                   onCancel={handleSheetClose}
                 />
               </div>
-            </ScrollArea>
           </SheetContent>
         </Sheet>
       </div>
