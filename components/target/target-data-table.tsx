@@ -1,23 +1,18 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
-  ColumnDef,
-  ColumnFiltersState,
   SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { IconChevronDown, IconChevronLeft, IconChevronRight, IconFilter, IconCalendar, IconTrash } from '@tabler/icons-react';
+import { IconChevronLeft, IconChevronRight, IconCalendar, IconTrash } from '@tabler/icons-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -44,7 +39,6 @@ export function TargetDataTable({
   onBulkDelete 
 }: TargetDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
 
   const table = useReactTable({
@@ -54,11 +48,9 @@ export function TargetDataTable({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     state: {
       sorting,
-      columnVisibility,
       rowSelection,
     },
     meta: {
@@ -133,35 +125,6 @@ export function TargetDataTable({
             </AlertDialogContent>
           </AlertDialog>
         )}
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              <IconFilter className="mr-2 h-4 w-4" />
-              Columns
-              <IconChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       <div className="rounded-md border">
         <Table>

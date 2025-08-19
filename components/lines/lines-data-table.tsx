@@ -5,7 +5,6 @@ import {
   ColumnDef,
   ColumnFiltersState,
   SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -16,8 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { IconChevronDown, IconChevronLeft, IconChevronRight, IconFilter } from '@tabler/icons-react';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { columns } from './table-columns';
 import type { Line } from './schema';
 
@@ -31,7 +29,6 @@ interface LinesDataTableProps {
 export function LinesDataTable({ data, onView, onEdit, onDelete }: LinesDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
 
   const table = useReactTable({
@@ -43,12 +40,10 @@ export function LinesDataTable({ data, onView, onEdit, onDelete }: LinesDataTabl
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
-      columnVisibility,
       rowSelection,
     },
     meta: {
@@ -69,34 +64,7 @@ export function LinesDataTable({ data, onView, onEdit, onDelete }: LinesDataTabl
           }
           className="max-w-sm"
         />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              <IconFilter className="mr-2 h-4 w-4" />
-              Columns
-              <IconChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+
       </div>
       <div className="rounded-md border">
         <Table>

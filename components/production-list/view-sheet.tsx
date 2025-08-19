@@ -24,76 +24,93 @@ interface ViewSheetProps {
 export function ViewSheet({ open, onOpenChange, item }: ViewSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[600px] max-w-full">
-        <SheetHeader>
-          <SheetTitle>Production Item Details</SheetTitle>
-          <SheetDescription>View detailed information about the production item</SheetDescription>
+      <SheetContent side="right" className="w-full sm:w-[500px] max-w-full overflow-y-auto">
+        <SheetHeader className="space-y-2 pb-4 border-b">
+          <SheetTitle className="text-xl font-bold">Production Item Details</SheetTitle>
+          <SheetDescription className="text-sm text-muted-foreground">
+            Complete information about production item
+          </SheetDescription>
         </SheetHeader>
-        <div className="mt-6 space-y-4">
+        
+        <div className="py-6 space-y-6">
           {item && (
-            <div className="grid gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Program Code</label>
-                  <p className="text-lg">{item.programCode}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Style No</label>
-                  <p className="text-lg">{item.styleNo}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Buyer</label>
-                  <p className="text-lg">{item.buyer}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Item</label>
-                  <p className="text-lg">{item.item}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Total Quantity</label>
-                  <p className="text-lg font-semibold text-green-600">{item.totalQty?.toLocaleString() || 0}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Price</label>
-                  <p className="text-lg">${Number(item.price).toFixed(2)}</p>
-                </div>
-              </div>
-              
-              {/* Quantities Details */}
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Quantity Breakdown</label>
-                <div className="mt-2 space-y-2">
-                  {item.quantities && item.quantities.length > 0 ? (
-                    item.quantities.map((qty, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{qty.variant}</Badge>
-                          <Badge variant="secondary">{qty.color}</Badge>
-                        </div>
-                        <div className="font-medium">{qty.qty.toLocaleString()}</div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground">No quantity details available</p>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Percentage</label>
-                  <p className="text-lg">{Number(item.percentage).toFixed(1)}%</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <div className="mt-1"><StatusBadge status={item.status} /></div>
+            <>
+              {/* Basic Information Card */}
+              <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+                <h3 className="font-semibold text-base mb-3">Basic Information</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex justify-between items-center py-2 border-b border-muted">
+                    <span className="text-sm font-medium text-muted-foreground">Program Code</span>
+                    <span className="font-medium">{item.programCode}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-muted">
+                    <span className="text-sm font-medium text-muted-foreground">Style No</span>
+                    <span className="font-medium text-primary">{item.styleNo}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-muted">
+                    <span className="text-sm font-medium text-muted-foreground">Buyer</span>
+                    <span className="font-medium">{item.buyer}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-muted">
+                    <span className="text-sm font-medium text-muted-foreground">Item</span>
+                    <span className="font-medium">{item.item}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-medium text-muted-foreground">Status</span>
+                    <StatusBadge status={item.status} />
+                  </div>
                 </div>
               </div>
 
-            </div>
+              {/* Financial Information Card */}
+              <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 space-y-4">
+                <h3 className="font-semibold text-base mb-3 text-blue-700 dark:text-blue-300">Financial Information</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex justify-between items-center py-2 border-b border-blue-200 dark:border-blue-800">
+                    <span className="text-sm font-medium text-muted-foreground">Unit Price</span>
+                    <span className="font-bold text-lg text-green-600">${Number(item.price).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-blue-200 dark:border-blue-800">
+                    <span className="text-sm font-medium text-muted-foreground">Percentage</span>
+                    <span className="font-semibold text-blue-600">{Number(item.percentage).toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-medium text-muted-foreground">Total Quantity</span>
+                    <span className="font-bold text-lg text-primary">{item.totalQty?.toLocaleString() || 0}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Quantity Breakdown Card */}
+              <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 space-y-4">
+                <h3 className="font-semibold text-base mb-3 text-green-700 dark:text-green-300">Quantity Breakdown</h3>
+                <div className="space-y-3">
+                  {item.quantities && item.quantities.length > 0 ? (
+                    item.quantities.map((qty, index) => (
+                      <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {qty.variant}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {qty.color}
+                            </Badge>
+                          </div>
+                          <div className="font-bold text-right text-primary">
+                            {qty.qty.toLocaleString()} pcs
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground bg-white dark:bg-gray-800 rounded-lg border border-dashed">
+                      <p className="text-sm">No quantity details available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
           )}
         </div>
       </SheetContent>

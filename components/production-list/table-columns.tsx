@@ -59,11 +59,27 @@ export const columns: ColumnDef<ProductionItem>[] = [
   },
   {
     accessorKey: 'quantities',
-    header: 'Quantities',
-    cell: ({ row }) => {
+    header: ({ table }) => {
+      const isMobileView = !table.getColumn('programCode')?.getIsVisible();
+      return isMobileView ? 'Total Qty' : 'Quantities';
+    },
+    cell: ({ row, table }) => {
       const quantities = row.getValue('quantities') as any[];
       const totalQty = row.original.totalQty || 0;
       
+      // Check if we're on mobile by looking at column visibility
+      const isMobileView = !table.getColumn('programCode')?.getIsVisible();
+      
+      if (isMobileView) {
+        // Mobile view: show only total quantity
+        return (
+          <div className="font-medium text-left">
+            {totalQty?.toLocaleString() || 0}
+          </div>
+        );
+      }
+      
+      // Desktop view: show full quantity cell
       return (
         <QuantityCell 
           quantities={quantities || []} 
@@ -90,7 +106,7 @@ export const columns: ColumnDef<ProductionItem>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => <div className="text-right">Actions</div>,
     cell: ({ row, table }) => {
       const item = row.original;
       const meta = table.options.meta as {
@@ -100,29 +116,31 @@ export const columns: ColumnDef<ProductionItem>[] = [
       };
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <IconDotsVertical className="h-4 w-4" />
-              <span className="sr-only">Open menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => meta.onView(item)}>
-              <IconEye className="mr-2 h-4 w-4" />
-              View
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => meta.onEdit(item)}>
-              <IconEdit className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => meta.onDelete(item)} className="text-red-600">
-              <IconTrash className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <IconDotsVertical className="h-4 w-4" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => meta.onView(item)}>
+                <IconEye className="mr-2 h-4 w-4" />
+                View
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => meta.onEdit(item)}>
+                <IconEdit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => meta.onDelete(item)} className="text-red-600">
+                <IconTrash className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       );
     },
     size: 80,
