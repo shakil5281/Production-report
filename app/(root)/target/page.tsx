@@ -138,7 +138,15 @@ export default function TargetPage() {
   const fetchTargets = async () => {
     setLoading(true);
     try {
-      const formattedDate = selectedDate.toLocaleDateString('en-CA');
+      // Format date as YYYY-MM-DD in local timezone to avoid timezone issues
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      
+      // Debug log to verify correct date formatting
+      console.log(`📅 Fetching targets for date: ${formattedDate} (Selected: ${selectedDate.toDateString()})`);
+      
       const response = await fetch(`/api/target?date=${formattedDate}`);
       const data = await response.json();
       if (data.success) {
@@ -244,12 +252,18 @@ export default function TargetPage() {
   };
 
   const resetForm = () => {
+    // Format selectedDate as YYYY-MM-DD in local timezone to avoid timezone issues
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const formattedSelectedDate = `${year}-${month}-${day}`;
+    
     setFormData({
       productionListId: '',
       lineNo: '',
       styleNo: '',
       lineTarget: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: formattedSelectedDate,
       inTime: formData.inTime, // Keep the time logic
       outTime: formData.outTime,
       hourlyProduction: ''
@@ -310,7 +324,7 @@ export default function TargetPage() {
                 Add Target
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-full sm:w-[540px] overflow-y-auto">
+            <SheetContent className="w-full sm:w-[540px] overflow-y-auto px-4">
               <SheetHeader className="space-y-3">
                 <SheetTitle className="text-lg font-semibold">
                   {editingItem ? 'Edit Target' : 'Add New Target'}

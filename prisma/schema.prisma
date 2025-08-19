@@ -425,6 +425,7 @@ model DailyProductionReport {
   productionQty Int      // Actual production quantity
   unitPrice     Decimal  // Price per unit
   totalAmount   Decimal  // productionQty * unitPrice * 120
+  netAmount     Decimal  @default(0) // totalAmount * percentage * 120
   balanceQty    Int      // Remaining balance for this style
   lineNo        String?
   notes         String?

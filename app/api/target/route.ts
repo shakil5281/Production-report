@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { targetService } from '@/lib/db/target';
+import { DailyProductionService } from '@/lib/services/daily-production-service';
 
 // GET all targets with advanced filtering and pagination
 export async function GET(request: NextRequest) {
@@ -84,6 +85,22 @@ export async function POST(request: NextRequest) {
       outTime,
       hourlyProduction: Number(hourlyProduction) || 0
     });
+
+    // Update daily production report
+    try {
+      await DailyProductionService.handleTargetProduction({
+        targetId: newTarget.id,
+        styleNo: newTarget.styleNo,
+        lineNo: newTarget.lineNo,
+        dateString: date, // Pass original date string to avoid double timezone conversion
+        hourlyProduction: newTarget.hourlyProduction,
+        lineTarget: newTarget.lineTarget,
+        action: 'CREATE'
+      });
+    } catch (error) {
+      console.warn('Failed to update daily production report:', error);
+      // Continue with target creation even if daily report fails
+    }
 
     return NextResponse.json({
       success: true,

@@ -46,7 +46,7 @@ function convertDecimalToNumber(value: unknown): number | unknown {
 }
 
 // Helper function to transform target data
-function transformTarget(target: Record<string, unknown>) {
+function transformTarget(target: any) {
   return {
     ...target,
     averageProduction: convertDecimalToNumber(target.averageProduction)
