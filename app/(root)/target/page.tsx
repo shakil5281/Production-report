@@ -15,6 +15,7 @@ import { IconTarget, IconPlus, IconCalendar, IconEdit, IconTrash, IconEye } from
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { TargetDataTable } from '@/components/target/target-data-table';
 
 interface Target {
   id: string;
@@ -230,25 +231,54 @@ export default function TargetPage() {
   };
 
   const handleDelete = async (target: Target) => {
-    if (confirm('Are you sure you want to delete this target?')) {
-      try {
-        const response = await fetch(`/api/target/${target.id}`, {
-          method: 'DELETE'
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          toast.success('Target deleted successfully!');
-          fetchTargets();
-        } else {
-          toast.error('Failed to delete target');
-        }
-      } catch (error) {
-        console.error('Error deleting target:', error);
-        toast.error('Network error occurred');
+    try {
+      const response = await fetch(`/api/target/${target.id}`, {
+        method: 'DELETE'
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success('Target deleted successfully!');
+        fetchTargets();
+      } else {
+        toast.error('Failed to delete target');
       }
+    } catch (error) {
+      console.error('Error deleting target:', error);
+      toast.error('Network error occurred');
     }
+  };
+
+  const handleBulkDelete = async (targetIds: string[]) => {
+    try {
+      const response = await fetch('/api/target/bulk-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ targetIds }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(`Successfully deleted ${targetIds.length} target(s)!`);
+        fetchTargets();
+      } else {
+        toast.error(result.error || 'Failed to delete targets');
+      }
+    } catch (error) {
+      console.error('Error deleting targets:', error);
+      toast.error('Network error occurred');
+    }
+  };
+
+  const handleView = (target: Target) => {
+    // For now, just show target details in console
+    // You can implement a view modal later if needed
+    console.log('Viewing target:', target);
+    toast.info(`Viewing target: Line ${target.lineNo} - Style ${target.styleNo}`);
   };
 
   const resetForm = () => {
@@ -594,53 +624,19 @@ export default function TargetPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Line No</TableHead>
-                <TableHead>Style No</TableHead>
-                <TableHead>Line Target</TableHead>
-                <TableHead>Time Range</TableHead>
-                <TableHead>Hourly Production</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
-                    Loading...
-                  </TableCell>
-                </TableRow>
-              ) : targets.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
-                    No targets found for selected date
-                  </TableCell>
-                </TableRow>
-              ) : (
-                targets.map((target) => (
-                  <TableRow key={target.id}>
-                    <TableCell className="font-medium">{target.lineNo}</TableCell>
-                    <TableCell>{target.styleNo}</TableCell>
-                    <TableCell>{target.lineTarget.toLocaleString()}</TableCell>
-                    <TableCell>{target.inTime} - {target.outTime}</TableCell>
-                    <TableCell>{target.hourlyProduction}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(target)}>
-                          <IconEdit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(target)}>
-                          <IconTrash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          {loading ? (
+            <div className="text-center py-4">Loading...</div>
+          ) : (
+            <TargetDataTable
+              data={targets}
+              selectedDate={selectedDate}
+              onDateChange={(date) => setSelectedDate(date || new Date())}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onBulkDelete={handleBulkDelete}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

@@ -83,9 +83,9 @@ export default function ComprehensiveTargetReportPage() {
       'Item',
       'Target',
       'Hours',
-      'Targets',
+      'Total Targets',
       ...timeSlotHeaders,
-      'Total',
+      'Total Production',
       'Avg/Hour'
     ];
 
@@ -98,7 +98,7 @@ export default function ComprehensiveTargetReportPage() {
         row.item,
         row.target,
         row.hours,
-        row.targets,
+        row.totalTargets,
         ...timeSlotHeaders.map(timeSlot => row.hourlyProduction[timeSlot] || 0),
         row.totalProduction,
         row.averageProductionPerHour.toFixed(0)
@@ -213,7 +213,7 @@ export default function ComprehensiveTargetReportPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {summary.totalTarget.toLocaleString()}
+                {(summary?.totalTarget || 0).toLocaleString()}
               </div>
             </CardContent>
           </Card>
@@ -226,7 +226,7 @@ export default function ComprehensiveTargetReportPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {summary.totalProduction.toLocaleString()}
+                {(summary?.totalProduction || 0).toLocaleString()}
               </div>
             </CardContent>
           </Card>
@@ -239,7 +239,7 @@ export default function ComprehensiveTargetReportPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">
-                {summary.averageProductionPerHour.toFixed(0)}
+                {(summary?.averageProductionPerHour || 0).toFixed(0)}
               </div>
             </CardContent>
           </Card>
@@ -263,7 +263,7 @@ export default function ComprehensiveTargetReportPage() {
         <CardHeader>
           <CardTitle>Target Details Report</CardTitle>
           <CardDescription>
-            Comprehensive view of all targets with actual hourly production data
+            Comprehensive view showing fixed targets with actual hourly production tracking
           </CardDescription>
         </CardHeader>
         <CardContent>

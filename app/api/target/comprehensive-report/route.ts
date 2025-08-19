@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const formattedDate = date.toISOString().split('T')[0];
     
     console.log(`Comprehensive Target Report API called for date: ${formattedDate}`);
+    console.log(`Request timestamp: ${new Date().toISOString()}`);
     
     // Create date range for the entire day
     const startOfDay = new Date(date);
@@ -43,6 +44,11 @@ export async function GET(request: NextRequest) {
     });
 
     console.log(`Found ${targets.length} targets for date ${formattedDate}`);
+    
+    // Debug: Show each target
+    targets.forEach((target, index) => {
+      console.log(`  Target ${index + 1}: Line ${target.lineNo}, Style ${target.styleNo}, ID: ${target.id.substring(0, 8)}`);
+    });
     
     if (targets.length === 0) {
       return NextResponse.json({
@@ -84,11 +90,13 @@ export async function GET(request: NextRequest) {
     
     // console.log(`Unique time slots found: ${timeSlotHeaders.join(', ')}`);
     
-    // Group targets by line and style to avoid duplicates
+    // Group targets by line, date, and time to show all lines separately
+    // Each unique combination of line + date + time = separate row
     const targetGroups = new Map();
     
     targets.forEach(target => {
-      const groupKey = `${target.lineNo}-${target.styleNo}`;
+      // Create unique key for each individual target entry
+      const groupKey = `${target.lineNo}-${target.styleNo}-${target.id}`;
       
       if (!targetGroups.has(groupKey)) {
         targetGroups.set(groupKey, {
@@ -102,7 +110,14 @@ export async function GET(request: NextRequest) {
       targetGroups.get(groupKey).targets.push(target);
     });
     
-    // console.log(`Grouped into ${targetGroups.size} unique line-style combinations`);
+    console.log(`Grouped into ${targetGroups.size} unique target entries`);
+    
+    // Debug: Show each group
+    let debugIndex = 1;
+    targetGroups.forEach((group, groupKey) => {
+      console.log(`  Group ${debugIndex}: Line ${group.lineNo}, Style ${group.styleNo}, Targets: ${group.targets.length}`);
+      debugIndex++;
+    });
     
     // Initialize report data array
     const reportData: any[] = [];
@@ -156,7 +171,7 @@ export async function GET(request: NextRequest) {
         item: group.productionList?.item || 'N/A',
         target: totalTarget,
         hours: totalWorkingHours,
-        targets: totalTargets,
+        totalTargets: totalTargets,
         hourlyProduction,
         totalProduction,
         averageProductionPerHour
@@ -166,7 +181,7 @@ export async function GET(request: NextRequest) {
     // Calculate summary statistics
     const summary = {
       totalLines: new Set(reportData.map(item => item.lineNo)).size,
-      totalTarget: reportData.reduce((sum, item) => sum + item.targets, 0),
+      totalTarget: reportData.reduce((sum, item) => sum + item.totalTargets, 0),
       totalProduction: reportData.reduce((sum, item) => sum + item.totalProduction, 0),
       averageProductionPerHour: reportData.length > 0 
         ? reportData.reduce((sum, item) => sum + item.averageProductionPerHour, 0) / reportData.length 
@@ -180,17 +195,24 @@ export async function GET(request: NextRequest) {
       timeSlotTotals[timeSlot] = reportData.reduce((sum, item) => sum + (item.hourlyProduction[timeSlot] || 0), 0);
     });
     
-    console.log(`Final comprehensive report data: ${reportData.length} items`);
+    console.log(`Final comprehensive target report data: ${reportData.length} items`);
     console.log(`Summary: ${summary.totalLines} lines, ${summary.totalTarget} total target, ${summary.totalProduction} total production`);
-    console.log(`Time slot totals:`, timeSlotTotals);
+    console.log(`Time slot production totals:`, timeSlotTotals);
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: reportData,
       summary: summary,
       timeSlotHeaders: timeSlotHeaders,
       timeSlotTotals: timeSlotTotals
     });
+    
+    // Prevent caching to ensure fresh data
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
     
   } catch (error) {
     console.error('Error fetching comprehensive target report:', error);

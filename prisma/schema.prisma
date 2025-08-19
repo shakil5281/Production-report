@@ -424,9 +424,8 @@ model DailyProductionReport {
   targetQty     Int      // Daily target quantity
   productionQty Int      // Actual production quantity
   unitPrice     Decimal  // Price per unit
-  totalAmount   Decimal  // productionQty * unitPrice * 120
+  totalAmount   Decimal  // productionQty * unitPrice
   netAmount     Decimal  @default(0) // totalAmount * percentage * 120
-  balanceQty    Int      // Remaining balance for this style
   lineNo        String?
   notes         String?
   createdAt     DateTime @default(now())
@@ -435,7 +434,7 @@ model DailyProductionReport {
   // Relations
   productionList ProductionList @relation(fields: [styleNo], references: [styleNo], onDelete: Cascade)
   
-  @@unique([date, styleNo])
+  @@unique([date, styleNo, lineNo])
   @@map("daily_production_reports")
 }
 

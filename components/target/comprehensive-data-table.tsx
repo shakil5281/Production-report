@@ -63,7 +63,7 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
       {
         accessorKey: 'target',
         header: () => <div className="text-center">Target</div>,
-        cell: ({ row }) => <div className="text-center font-semibold text-blue-700">{row.original.target.toLocaleString()}</div>,
+        cell: ({ row }) => <div className="text-center font-semibold text-blue-700">{(row.original.target || 0).toLocaleString()}</div>,
         enableHiding: false,
       },
       {
@@ -73,9 +73,9 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
         enableHiding: false,
       },
       {
-        accessorKey: 'targets',
-        header: () => <div className="text-center">Targets</div>,
-        cell: ({ row }) => <div className="text-center font-semibold text-blue-700">{row.original.targets.toLocaleString()}</div>,
+        accessorKey: 'totalTargets',
+        header: () => <div className="text-center">Total Targets</div>,
+        cell: ({ row }) => <div className="text-center font-semibold text-blue-700">{(row.original.totalTargets || 0).toLocaleString()}</div>,
         enableHiding: false,
       },
     ];
@@ -94,9 +94,9 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
     const trailing: ColumnDef<ComprehensiveTargetData>[] = [
       {
         accessorKey: 'totalProduction',
-        header: () => <div className="text-center">Total</div>,
+        header: () => <div className="text-center">Total Production</div>,
         cell: ({ row }) => (
-          <div className="text-center font-bold text-green-700">{row.original.totalProduction.toLocaleString()}</div>
+          <div className="text-center font-bold text-green-700">{(row.original.totalProduction || 0).toLocaleString()}</div>
         ),
         enableHiding: false,
       },
@@ -104,7 +104,7 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
         accessorKey: 'averageProductionPerHour',
         header: () => <div className="text-center">Avg/Hour</div>,
         cell: ({ row }) => (
-          <div className="text-center font-semibold text-green-700">{row.original.averageProductionPerHour.toFixed(0)}</div>
+          <div className="text-center font-semibold text-green-700">{(row.original.averageProductionPerHour || 0).toFixed(0)}</div>
         ),
         enableHiding: false,
       },
@@ -130,12 +130,12 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
   const totals = useMemo(() => {
     const sumTarget = data.reduce((sum, row) => sum + row.target, 0);
     const sumHours = data.reduce((sum, row) => sum + row.hours, 0);
-    const sumTargets = data.reduce((sum, row) => sum + row.targets, 0);
+    const sumTotalTargets = data.reduce((sum, row) => sum + row.totalTargets, 0);
     const sumTotalProduction = data.reduce((sum, row) => sum + row.totalProduction, 0);
     const avgAvg = data.length > 0
       ? data.reduce((sum, row) => sum + row.averageProductionPerHour, 0) / data.length
       : 0;
-    return { sumTarget, sumHours, sumTargets, sumTotalProduction, avgAvg };
+    return { sumTarget, sumHours, sumTotalTargets, sumTotalProduction, avgAvg };
   }, [data]);
 
   return (
@@ -195,16 +195,16 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
                 <TableRow className="bg-muted/50 font-bold">
                   {/* TOTALS label spans the first 4 columns (non-hideable) */}
                   <TableCell colSpan={4}>TOTALS</TableCell>
-                  <TableCell className="text-center text-blue-800">{totals.sumTarget.toLocaleString()}</TableCell>
-                  <TableCell className="text-center text-blue-800">{totals.sumHours}h</TableCell>
-                  <TableCell className="text-center text-blue-800">{totals.sumTargets.toLocaleString()}</TableCell>
+                  <TableCell className="text-center text-blue-800">{(totals.sumTarget || 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-center text-blue-800">{totals.sumHours || 0}h</TableCell>
+                  <TableCell className="text-center text-blue-800">{(totals.sumTotalTargets || 0).toLocaleString()}</TableCell>
                   {timeSlotHeaders.map((slot) => (
                     <TableCell key={slot} className="text-center text-blue-800">
                       {(timeSlotTotals[slot] ?? 0).toLocaleString()}
                     </TableCell>
                   ))}
-                  <TableCell className="text-center text-green-800">{totals.sumTotalProduction.toLocaleString()}</TableCell>
-                  <TableCell className="text-center text-green-800">{totals.avgAvg.toFixed(0)}</TableCell>
+                  <TableCell className="text-center text-green-800">{(totals.sumTotalProduction || 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-center text-green-800">{(totals.avgAvg || 0).toFixed(0)}</TableCell>
                 </TableRow>
               </>
             ) : (
