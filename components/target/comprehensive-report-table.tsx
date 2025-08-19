@@ -87,7 +87,7 @@ export function ComprehensiveReportTable({
                 {row.hours}h
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-semibold text-blue-700 bg-blue-50">
-                {row.targets.toLocaleString()}
+                {(row.totalTargets || 0).toLocaleString()}
               </td>
               
               {/* Dynamic Hourly Production Columns */}
@@ -122,7 +122,7 @@ export function ComprehensiveReportTable({
                 {data.reduce((sum, row) => sum + row.hours, 0)}h
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-blue-800 bg-blue-100">
-                {data.reduce((sum, row) => sum + row.targets, 0).toLocaleString()}
+                {data.reduce((sum, row) => sum + (row.totalTargets || 0), 0).toLocaleString()}
               </td>
               
               {/* Dynamic Hourly Totals */}

@@ -8,7 +8,7 @@ export interface ComprehensiveTargetData {
   item: string;
   target: number;
   hours: number;
-  targets: number;
+  totalTargets: number;
   hourlyProduction: Record<string, number>;
   totalProduction: number;
   averageProductionPerHour: number;

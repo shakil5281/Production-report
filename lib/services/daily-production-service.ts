@@ -37,10 +37,12 @@ export class DailyProductionService {
       }
 
       // Find existing daily production report using date range to handle different time formats
+      // IMPORTANT: Search by BOTH styleNo AND lineNo to keep lines separate
       const nextDay = new Date(year, month - 1, day, 23, 59, 59, 999);
       const existingReport = await prisma.dailyProductionReport.findFirst({
         where: {
           styleNo: styleNo,
+          lineNo: lineNo, // 🔧 FIX: Include lineNo to keep lines separate
           date: {
             gte: reportDate,
             lte: nextDay
@@ -75,11 +77,11 @@ export class DailyProductionService {
           console.log(`   🔄 UPDATE: Need to calculate difference for updated target`);
           // For updates, we need to handle the change in hourly production
           // This is complex because the target is already updated by the time we get here
-          // We'll use a simpler approach: get all targets for this style/line/date and sum their hourly production
+          // We'll use a simpler approach: get all targets for this SPECIFIC style+line+date and sum their hourly production
           const allTargets = await prisma.target.findMany({
             where: { 
               styleNo,
-              lineNo,
+              lineNo, // 🔧 IMPORTANT: Keep same line separate from other lines
               date: {
                 gte: reportDate,
                 lte: nextDay
@@ -90,7 +92,7 @@ export class DailyProductionService {
           const totalHourlyProduction = allTargets.reduce((sum, target) => sum + target.hourlyProduction, 0);
           const maxLineTarget = allTargets.length > 0 ? Math.max(...allTargets.map(target => target.lineTarget)) : lineTarget;
           
-          console.log(`   📊 Found ${allTargets.length} targets, total hourly: ${totalHourlyProduction}, max target: ${maxLineTarget}`);
+          console.log(`   📊 Found ${allTargets.length} targets for Line ${lineNo}, total hourly: ${totalHourlyProduction}, max target: ${maxLineTarget}`);
           
           newProductionQty = totalHourlyProduction;
           newTargetQty = maxLineTarget;
@@ -113,11 +115,26 @@ export class DailyProductionService {
 
       console.log(`   📈 New values: Production=${newProductionQty}, Target=${newTargetQty}`);
 
+      // 🗑️ AUTO-DELETE: If production quantity becomes 0, delete the report
+      if (newProductionQty <= 0 && existingReport) {
+        console.log(`   🗑️ AUTO-DELETE: Production quantity is 0, deleting report`);
+        await prisma.dailyProductionReport.delete({
+          where: { id: existingReport.id }
+        });
+        console.log(`   ✅ Deleted report for Production Qty = 0`);
+        return null; // Return null to indicate deletion
+      }
+
+      // Skip creating new reports with 0 production
+      if (newProductionQty <= 0 && !existingReport) {
+        console.log(`   ⏭️ Skipping creation of report with 0 production quantity`);
+        return null;
+      }
+
       // Calculate derived values
       const unitPrice = productionItem.price;
-      const totalAmount = newProductionQty * Number(unitPrice) * 120;
-      const netAmount = totalAmount * Number(productionItem.percentage) * 120;
-      const balanceQty = Math.max(0, productionItem.totalQty - newProductionQty);
+      const totalAmount = newProductionQty * Number(unitPrice);
+      const netAmount = totalAmount * (Number(productionItem.percentage || 0) / 100) * 120;
 
       const reportData = {
         date: reportDate,
@@ -127,7 +144,6 @@ export class DailyProductionService {
         unitPrice: unitPrice,
         totalAmount: totalAmount,
         netAmount: netAmount,
-        balanceQty: balanceQty,
         lineNo: lineNo
       };
 

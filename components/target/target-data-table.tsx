@@ -16,7 +16,8 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { IconChevronDown, IconChevronLeft, IconChevronRight, IconFilter, IconCalendar } from '@tabler/icons-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { IconChevronDown, IconChevronLeft, IconChevronRight, IconFilter, IconCalendar, IconTrash } from '@tabler/icons-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -30,6 +31,7 @@ interface TargetDataTableProps {
   onView: (item: Target) => void;
   onEdit: (item: Target) => void;
   onDelete: (item: Target) => void;
+  onBulkDelete: (targetIds: string[]) => void;
 }
 
 export function TargetDataTable({ 
@@ -38,7 +40,8 @@ export function TargetDataTable({
   onDateChange, 
   onView, 
   onEdit, 
-  onDelete 
+  onDelete,
+  onBulkDelete 
 }: TargetDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -94,6 +97,42 @@ export function TargetDataTable({
             </PopoverContent>
           </Popover>
         </div>
+        
+        {/* Bulk Delete Button */}
+        {table.getFilteredSelectedRowModel().rows.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="h-8">
+                <IconTrash className="mr-2 h-4 w-4" />
+                Delete Selected ({table.getFilteredSelectedRowModel().rows.length})
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Selected Targets</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete {table.getFilteredSelectedRowModel().rows.length} selected target(s)? 
+                  This action cannot be undone and will also remove any associated daily production reports.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    const selectedTargetIds = table.getFilteredSelectedRowModel().rows.map(
+                      (row) => row.original.id
+                    );
+                    onBulkDelete(selectedTargetIds);
+                    setRowSelection({});
+                  }}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete {table.getFilteredSelectedRowModel().rows.length} Target(s)
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

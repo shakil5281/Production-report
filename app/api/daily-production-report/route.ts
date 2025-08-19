@@ -51,12 +51,55 @@ export async function GET(request: NextRequest) {
       },
       orderBy: [
         { date: 'desc' },
+        { lineNo: 'asc' },
         { styleNo: 'asc' }
       ]
     });
 
-    // Calculate summary statistics
-    const summary = {
+    // Group reports by line (only lines with actual production data)
+    const reportsByLine = new Map<string, typeof reports>();
+    const reportsWithoutLine: typeof reports = [];
+    
+    reports.forEach(report => {
+      if (report.lineNo) {
+        if (!reportsByLine.has(report.lineNo)) {
+          reportsByLine.set(report.lineNo, []);
+        }
+        reportsByLine.get(report.lineNo)!.push(report);
+      } else {
+        reportsWithoutLine.push(report);
+      }
+    });
+
+    // Show ALL lines that have reports (regardless of production quantity)
+    const activeReportsByLine = new Map<string, typeof reports>();
+    reportsByLine.forEach((lineReports, lineNo) => {
+      // Show line if it has any reports, regardless of production quantity
+      activeReportsByLine.set(lineNo, lineReports);
+    });
+
+    // Calculate line-wise summaries (only for active lines)
+    const lineSummaries = new Map<string, any>();
+    activeReportsByLine.forEach((lineReports, lineNo) => {
+      const lineSummary = {
+        lineNo,
+        totalReports: lineReports.length,
+        totalTargetQty: lineReports.reduce((sum, report) => sum + (report.targetQty || 0), 0),
+        totalProductionQty: lineReports.reduce((sum, report) => sum + (report.productionQty || 0), 0),
+        totalAmount: lineReports.reduce((sum, report) => sum + Number(report.totalAmount || 0), 0),
+        totalNetAmount: lineReports.reduce((sum, report) => sum + Number(report.netAmount || 0), 0),
+        averageEfficiency: lineReports.length > 0 ? 
+          lineReports.reduce((sum, report) => {
+            const target = report.targetQty || 0;
+            const production = report.productionQty || 0;
+            return sum + (target > 0 ? (production / target * 100) : 0);
+          }, 0) / lineReports.length : 0
+      };
+      lineSummaries.set(lineNo, lineSummary);
+    });
+
+    // Calculate overall summary statistics
+    const overallSummary = {
       totalReports: reports.length,
       totalTargetQty: reports.reduce((sum, report) => sum + (report.targetQty || 0), 0),
       totalProductionQty: reports.reduce((sum, report) => sum + (report.productionQty || 0), 0),
@@ -67,15 +110,26 @@ export async function GET(request: NextRequest) {
           const target = report.targetQty || 0;
           const production = report.productionQty || 0;
           return sum + (target > 0 ? (production / target * 100) : 0);
-        }, 0) / reports.length : 0
+        }, 0) / reports.length : 0,
+      totalLines: activeReportsByLine.size,
+      linesWithProduction: Array.from(activeReportsByLine.keys()).filter(lineNo => {
+        const lineReports = activeReportsByLine.get(lineNo)!;
+        return lineReports.some(report => report.productionQty > 0);
+      }).length
+    };
+
+    // Prepare structured response with line grouping (only active lines)
+    const responseData = {
+      reportsByLine: Object.fromEntries(activeReportsByLine),
+      reportsWithoutLine,
+      lineSummaries: Object.fromEntries(lineSummaries),
+      overallSummary,
+      allReports: reports // Keep original flat structure for compatibility
     };
 
     return NextResponse.json({
       success: true,
-      data: {
-        reports,
-        summary
-      }
+      data: responseData
     });
 
   } catch (error) {
@@ -118,6 +172,7 @@ export async function POST(request: NextRequest) {
     // Parse date string (YYYY-MM-DD) using local timezone (same as target service)
     const [year, month, day] = date.split('-').map(Number);
     const reportDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+    const nextDay = new Date(year, month - 1, day + 1, 0, 0, 0, 0);
 
     // Check if production list item exists
     const productionItem = await prisma.productionList.findUnique({
@@ -134,13 +189,15 @@ export async function POST(request: NextRequest) {
     // Get the unit price from production list if not provided
     const finalUnitPrice = unitPrice || productionItem.price;
     
-    // Find existing report for the same date and style
-    const existingReport = await prisma.dailyProductionReport.findUnique({
+    // Find existing report for the same date, style, and line
+    const existingReport = await prisma.dailyProductionReport.findFirst({
       where: {
-        date_styleNo: {
-          date: reportDate,
-          styleNo: styleNo
-        }
+        date: {
+          gte: reportDate,
+          lte: nextDay
+        },
+        styleNo: styleNo,
+        lineNo: lineNo
       }
     });
 
@@ -165,15 +222,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculate total amount (productionQty * unitPrice * 120 as per schema comment)
-    const totalAmount = (updatedProductionQty || 0) * Number(finalUnitPrice || 0) * 120;
+    // Calculate total amount (Production Qty * Unit Price)
+    const totalAmount = (updatedProductionQty || 0) * Number(finalUnitPrice || 0);
     
-    // Calculate net amount (totalAmount * percentage * 120)
-    const netAmount = totalAmount * Number(productionItem.percentage || 0) * 120;
+    // Calculate net amount (Total Amount * percentage % * 120) in BDT
+    const netAmount = totalAmount * (Number(productionItem.percentage || 0) / 100) * 120;
     
-    // Calculate balance quantity (total available - produced)
-    const balanceQty = Math.max(0, (productionItem.totalQty || 0) - (updatedProductionQty || 0));
-
     const reportData = {
       date: reportDate,
       styleNo,
@@ -182,7 +236,6 @@ export async function POST(request: NextRequest) {
       unitPrice: finalUnitPrice,
       totalAmount: totalAmount,
       netAmount: netAmount,
-      balanceQty: balanceQty,
       lineNo: lineNo || null,
       notes: notes || null
     };
@@ -192,10 +245,7 @@ export async function POST(request: NextRequest) {
       // Update existing report
       report = await prisma.dailyProductionReport.update({
         where: {
-          date_styleNo: {
-            date: reportDate,
-            styleNo: styleNo
-          }
+          id: existingReport.id
         },
         data: reportData,
         include: {
