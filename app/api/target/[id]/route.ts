@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { targetService } from '@/lib/db/target';
+import { DailyProductionService } from '@/lib/services/daily-production-service';
 
 // GET target by ID
 export async function GET(
@@ -95,6 +96,15 @@ export async function PUT(
       );
     }
 
+    // Get the current target for comparison
+    const currentTarget = await targetService.getById(id);
+    if (!currentTarget) {
+      return NextResponse.json(
+        { success: false, error: 'Target not found' },
+        { status: 404 }
+      );
+    }
+
     // Update the target
     const updatedTarget = await targetService.update(id, {
       lineNo,
@@ -105,6 +115,22 @@ export async function PUT(
       outTime,
       hourlyProduction: hourlyProductionNum
     });
+
+    // Update daily production report
+    try {
+      await DailyProductionService.handleTargetProduction({
+        targetId: updatedTarget.id,
+        styleNo: updatedTarget.styleNo,
+        lineNo: updatedTarget.lineNo,
+        dateString: date, // Pass original date string to avoid double timezone conversion
+        hourlyProduction: updatedTarget.hourlyProduction,
+        lineTarget: updatedTarget.lineTarget,
+        action: 'UPDATE'
+      });
+    } catch (error) {
+      console.warn('Failed to update daily production report:', error);
+      // Continue with target update even if daily report fails
+    }
 
     return NextResponse.json({
       success: true,
@@ -132,7 +158,42 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    
+    // Get the target before deletion for daily production tracking
+    const targetToDelete = await targetService.getById(id);
+    if (!targetToDelete) {
+      return NextResponse.json(
+        { success: false, error: 'Target not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the target
     const deletedTarget = await targetService.delete(id);
+
+    // Update daily production report to subtract the production
+    try {
+      // For DELETE, we need to reconstruct the original date string from the stored date
+      // Since the stored date is already timezone-converted, we extract the local date parts
+      const storedDate = new Date(deletedTarget.date);
+      const year = storedDate.getFullYear();
+      const month = String(storedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(storedDate.getDate()).padStart(2, '0');
+      const originalDateString = `${year}-${month}-${day}`;
+      
+      await DailyProductionService.handleTargetProduction({
+        targetId: deletedTarget.id,
+        styleNo: deletedTarget.styleNo,
+        lineNo: deletedTarget.lineNo,
+        dateString: originalDateString, // Pass reconstructed date string
+        hourlyProduction: deletedTarget.hourlyProduction,
+        lineTarget: deletedTarget.lineTarget,
+        action: 'DELETE'
+      });
+    } catch (error) {
+      console.warn('Failed to update daily production report:', error);
+      // Continue with target deletion even if daily report fails
+    }
 
     return NextResponse.json({
       success: true,

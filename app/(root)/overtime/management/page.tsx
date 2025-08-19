@@ -384,7 +384,11 @@ export default function OvertimeManagementPage() {
     try {
       setSaving(true);
       
-      const formattedDate = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format, consistent with timezone
+      // Format date as YYYY-MM-DD in local timezone to avoid timezone issues
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
       
 
       
