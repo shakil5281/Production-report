@@ -194,7 +194,7 @@ export default function ProductionManagementPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="container mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -476,7 +476,7 @@ export default function ProductionManagementPage() {
                                 <IconEye className="h-4 w-4" />
                               </Button>
                             </SheetTrigger>
-                            <SheetContent className="w-full sm:max-w-md">
+                            <SheetContent className="w-full sm:max-w-md px-4">
                               <SheetHeader>
                                 <SheetTitle>Production Item Details</SheetTitle>
                                 <SheetDescription>

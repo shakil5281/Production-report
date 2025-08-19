@@ -143,14 +143,14 @@ export default function ProductionListPage() {
         </Sheet>
       </div>
 
-      {/* Filters and Search */}
+      {/* Filters and Search - Mobile Responsive */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IconFilter className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <IconFilter className="h-4 w-4 sm:h-5 sm:w-5" />
             Status Filter
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Filter production items by status
           </CardDescription>
         </CardHeader>
@@ -160,7 +160,7 @@ export default function ProductionListPage() {
               Status Filter
             </label>
             <Select value={statusFilter} onValueChange={(value: 'all' | 'RUNNING' | 'PENDING' | 'COMPLETE' | 'CANCELLED') => setStatusFilter(value)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -195,19 +195,19 @@ export default function ProductionListPage() {
         </Card>
       )}
 
-      {/* Production Data Table */}
+      {/* Production Data Table - Mobile Responsive */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IconList className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <IconList className="h-4 w-4 sm:h-5 sm:w-5" />
             Production Items
             {loading && <span className="text-sm text-muted-foreground">(Loading...)</span>}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Complete list of all production records from the database
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6">
           <ProductionListTanStackDataTable 
             data={productionItems} 
             statusFilter={statusFilter}
@@ -218,8 +218,8 @@ export default function ProductionListPage() {
         </CardContent>
       </Card>
 
-      {/* Summary Statistics */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+      {/* Summary Statistics - Mobile Responsive */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Items</CardTitle>
@@ -276,7 +276,7 @@ export default function ProductionListPage() {
               Finished productions
             </p>
           </CardContent>
-                 </Card>
+        </Card>
        </div>
 
        {/* Edit Sheet */}

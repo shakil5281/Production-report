@@ -88,7 +88,7 @@ function LoginForm() {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-0">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -103,7 +103,7 @@ function LoginForm() {
                         <Input
                           type="email"
                           placeholder="Enter your email"
-                          className="md:py-5 py-7"
+                          className="md:py-5 py-6"
                           {...field}
                         />
                       </FormControl>
@@ -125,7 +125,7 @@ function LoginForm() {
                           <Input
                             type={showPassword ? 'text' : 'password'}
                             placeholder="Enter your password"
-                            className="md:py-5 py-7"
+                            className="md:py-5 py-6"
                             {...field}
                           />
                           <button
@@ -155,7 +155,7 @@ function LoginForm() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full md:py-5 py-7 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full md:py-5 py-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
