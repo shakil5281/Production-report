@@ -11,10 +11,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { IconCalendar, IconRefresh, IconDownload } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { ComprehensiveDataTable } from '@/components/target/comprehensive-data-table';
+import { EmailActions } from '@/components/target/email-actions';
 import { ComprehensiveTargetData, SummaryData, ComprehensiveReportResponse } from '@/components/target/types';
+import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 
 export default function ComprehensiveTargetReportPage() {
-  const [date, setDate] = useState<Date>(new Date());
+  const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
+  
+  const [date, setDate] = useState(new Date());
   const [reportData, setReportData] = useState<ComprehensiveTargetData[]>([]);
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [timeSlotHeaders, setTimeSlotHeaders] = useState<string[]>([]);
@@ -161,7 +165,7 @@ export default function ComprehensiveTargetReportPage() {
         
         <div className="flex items-center gap-3 flex-wrap">
           {/* Date Picker */}
-          <Popover>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
                 <IconCalendar className="h-4 w-4" />
@@ -172,7 +176,12 @@ export default function ComprehensiveTargetReportPage() {
               <Calendar
                 mode="single"
                 selected={date}
-                onSelect={(newDate) => newDate && setDate(newDate)}
+                onSelect={(newDate) => {
+                  if (newDate) {
+                    setDate(newDate);
+                    setIsCalendarOpen(false);
+                  }
+                }}
                 initialFocus
               />
             </PopoverContent>
@@ -244,6 +253,17 @@ export default function ComprehensiveTargetReportPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Email Actions */}
+      {summary && reportData.length > 0 && (
+        <EmailActions
+          date={date}
+          reportData={reportData}
+          summary={summary}
+          timeSlotHeaders={timeSlotHeaders}
+          timeSlotTotals={timeSlotTotals}
+        />
       )}
 
       {/* Error Display */}

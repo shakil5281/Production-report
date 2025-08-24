@@ -151,7 +151,7 @@ export default function CashReceivedPage() {
       if (data.success) {
         setEntries(data.data);
         // Calculate enhanced summary
-        const amounts = data.data.map((entry: CashReceivedEntry) => entry.amount);
+        const amounts = data.data.map((entry: CashReceivedEntry) => Number(entry.amount) || 0);
         const totalAmount = amounts.reduce((sum: number, amount: number) => sum + amount, 0);
         const averageAmount = amounts.length > 0 ? totalAmount / amounts.length : 0;
         const highestAmount = amounts.length > 0 ? Math.max(...amounts) : 0;
@@ -309,7 +309,7 @@ export default function CashReceivedPage() {
       
       const tableRows = entries.map((entry, index) => {
         const opening = index === 0 ? 0 : runningTotal;
-        const received = entry.amount;
+        const received = Number(entry.amount) || 0;
         runningTotal = opening + received;
         
         return [
@@ -321,7 +321,7 @@ export default function CashReceivedPage() {
       });
       
       // Add summary row
-      const totalReceived = entries.reduce((sum, entry) => sum + entry.amount, 0);
+      const totalReceived = entries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
       tableRows.push([
         '',
         '',
@@ -403,7 +403,7 @@ export default function CashReceivedPage() {
       entries.forEach((entry, index) => {
         const entryDate = format(new Date(entry.date), 'dd-MMM-yy');
         const opening = index === 0 ? 0 : runningTotal; // Opening balance (previous running total)
-        const received = entry.amount;
+        const received = Number(entry.amount) || 0;
         runningTotal = opening + received;
         
         XLSX.utils.sheet_add_aoa(worksheet, [
@@ -414,7 +414,7 @@ export default function CashReceivedPage() {
       });
 
       // Add summary row
-      const totalReceived = entries.reduce((sum, entry) => sum + entry.amount, 0);
+      const totalReceived = entries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
       XLSX.utils.sheet_add_aoa(worksheet, [
         ['', '', `Received ${monthYear}`, totalReceived]
       ], { origin: `A${currentRow + 1}` });
@@ -548,67 +548,80 @@ export default function CashReceivedPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">Cash Received</h1>
-          <p className="text-muted-foreground text-sm lg:text-base">
-            Manage incoming cash transactions and revenue entries
-          </p>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <IconCash className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 lg:text-3xl">
+                Cash Received
+              </h1>
+              <p className="text-muted-foreground text-sm lg:text-base">
+                Manage incoming cash transactions and revenue entries
+              </p>
+            </div>
+          </div>
         </div>
+        
         {/* Create Sheet */}
-        <Sheet open={isCreateSheetOpen} onOpenChange={setIsCreateSheetOpen}>
-          <SheetTrigger asChild>
-            <Button className="flex items-center justify-center gap-2">
-              <IconPlus className="h-4 w-4" />
-              <span>Add Cash Received</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="w-full sm:max-w-md">
-            <SheetHeader>
-              <SheetTitle>Add Cash Received Entry</SheetTitle>
-              <SheetDescription>
-                Enter the details of the cash received transaction
-              </SheetDescription>
-            </SheetHeader>
-            <CashReceivedForm
-              mode="create"
-              onSubmit={async (data) => {
-                await createEntry(data);
-                setIsCreateSheetOpen(false);
-              }}
-              onCancel={() => setIsCreateSheetOpen(false)}
-              loading={creating}
-            />
-          </SheetContent>
-        </Sheet>
-
-        {/* Edit Sheet */}
-        <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
-          <SheetContent className="w-full sm:max-w-md">
-            <SheetHeader>
-              <SheetTitle>Edit Cash Received Entry</SheetTitle>
-              <SheetDescription>
-                Update the details of the cash received transaction
-              </SheetDescription>
-            </SheetHeader>
-            {editingEntry && (
+        <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+          <Sheet open={isCreateSheetOpen} onOpenChange={setIsCreateSheetOpen}>
+            <SheetTrigger asChild>
+              <Button className="flex items-center justify-center gap-2 h-11 px-6 bg-green-600 hover:bg-green-700 focus:ring-green-500 shadow-sm">
+                <IconPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add Cash Received</span>
+                <span className="sm:hidden">Add Entry</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-full sm:max-w-md overflow-auto px-6 pb-8">
+              <SheetHeader>
+                <SheetTitle>Add Cash Received Entry</SheetTitle>
+                <SheetDescription>
+                  Enter the details of the cash received transaction
+                </SheetDescription>
+              </SheetHeader>
               <CashReceivedForm
-                mode="edit"
-                initialData={{
-                  date: new Date(editingEntry.date),
-                  amount: editingEntry.amount
-                }}
+                mode="create"
                 onSubmit={async (data) => {
-                  await updateEntry(data);
+                  await createEntry(data);
+                  setIsCreateSheetOpen(false);
                 }}
-                onCancel={() => {
-                  setIsEditSheetOpen(false);
-                  setEditingEntry(null);
-                }}
-                loading={updating}
+                onCancel={() => setIsCreateSheetOpen(false)}
+                loading={creating}
               />
-            )}
-          </SheetContent>
-        </Sheet>
+            </SheetContent>
+          </Sheet>
+
+          {/* Edit Sheet */}
+          <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
+            <SheetContent className="w-full sm:max-w-md overflow-auto px-6 pb-8">
+              <SheetHeader>
+                <SheetTitle>Edit Cash Received Entry</SheetTitle>
+                <SheetDescription>
+                  Update the details of the cash received transaction
+                </SheetDescription>
+              </SheetHeader>
+              {editingEntry && (
+                <CashReceivedForm
+                  mode="edit"
+                  initialData={{
+                    date: new Date(editingEntry.date),
+                    amount: editingEntry.amount
+                  }}
+                  onSubmit={async (data) => {
+                    await updateEntry(data);
+                  }}
+                  onCancel={() => {
+                    setIsEditSheetOpen(false);
+                    setEditingEntry(null);
+                  }}
+                  loading={updating}
+                />
+              )}
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
       {/* Enhanced Filter Section */}
@@ -627,7 +640,7 @@ export default function CashReceivedPage() {
                 value={filters.period} 
                 onValueChange={(value: any) => setFilters({ ...filters, period: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -649,7 +662,7 @@ export default function CashReceivedPage() {
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal h-11",
                           !filters.startDate && "text-muted-foreground"
                         )}
                       >
@@ -657,12 +670,19 @@ export default function CashReceivedPage() {
                         {filters.startDate ? format(filters.startDate, "MMM dd, yyyy") : <span>Start date</span>}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={filters.startDate}
-                        onSelect={(date) => setFilters({ ...filters, startDate: date })}
+                        onSelect={(date) => {
+                          setFilters({ ...filters, startDate: date });
+                          // Auto-close calendar when date is selected
+                          if (date && filters.endDate && date > filters.endDate) {
+                            setFilters({ ...filters, startDate: date, endDate: undefined });
+                          }
+                        }}
                         initialFocus
+                        className="rounded-md border"
                       />
                     </PopoverContent>
                   </Popover>
@@ -674,7 +694,7 @@ export default function CashReceivedPage() {
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal h-11",
                           !filters.endDate && "text-muted-foreground"
                         )}
                       >
@@ -682,12 +702,17 @@ export default function CashReceivedPage() {
                         {filters.endDate ? format(filters.endDate, "MMM dd, yyyy") : <span>End date</span>}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={filters.endDate}
-                        onSelect={(date) => setFilters({ ...filters, endDate: date })}
+                        onSelect={(date) => {
+                          setFilters({ ...filters, endDate: date });
+                          // Auto-close calendar when date is selected
+                        }}
                         initialFocus
+                        disabled={(date) => filters.startDate ? date < filters.startDate : false}
+                        className="rounded-md border"
                       />
                     </PopoverContent>
                   </Popover>
@@ -702,6 +727,7 @@ export default function CashReceivedPage() {
                 placeholder="0.00"
                 value={filters.minAmount}
                 onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -711,17 +737,18 @@ export default function CashReceivedPage() {
                 placeholder="0.00"
                 value={filters.maxAmount}
                 onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
+                className="h-11"
               />
             </div>
           </div>
           
-          <div className="flex flex-col space-y-2 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+          <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 onClick={fetchEntries}
                 disabled={loading}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 h-11 px-4"
               >
                 <IconRefresh className="h-4 w-4" />
                 <span className="hidden sm:inline">Apply Filters</span>
@@ -730,7 +757,7 @@ export default function CashReceivedPage() {
               <Button
                 variant="outline"
                 onClick={clearFilters}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 h-11 px-4"
               >
                 <IconX className="h-4 w-4" />
                 <span className="hidden sm:inline">Clear Filters</span>
@@ -738,7 +765,7 @@ export default function CashReceivedPage() {
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs px-3 py-1">
                 <IconCalendarStats className="h-3 w-3" />
                 <span className="hidden sm:inline">{getPeriodText()}</span>
                 <span className="sm:hidden">
@@ -748,77 +775,90 @@ export default function CashReceivedPage() {
                    filters.period === 'all_time' ? 'All' : 'Custom'}
                 </span>
               </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportToPDF}
-                disabled={exporting || entries.length === 0}
-                className="flex items-center gap-2"
-              >
-                <IconFileText className="h-4 w-4" />
-                <span className="hidden sm:inline">PDF</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportToExcel}
-                disabled={exporting || entries.length === 0}
-                className="flex items-center gap-2"
-              >
-                <IconFileSpreadsheet className="h-4 w-4" />
-                <span className="hidden sm:inline">Excel</span>
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportToPDF}
+                  disabled={exporting || entries.length === 0}
+                  className="flex items-center gap-2 h-9 px-3"
+                >
+                  <IconFileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">PDF</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportToExcel}
+                  disabled={exporting || entries.length === 0}
+                  className="flex items-center gap-2 h-9 px-3"
+                >
+                  <IconFileSpreadsheet className="h-4 w-4" />
+                  <span className="hidden sm:inline">Excel</span>
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-            <IconCash className="h-4 w-4 text-green-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-green-100 hover:shadow-md transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-green-800">Total Amount</CardTitle>
+            <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center">
+              <IconCash className="h-5 w-5 text-green-700" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">৳{summary.totalAmount.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="text-2xl font-bold text-green-800 mb-1">৳{summary.totalAmount.toLocaleString()}</div>
+            <p className="text-xs text-green-600 font-medium">
               Period total
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
-            <IconCalendar className="h-4 w-4 text-blue-600" />
+        
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-md transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-blue-800">Total Entries</CardTitle>
+            <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center">
+              <IconCalendar className="h-5 w-5 text-blue-700" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary.totalEntries}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="text-2xl font-bold text-blue-800 mb-1">{summary.totalEntries}</div>
+            <p className="text-xs text-blue-600 font-medium">
               Transaction count
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Amount</CardTitle>
-            <IconTrendingUp className="h-4 w-4 text-orange-600" />
+        
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100 hover:shadow-md transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-orange-800">Average Amount</CardTitle>
+            <div className="w-10 h-10 bg-orange-200 rounded-full flex items-center justify-center">
+              <IconTrendingUp className="h-5 w-5 text-orange-700" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">৳{summary.averageAmount.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="text-2xl font-bold text-orange-800 mb-1">৳{summary.averageAmount.toLocaleString()}</div>
+            <p className="text-xs text-orange-600 font-medium">
               Per transaction
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Highest Amount</CardTitle>
-            <IconTrendingUp className="h-4 w-4 text-purple-600" />
+        
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-md transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-purple-800">Highest Amount</CardTitle>
+            <div className="w-10 h-10 bg-purple-200 rounded-full flex items-center justify-center">
+              <IconTrendingUp className="h-5 w-5 text-purple-700" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">৳{summary.highestAmount.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="text-2xl font-bold text-purple-800 mb-1">৳{summary.highestAmount.toLocaleString()}</div>
+            <p className="text-xs text-purple-600 font-medium">
               Single transaction
             </p>
           </CardContent>
@@ -835,98 +875,180 @@ export default function CashReceivedPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
               <div className="text-muted-foreground">Loading cash received entries...</div>
             </div>
           ) : entries.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-muted-foreground">No cash received entries found for the selected period</div>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <IconCash className="h-8 w-8 text-gray-400" />
+              </div>
+              <div className="text-muted-foreground mb-2">No cash received entries found</div>
+              <div className="text-sm text-gray-500">Try adjusting your filters or add a new entry</div>
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Mobile View */}
+              {/* Mobile View - Enhanced */}
               <div className="block lg:hidden space-y-3">
                 {entries.map((entry) => (
-                  <div key={entry.id} className="border rounded-lg p-4 space-y-3">
+                  <div key={entry.id} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-white hover:bg-gray-50 transition-colors duration-200">
+                    {/* Header Row */}
                     <div className="flex items-center justify-between">
-                      <div className="font-medium">
-                        {format(new Date(entry.date), 'MMM dd, yyyy')}
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                          <IconCash className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900">
+                            {format(new Date(entry.date), 'MMM dd, yyyy')}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Entry #{entry.id.slice(-6)}
+                          </div>
+                        </div>
                       </div>
-                      <div className="font-bold text-green-600">
-                        ৳{entry.amount.toLocaleString()}
+                      <div className="text-right">
+                        <div className="font-bold text-lg text-green-600">
+                          ৳{(Number(entry.amount) || 0).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Amount
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
-                        Created: {format(new Date(entry.createdAt), 'MMM dd, HH:mm')}
+                    
+                    {/* Details Row */}
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase tracking-wide">Created</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {format(new Date(entry.createdAt), 'MMM dd, HH:mm')}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase tracking-wide">Updated</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {format(new Date(entry.updatedAt), 'MMM dd, HH:mm')}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Actions Row */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                      <div className="text-xs text-gray-500">
+                        ID: {entry.id}
                       </div>
                       <div className="flex items-center gap-2">
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => openEditDialog(entry)}
+                          className="h-8 px-3 text-xs"
                         >
-                          <IconEdit className="h-4 w-4" />
+                          <IconEdit className="h-3 w-3 mr-1" />
+                          Edit
                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => openDeleteDialog(entry.id)}
+                          className="h-8 px-3 text-xs text-red-600 border-red-200 hover:bg-red-50"
                         >
-                          <IconTrash className="h-4 w-4" />
+                          <IconTrash className="h-3 w-3 mr-1" />
+                          Delete
                         </Button>
                       </div>
                     </div>
                   </div>
                 ))}
-          </div>
+              </div>
 
-              {/* Desktop View */}
+              {/* Desktop View - Enhanced */}
               <div className="hidden lg:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Amount (BDT)</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                    {entries.map((entry) => (
-                  <TableRow key={entry.id}>
-                        <TableCell className="font-medium">
-                          {format(new Date(entry.date), 'MMM dd, yyyy')}
-                        </TableCell>
-                        <TableCell className="font-bold text-green-600">
-                          ৳{entry.amount.toLocaleString()}
-                    </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {format(new Date(entry.createdAt), 'MMM dd, HH:mm')}
-                    </TableCell>
-                    <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openEditDialog(entry)}
-                            >
-                              <IconEdit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openDeleteDialog(entry.id)}
-                            >
-                              <IconTrash className="h-4 w-4" />
-                            </Button>
-                          </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                <div className="rounded-lg border border-gray-200 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50 hover:bg-gray-50">
+                        <TableHead className="font-semibold text-gray-900 py-4">Date</TableHead>
+                        <TableHead className="font-semibold text-gray-900 py-4">Amount (BDT)</TableHead>
+                        <TableHead className="font-semibold text-gray-900 py-4">Created</TableHead>
+                        <TableHead className="font-semibold text-gray-900 py-4">Updated</TableHead>
+                        <TableHead className="font-semibold text-gray-900 py-4 text-center">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {entries.map((entry) => (
+                        <TableRow key={entry.id} className="hover:bg-gray-50 transition-colors duration-200">
+                          <TableCell className="py-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <IconCash className="h-4 w-4 text-green-600" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-900">
+                                  {format(new Date(entry.date), 'MMM dd, yyyy')}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  Entry #{entry.id.slice(-6)}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="text-right">
+                              <div className="font-bold text-lg text-green-600">
+                                ৳{entry.amount.toLocaleString()}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                BDT
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="text-sm text-gray-900">
+                              {format(new Date(entry.createdAt), 'MMM dd, yyyy')}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {format(new Date(entry.createdAt), 'HH:mm')}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="text-sm text-gray-900">
+                              {format(new Date(entry.updatedAt), 'MMM dd, yyyy')}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {format(new Date(entry.updatedAt), 'HH:mm')}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center justify-center gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openEditDialog(entry)}
+                                className="h-8 px-3"
+                              >
+                                <IconEdit className="h-4 w-4 mr-1" />
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openDeleteDialog(entry.id)}
+                                className="h-8 px-3 text-red-600 border-red-200 hover:bg-red-50"
+                              >
+                                <IconTrash className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>

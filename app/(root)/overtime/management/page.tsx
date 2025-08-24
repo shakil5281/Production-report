@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, Users, Calculator, Save, RefreshCw, AlertTriangle, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
+import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 
 interface ManpowerSection {
   section: string;
@@ -38,13 +40,15 @@ interface OvertimeRecord {
 }
 
 export default function OvertimeManagementPage() {
-  const [mounted, setMounted] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [manpowerSections, setManpowerSections] = useState<ManpowerSection[]>([]);
+  const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
+  
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [manpowerData, setManpowerData] = useState<ManpowerSection[]>([]);
   const [overtimeRecords, setOvertimeRecords] = useState<OvertimeRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hasManpowerData, setHasManpowerData] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [summary, setSummary] = useState({
     totalSections: 0,
     totalPresentWorkers: 0,
@@ -83,7 +87,7 @@ export default function OvertimeManagementPage() {
       const result = await response.json();
       
       if (result.success) {
-        setManpowerSections(result.data.sections);
+        setManpowerData(result.data.sections);
         setHasManpowerData(result.data.hasManpowerData);
         
         console.log('Before manpower merge - current overtime records:', currentOvertimeRecords);
@@ -129,7 +133,7 @@ export default function OvertimeManagementPage() {
         }
       } else {
         setHasManpowerData(false);
-        setManpowerSections([]);
+        setManpowerData([]);
         toast.error(result.error || 'Failed to fetch manpower data');
       }
     } catch (err) {
@@ -155,7 +159,7 @@ export default function OvertimeManagementPage() {
       const result = await response.json();
       
       if (result.success) {
-        setManpowerSections(result.data.sections);
+        setManpowerData(result.data.sections);
         setHasManpowerData(result.data.hasManpowerData);
         
         console.log('Before manpower merge - overtimeRecords:', overtimeRecords);
@@ -217,7 +221,7 @@ export default function OvertimeManagementPage() {
         }
       } else {
         setHasManpowerData(false);
-        setManpowerSections([]);
+        setManpowerData([]);
         toast.error(result.error || 'Failed to fetch manpower data');
       }
     } catch (err) {
@@ -475,23 +479,19 @@ export default function OvertimeManagementPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 md:space-y-4">
-            <Popover>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal text-sm md:text-base h-10 md:h-11",
+                    "w-full justify-start text-left font-normal h-10 md:h-11",
                     !selectedDate && "text-muted-foreground"
                   )}
+                  onClick={() => setIsCalendarOpen(true)}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  <span className="truncate">
-                    {selectedDate ? selectedDate.toLocaleDateString('en-US', { 
-                      weekday: 'short', 
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    }) : 'Pick a date'}
+                  <CalendarIcon className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+                  <span className="text-sm md:text-base">
+                    {selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'Pick a date'}
                   </span>
                 </Button>
               </PopoverTrigger>
@@ -499,7 +499,12 @@ export default function OvertimeManagementPage() {
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={(newDate) => newDate && setSelectedDate(newDate)}
+                  onSelect={(newDate) => {
+                    if (newDate) {
+                      setSelectedDate(newDate);
+                      setIsCalendarOpen(false);
+                    }
+                  }}
                   initialFocus
                 />
               </PopoverContent>
@@ -626,7 +631,7 @@ export default function OvertimeManagementPage() {
           ) : (
             <div className="space-y-4 md:space-y-6">
               {overtimeRecords.map((record) => {
-                const manpowerSection = manpowerSections.find(s => s.section === record.section);
+                const manpowerSection = manpowerData.find(s => s.section === record.section);
                 return (
                   <Card key={record.section} className="border-2">
                     <CardHeader className="pb-3">

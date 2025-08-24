@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,10 +11,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { IconPlus, IconEdit, IconX, IconCalendar, IconClock, IconTarget, IconUsers } from '@tabler/icons-react';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Target, TargetFormData, ProductionListItem, Line } from './schema';
 import type { LineAssignment } from '@/components/line-assignments/schema';
+import { toast } from 'sonner';
+import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 
 interface EnhancedTargetFormProps {
   item?: Target | null;
@@ -22,6 +24,7 @@ interface EnhancedTargetFormProps {
   mode: 'create' | 'edit';
   productionItems: ProductionListItem[];
   lines: Line[];
+  lineAssignments: LineAssignment[];
 }
 
 interface LineAssignmentInfo {
@@ -29,44 +32,23 @@ interface LineAssignmentInfo {
   productionItem: ProductionListItem;
 }
 
-export function EnhancedTargetForm({ 
-  item, 
-  onSubmit, 
-  onCancel, 
-  mode, 
-  productionItems, 
-  lines 
-}: EnhancedTargetFormProps) {
+export default function EnhancedTargetForm({ mode, item, onSubmit, onCancel, productionItems, lines, lineAssignments }: EnhancedTargetFormProps) {
+  const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
+  
   const [formData, setFormData] = useState<TargetFormData>({
+    date: '',
+    inTime: '',
+    outTime: '',
+    hourlyProduction: 0,
     lineNo: '',
     styleNo: '',
-    lineTarget: 0,
-    date: new Date().toLocaleDateString('en-CA'),
-    inTime: '08:00',
-    outTime: '17:00',
-    hourlyProduction: 0
+    lineTarget: 0
   });
   
   const [loading, setLoading] = useState(false);
-  const [lineAssignments, setLineAssignments] = useState<LineAssignment[]>([]);
   const [selectedLineAssignment, setSelectedLineAssignment] = useState<LineAssignmentInfo | null>(null);
 
-  // Fetch line assignments when component mounts
-  useEffect(() => {
-    fetchLineAssignments();
-  }, []);
 
-  const fetchLineAssignments = async () => {
-    try {
-      const response = await fetch('/api/line-assignments?activeOnly=true');
-      const result = await response.json();
-      if (result.success) {
-        setLineAssignments(result.data.assignments || []);
-      }
-    } catch (error) {
-      console.error('Error fetching line assignments:', error);
-    }
-  };
 
   // Function to calculate adjusted time range (full hour range)
   const calculateAdjustedTime = (timeString: string): { inTime: string; outTime: string } => {
@@ -146,7 +128,7 @@ export function EnhancedTargetForm({
     // Only proceed if assignment exists (since we only show assigned lines)
     if (assignment) {
       // Find corresponding production item
-      const productionItem = productionItems.find(p => p.styleNo === assignment.style.styleNumber);
+      const productionItem = productionItems.find((p: ProductionListItem) => p.styleNo === assignment.style.styleNumber);
       
       if (productionItem) {
         setSelectedLineAssignment({ assignment, productionItem });
@@ -310,7 +292,7 @@ export function EnhancedTargetForm({
 
           <div className="space-y-2">
             <Label>Date *</Label>
-            <Popover>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -318,6 +300,7 @@ export function EnhancedTargetForm({
                     "w-full justify-start text-left font-normal",
                     !formData.date && "text-muted-foreground"
                   )}
+                  onClick={() => setIsCalendarOpen(true)}
                 >
                   <IconCalendar className="mr-2 h-4 w-4" />
                   {formData.date ? format(new Date(formData.date + 'T00:00:00'), "PPP") : <span>Pick a date</span>}
@@ -326,8 +309,13 @@ export function EnhancedTargetForm({
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={new Date(formData.date + 'T00:00:00')}
-                  onSelect={(date) => date && handleInputChange('date', date.toLocaleDateString('en-CA'))}
+                  selected={formData.date ? new Date(formData.date + 'T00:00:00') : undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      handleInputChange('date', date.toLocaleDateString('en-CA'));
+                      setIsCalendarOpen(false);
+                    }
+                  }}
                   initialFocus
                 />
               </PopoverContent>

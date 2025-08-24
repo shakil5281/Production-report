@@ -1,20 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { IconTarget, IconPlus, IconCalendar, IconEdit, IconTrash, IconEye } from '@tabler/icons-react';
 import { toast } from 'sonner';
+import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import { TargetDataTable } from '@/components/target/target-data-table';
 
 interface Target {
@@ -83,12 +84,14 @@ interface LineAssignmentResponse {
 }
 
 export default function TargetPage() {
+  const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
+  
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Target | null>(null);
   const [targets, setTargets] = useState<Target[]>([]);
   const [productionItems, setProductionItems] = useState<ProductionItem[]>([]);
   const [lineAssignments, setLineAssignments] = useState<LineAssignment[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     productionListId: '',
@@ -331,9 +334,9 @@ export default function TargetPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Popover>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2" onClick={() => setIsCalendarOpen(true)}>
                 <IconCalendar className="h-4 w-4" />
                 {format(selectedDate, 'PPP')}
               </Button>
@@ -342,7 +345,12 @@ export default function TargetPage() {
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                    setIsCalendarOpen(false);
+                  }
+                }}
                 initialFocus
               />
             </PopoverContent>

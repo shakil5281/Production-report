@@ -179,7 +179,7 @@ export default function CashbookSummaryPage() {
               <span className="truncate">Add Cash Received</span>
             </Button>
           </SheetTrigger>
-          <SheetContent className="w-full sm:max-w-md">
+          <SheetContent className="w-full sm:max-w-md overflow-auto px-6 pb-8">
             <SheetHeader>
               <SheetTitle>Add Cash Received</SheetTitle>
               <SheetDescription>
@@ -234,7 +234,7 @@ export default function CashbookSummaryPage() {
               <span className="truncate">Add Daily Expense</span>
             </Button>
           </SheetTrigger>
-          <SheetContent className="w-full sm:max-w-md">
+          <SheetContent className="w-full sm:max-w-md overflow-auto px-6 pb-8">
             <SheetHeader>
               <SheetTitle>Add Daily Expense</SheetTitle>
               <SheetDescription>
@@ -242,8 +242,14 @@ export default function CashbookSummaryPage() {
               </SheetDescription>
             </SheetHeader>
             <DailyExpenseForm
-              mode="create"
-              onSubmit={async (data) => {
+              form={{
+                date: new Date(),
+                volumeNumber: '',
+                description: '',
+                amount: ''
+              }}
+              setForm={() => {}}
+              onSubmit={async () => {
                 try {
                   const response = await fetch('/api/cashbook/daily-expense', {
                     method: 'POST',
@@ -251,10 +257,10 @@ export default function CashbookSummaryPage() {
                       'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                      date: format(data.date, 'yyyy-MM-dd'),
-                      amount: data.amount,
-                      description: data.description,
-                      referenceId: data.volumeNumber || null,
+                      date: format(new Date(), 'yyyy-MM-dd'),
+                      amount: 0,
+                      description: '',
+                      referenceId: null,
                       category: 'Daily Expense'
                     }),
                   });
@@ -275,6 +281,7 @@ export default function CashbookSummaryPage() {
                   return Promise.reject(error);
                 }
               }}
+              isSubmitting={false}
               onCancel={() => {}}
             />
           </SheetContent>
