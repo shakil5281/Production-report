@@ -117,6 +117,18 @@ export const data = {
       ],
     },
     {
+      title: "Financial Reports",
+      icon: IconTrendingUp,
+      roles: ["USER", "SUPER_ADMIN"], // Users with financial permissions
+      items: [
+        {
+          title: "Profit & Loss",
+          url: "/profit-loss",
+          roles: ["USER", "SUPER_ADMIN"], // READ_FINANCIAL permission
+        },
+      ],
+    },
+    {
       title: "Cutting",
       icon: IconScissors,
       roles: ["USER", "SUPER_ADMIN"], // Users with cutting permissions

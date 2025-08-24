@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { 
   IconCurrencyTaka,
   IconRefresh,
@@ -25,6 +26,8 @@ import {
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import CashReceivedForm from '@/components/cashbook/cash-received-form';
+import DailyExpenseForm from '@/components/cashbook/daily-expense-form';
 
 interface CashbookEntry {
   id: string;
@@ -169,18 +172,114 @@ export default function CashbookSummaryPage() {
 
       {/* Quick Action Buttons */}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex lg:items-center lg:gap-2">
-        <Button asChild className="w-full lg:w-auto">
-          <Link href="/cashbook/cash-received" className="flex items-center justify-center gap-2">
-            <IconPlus className="h-4 w-4" />
-            <span className="truncate">Add Cash Received</span>
-          </Link>
-        </Button>
-        <Button variant="outline" asChild className="w-full lg:w-auto">
-          <Link href="/cashbook/daily-expense" className="flex items-center justify-center gap-2">
-            <IconPlus className="h-4 w-4" />
-            <span className="truncate">Add Daily Expense</span>
-          </Link>
-        </Button>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button className="w-full lg:w-auto">
+              <IconPlus className="h-4 w-4" />
+              <span className="truncate">Add Cash Received</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>Add Cash Received</SheetTitle>
+              <SheetDescription>
+                Enter the details of the cash received transaction
+              </SheetDescription>
+            </SheetHeader>
+            <CashReceivedForm
+              mode="create"
+              onSubmit={async (data) => {
+                try {
+                  const response = await fetch('/api/cashbook/cash-received', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      date: format(data.date, 'yyyy-MM-dd'),
+                      amount: data.amount,
+                      category: 'Cash Received',
+                      description: null,
+                      referenceType: null,
+                      referenceId: null,
+                      lineId: null
+                    }),
+                  });
+
+                  const result = await response.json();
+
+                  if (result.success) {
+                    toast.success('Cash received entry created successfully');
+                    // Refresh the summary data
+                    fetchSummary();
+                    return Promise.resolve();
+                  } else {
+                    throw new Error(result.error || 'Failed to create entry');
+                  }
+                } catch (error) {
+                  console.error('Error creating cash received entry:', error);
+                  toast.error('Failed to create cash received entry');
+                  return Promise.reject(error);
+                }
+              }}
+              onCancel={() => {}}
+            />
+          </SheetContent>
+        </Sheet>
+
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full lg:w-auto">
+              <IconPlus className="h-4 w-4" />
+              <span className="truncate">Add Daily Expense</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>Add Daily Expense</SheetTitle>
+              <SheetDescription>
+                Enter the details of the daily expense transaction
+              </SheetDescription>
+            </SheetHeader>
+            <DailyExpenseForm
+              mode="create"
+              onSubmit={async (data) => {
+                try {
+                  const response = await fetch('/api/cashbook/daily-expense', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      date: format(data.date, 'yyyy-MM-dd'),
+                      amount: data.amount,
+                      description: data.description,
+                      referenceId: data.volumeNumber || null,
+                      category: 'Daily Expense'
+                    }),
+                  });
+
+                  const result = await response.json();
+
+                  if (result.success) {
+                    toast.success('Daily expense entry created successfully');
+                    // Refresh the summary data
+                    fetchSummary();
+                    return Promise.resolve();
+                  } else {
+                    throw new Error(result.error || 'Failed to create entry');
+                  }
+                } catch (error) {
+                  console.error('Error creating daily expense entry:', error);
+                  toast.error('Failed to create daily expense entry');
+                  return Promise.reject(error);
+                }
+              }}
+              onCancel={() => {}}
+            />
+          </SheetContent>
+        </Sheet>
+
         <Button variant="outline" asChild className="w-full lg:w-auto">
           <Link href="/cashbook/monthly-report" className="flex items-center justify-center gap-2">
             <IconEye className="h-4 w-4" />

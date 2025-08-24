@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import CashReceivedForm from '@/components/cashbook/cash-received-form';
 
 interface CashReceivedEntry {
   id: string;
@@ -66,21 +67,11 @@ export default function CashReceivedPage() {
   const [exporting, setExporting] = useState(false);
   
   // Form states
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<CashReceivedEntry | null>(null);
   const [deleteEntryId, setDeleteEntryId] = useState<string | null>(null);
-  
-  const [createForm, setCreateForm] = useState<CashReceivedForm>({
-    date: new Date(),
-    amount: ''
-  });
-
-  const [editForm, setEditForm] = useState<CashReceivedForm>({
-    date: undefined,
-    amount: ''
-  });
 
   // Enhanced filter states
   const [filters, setFilters] = useState({
@@ -186,12 +177,7 @@ export default function CashReceivedPage() {
     fetchEntries();
   }, [fetchEntries]);
 
-  const createEntry = async () => {
-    if (!createForm.date || !createForm.amount) {
-      toast.error('Please fill in date and amount');
-      return;
-    }
-
+  const createEntry = async (data: { date: Date; amount: number }) => {
     setCreating(true);
     try {
       const response = await fetch('/api/cashbook/cash-received', {
@@ -200,8 +186,8 @@ export default function CashReceivedPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          date: format(createForm.date, 'yyyy-MM-dd'),
-          amount: parseFloat(createForm.amount),
+          date: format(data.date, 'yyyy-MM-dd'),
+          amount: data.amount,
           category: 'Cash Received',
           description: null,
           referenceType: null,
@@ -210,18 +196,14 @@ export default function CashReceivedPage() {
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (data.success) {
+      if (result.success) {
         toast.success('Cash received entry created successfully');
-        setIsCreateDialogOpen(false);
-        setCreateForm({
-          date: new Date(),
-          amount: ''
-        });
+        setIsCreateSheetOpen(false);
         fetchEntries();
       } else {
-        throw new Error(data.error || 'Failed to create entry');
+        throw new Error(result.error || 'Failed to create entry');
       }
     } catch (error) {
       console.error('Error creating cash received entry:', error);
