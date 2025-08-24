@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   SortingState,
   flexRender,
@@ -8,6 +8,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  ColumnFiltersState,
+  VisibilityState,
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -18,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { columns } from './table-columns';
 import type { Target } from './schema';
+import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 
 interface TargetDataTableProps {
   data: Target[];
@@ -29,16 +32,12 @@ interface TargetDataTableProps {
   onBulkDelete: (targetIds: string[]) => void;
 }
 
-export function TargetDataTable({ 
-  data, 
-  selectedDate, 
-  onDateChange, 
-  onView, 
-  onEdit, 
-  onDelete,
-  onBulkDelete 
-}: TargetDataTableProps) {
+export function TargetDataTable({ data, selectedDate, onDateChange, onView, onEdit, onDelete, onBulkDelete }: TargetDataTableProps) {
+  const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
+  
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
 
   const table = useReactTable({
@@ -66,7 +65,7 @@ export function TargetDataTable({
         <div className="flex items-center gap-2">
           <IconCalendar className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Filter by Date:</span>
-          <Popover>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -83,7 +82,12 @@ export function TargetDataTable({
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={onDateChange}
+                onSelect={(date) => {
+                  if (date) {
+                    onDateChange(date);
+                    setIsCalendarOpen(false);
+                  }
+                }}
                 initialFocus
               />
             </PopoverContent>

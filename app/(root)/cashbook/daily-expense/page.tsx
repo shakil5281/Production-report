@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import DailyExpenseForm from '@/components/cashbook/daily-expense-form';
 
 interface DailyExpenseEntry {
   id: string;
@@ -204,6 +205,12 @@ export default function DailyExpensePage() {
       return;
     }
 
+    const amount = parseFloat(createForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
     setCreating(true);
     try {
       const response = await fetch('/api/cashbook/daily-expense', {
@@ -213,7 +220,7 @@ export default function DailyExpensePage() {
         },
         body: JSON.stringify({
           date: format(createForm.date, 'yyyy-MM-dd'),
-          amount: parseFloat(createForm.amount),
+          amount: amount,
           description: createForm.description,
           referenceId: createForm.volumeNumber || null,
           category: 'Daily Expense'
@@ -249,6 +256,12 @@ export default function DailyExpensePage() {
       return;
     }
 
+    const amount = parseFloat(editForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
     setUpdating(true);
     try {
       const response = await fetch(`/api/cashbook/daily-expense/${editingEntry.id}`, {
@@ -258,7 +271,7 @@ export default function DailyExpensePage() {
         },
         body: JSON.stringify({
           date: format(editForm.date, 'yyyy-MM-dd'),
-          amount: parseFloat(editForm.amount),
+          amount: amount,
           description: editForm.description,
           referenceId: editForm.volumeNumber || null,
           category: 'Daily Expense'
@@ -271,6 +284,12 @@ export default function DailyExpensePage() {
         toast.success('Daily expense entry updated successfully');
         setIsEditDialogOpen(false);
         setEditingEntry(null);
+        setEditForm({
+          date: undefined,
+          volumeNumber: '',
+          description: '',
+          amount: ''
+        });
         fetchEntries();
       } else {
         throw new Error(data.error || 'Failed to update entry');
@@ -472,6 +491,16 @@ export default function DailyExpensePage() {
     setIsEditDialogOpen(true);
   };
 
+  const openCreateSheet = () => {
+    setCreateForm({
+      date: new Date(),
+      volumeNumber: '',
+      description: '',
+      amount: ''
+    });
+    setIsCreateDialogOpen(true);
+  };
+
   const openDeleteDialog = (entryId: string) => {
     setDeleteEntryId(entryId);
     setIsDeleteDialogOpen(true);
@@ -487,89 +516,47 @@ export default function DailyExpensePage() {
             Manage daily expense transactions and track spending patterns
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
+        <Sheet open={isCreateDialogOpen} onOpenChange={(open) => {
+          if (!open) {
+            setCreateForm({
+              date: new Date(),
+              volumeNumber: '',
+              description: '',
+              amount: ''
+            });
+          }
+          setIsCreateDialogOpen(open);
+        }}>
+          <SheetTrigger asChild>
             <Button className="flex items-center justify-center gap-2">
               <IconPlus className="h-4 w-4" />
               <span>Add Daily Expense</span>
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add Daily Expense Entry</DialogTitle>
-              <DialogDescription>
+          </SheetTrigger>
+          <SheetContent className="w-full px-8 overflow-auto pb-12">
+            <SheetHeader>
+              <SheetTitle>Add Daily Expense Entry</SheetTitle>
+              <SheetDescription>
                 Enter the details of the daily expense transaction
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-                <div className="space-y-2">
-                <Label>Date *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !createForm.date && "text-muted-foreground"
-                      )}
-                    >
-                      <IconCalendar className="mr-2 h-4 w-4" />
-                      {createForm.date ? format(createForm.date, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={createForm.date}
-                      onSelect={(date) => setCreateForm({ ...createForm, date })}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-volume">Volume Number</Label>
-                <Input
-                  id="create-volume"
-                  type="text"
-                  placeholder="Volume number (optional)"
-                  value={createForm.volumeNumber}
-                  onChange={(e) => setCreateForm({ ...createForm, volumeNumber: e.target.value })}
-                />
-              </div>
-                <div className="space-y-2">
-                <Label htmlFor="create-description">Description *</Label>
-                <Input
-                  id="create-description"
-                  type="text"
-                  placeholder="Expense description"
-                  value={createForm.description}
-                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-amount">Amount (BDT) *</Label>
-                <Input
-                  id="create-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={createForm.amount}
-                  onChange={(e) => setCreateForm({ ...createForm, amount: e.target.value })}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={createEntry} disabled={creating}>
-                {creating ? 'Creating...' : 'Create Entry'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </SheetDescription>
+            </SheetHeader>
+            <DailyExpenseForm
+              form={createForm}
+              setForm={setCreateForm}
+              onSubmit={createEntry}
+              isSubmitting={creating}
+              onCancel={() => {
+                setIsCreateDialogOpen(false);
+                setCreateForm({
+                  date: new Date(),
+                  volumeNumber: '',
+                  description: '',
+                  amount: ''
+                });
+              }}
+            />
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Enhanced Filter Section */}
@@ -949,84 +936,44 @@ export default function DailyExpensePage() {
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Daily Expense Entry</DialogTitle>
-            <DialogDescription>
+      {/* Edit Sheet */}
+      <Sheet open={isEditDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setEditingEntry(null);
+          setEditForm({
+            date: undefined,
+            volumeNumber: '',
+            description: '',
+            amount: ''
+          });
+        }
+        setIsEditDialogOpen(open);
+      }}>
+        <SheetContent className="w-full px-8 overflow-auto pb-12">
+          <SheetHeader>
+            <SheetTitle>Edit Daily Expense Entry</SheetTitle>
+            <SheetDescription>
               Update the details of the daily expense transaction
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Date *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !editForm.date && "text-muted-foreground"
-                    )}
-                  >
-                    <IconCalendar className="mr-2 h-4 w-4" />
-                    {editForm.date ? format(editForm.date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={editForm.date}
-                    onSelect={(date) => setEditForm({ ...editForm, date })}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-volume">Volume Number</Label>
-              <Input
-                id="edit-volume"
-                type="text"
-                placeholder="Volume number (optional)"
-                value={editForm.volumeNumber}
-                onChange={(e) => setEditForm({ ...editForm, volumeNumber: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description *</Label>
-              <Input
-                id="edit-description"
-                type="text"
-                placeholder="Expense description"
-                value={editForm.description}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-amount">Amount (BDT) *</Label>
-              <Input
-                id="edit-amount"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={editForm.amount}
-                onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={updateEntry} disabled={updating}>
-              {updating ? 'Updating...' : 'Update Entry'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </SheetDescription>
+          </SheetHeader>
+          <DailyExpenseForm
+            form={editForm}
+            setForm={setEditForm}
+            onSubmit={updateEntry}
+            isSubmitting={updating}
+            onCancel={() => {
+              setIsEditDialogOpen(false);
+              setEditingEntry(null);
+              setEditForm({
+                date: undefined,
+                volumeNumber: '',
+                description: '',
+                amount: ''
+              });
+            }}
+          />
+        </SheetContent>
+      </Sheet>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

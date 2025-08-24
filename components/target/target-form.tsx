@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { IconPlus, IconEdit, IconX, IconCalendar } from '@tabler/icons-react';
-import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { IconPlus, IconEdit, IconX, IconCalendar } from '@tabler/icons-react';
+import { toast } from 'sonner';
+import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 import type { Target, TargetFormData, ProductionListItem, Line } from './schema';
 
 interface TargetFormProps {
@@ -22,15 +24,17 @@ interface TargetFormProps {
   lines: Line[];
 }
 
-export function TargetForm({ item, onSubmit, onCancel, mode, productionItems, lines }: TargetFormProps) {
+export default function TargetForm({ mode, item, onSubmit, onCancel, productionItems, lines }: TargetFormProps) {
+  const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
+  
   const [formData, setFormData] = useState<TargetFormData>({
+    date: '',
+    inTime: '',
+    outTime: '',
+    hourlyProduction: 0,
     lineNo: '',
     styleNo: '',
-    lineTarget: 0,
-    date: new Date().toLocaleDateString('en-CA'), // Use local date format
-    inTime: '08:00',
-    outTime: '17:00',
-    hourlyProduction: 0
+    lineTarget: 0
   });
   const [loading, setLoading] = useState(false);
 
@@ -172,7 +176,7 @@ export function TargetForm({ item, onSubmit, onCancel, mode, productionItems, li
                     </SelectTrigger>
                     <SelectContent>
                       {productionItems.length > 0 ? (
-                        productionItems.map(item => (
+                        productionItems.map((item: ProductionListItem) => (
                           <SelectItem key={item.id} value={item.styleNo}>
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{item.styleNo}</span>
@@ -252,7 +256,7 @@ export function TargetForm({ item, onSubmit, onCancel, mode, productionItems, li
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Target Date *</Label>
-                <Popover>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -260,6 +264,7 @@ export function TargetForm({ item, onSubmit, onCancel, mode, productionItems, li
                         "w-full justify-start text-left font-normal h-10",
                         !formData.date && "text-muted-foreground"
                       )}
+                      onClick={() => setIsCalendarOpen(true)}
                     >
                       <IconCalendar className="mr-2 h-4 w-4" />
                       {formData.date ? format(new Date(formData.date + 'T00:00:00'), "PPP") : <span>Pick a date</span>}
@@ -268,8 +273,13 @@ export function TargetForm({ item, onSubmit, onCancel, mode, productionItems, li
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={new Date(formData.date + 'T00:00:00')}
-                      onSelect={(date) => date && handleInputChange('date', date.toLocaleDateString('en-CA'))}
+                      selected={formData.date ? new Date(formData.date + 'T00:00:00') : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          handleInputChange('date', date.toLocaleDateString('en-CA'));
+                          setIsCalendarOpen(false);
+                        }
+                      }}
                       initialFocus
                     />
                   </PopoverContent>

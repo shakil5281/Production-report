@@ -88,7 +88,7 @@ function LoginForm() {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-4 px-0">
+          <CardContent className="space-y-4 px-0 md:px-8">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField

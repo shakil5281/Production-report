@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, DollarSign, Users, Calculator, Save, RefreshCw, AlertTriangle, Settings, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 
 interface SalaryRecord {
   section: string;
@@ -30,8 +31,10 @@ interface SalaryRecord {
 
 
 export default function DailySalaryPage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
+  const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
+  
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [salaryData, setSalaryData] = useState<SalaryRecord[]>([]);
   // Default hardcoded salary rates
   const defaultSalaryRates = {
     'Staff': { regular: 835, overtime: 0 },
@@ -93,7 +96,7 @@ export default function DailySalaryPage() {
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.data.records.length > 0) {
-          setSalaryRecords(result.data.records);
+          setSalaryData(result.data.records);
           setSummary(result.data.summary);
         } else {
           // Initialize with default sections and rates
@@ -124,7 +127,7 @@ export default function DailySalaryPage() {
           console.log('Found overtime records:', result.data.records);
           
           // Update salary records with overtime hours from overtime management
-          setSalaryRecords(current => {
+          setSalaryData(current => {
             console.log('Current salary records before overtime update:', current);
             
             const updated = current.map(record => {
@@ -192,7 +195,7 @@ export default function DailySalaryPage() {
           setHasManpowerData(false);
           setAvailableManpowerSections([]);
           // Fall back to default sections if no manpower data
-          if (salaryRecords.length === 0) {
+          if (salaryData.length === 0) {
             initializeDefaultRecords();
           }
         }
@@ -202,7 +205,7 @@ export default function DailySalaryPage() {
       setHasManpowerData(false);
       setAvailableManpowerSections([]);
       // Fall back to default sections on error
-      if (salaryRecords.length === 0) {
+      if (salaryData.length === 0) {
         initializeDefaultRecords();
       }
     } finally {
@@ -266,7 +269,7 @@ export default function DailySalaryPage() {
       });
 
       // Update salary records with aggregated worker counts
-      setSalaryRecords(current => 
+      setSalaryData(current => 
         current.map(record => {
           const presentWorkers = aggregatedWorkers[record.section] || 0;
           const updatedRecord = {
@@ -305,7 +308,7 @@ export default function DailySalaryPage() {
         totalAmount: 0
       };
     });
-    setSalaryRecords(records);
+    setSalaryData(records);
   };
 
   const initializeFromManpowerData = (manpowerSections: any[]) => {
@@ -361,7 +364,7 @@ export default function DailySalaryPage() {
       };
     });
     
-    setSalaryRecords(records);
+    setSalaryData(records);
     console.log('Initialized salary records with aggregated sections:', records);
     console.log('Section aggregation details:', aggregatedSections);
     
@@ -372,7 +375,7 @@ export default function DailySalaryPage() {
   };
 
   const updateSalaryRecord = (section: string, field: keyof SalaryRecord, value: any) => {
-    setSalaryRecords(records => {
+    setSalaryData(records => {
       const updated = records.map(record => {
         if (record.section === section) {
           const updatedRecord = { ...record, [field]: value };
@@ -416,7 +419,7 @@ export default function DailySalaryPage() {
         },
         body: JSON.stringify({
           date: formattedDate,
-          records: salaryRecords
+          records: salaryData
         }),
       });
 
@@ -490,14 +493,15 @@ export default function DailySalaryPage() {
             {/* Date Picker */}
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium">Date</Label>
-              <Popover>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full sm:w-48 justify-start text-left font-normal text-xs sm:text-sm md:text-base h-9 sm:h-10 md:h-11",
+                      "w-full justify-start text-left font-normal h-10",
                       !selectedDate && "text-muted-foreground"
                     )}
+                    onClick={() => setIsCalendarOpen(true)}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     <span className="truncate">
@@ -509,7 +513,12 @@ export default function DailySalaryPage() {
                   <Calendar
                     mode="single"
                     selected={selectedDate}
-                    onSelect={(newDate) => newDate && setSelectedDate(newDate)}
+                    onSelect={(newDate) => {
+                      if (newDate) {
+                        setSelectedDate(newDate);
+                        setIsCalendarOpen(false);
+                      }
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
@@ -702,7 +711,7 @@ export default function DailySalaryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {salaryRecords.map((record) => (
+                {salaryData.map((record) => (
                   <TableRow key={record.section}>
                     <TableCell>
                       <Badge className={`${getSectionBadgeColor(record.section)} text-xs sm:text-sm`}>
