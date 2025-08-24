@@ -213,9 +213,9 @@ export default function CashReceivedPage() {
     }
   };
 
-  const updateEntry = async () => {
-    if (!editForm.date || !editForm.amount || !editingEntry) {
-      toast.error('Please fill in date and amount');
+  const updateEntry = async (data: { date: Date; amount: number }) => {
+    if (!editingEntry) {
+      toast.error('No entry selected for editing');
       return;
     }
 
@@ -227,8 +227,8 @@ export default function CashReceivedPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          date: format(editForm.date, 'yyyy-MM-dd'),
-          amount: parseFloat(editForm.amount),
+          date: format(data.date, 'yyyy-MM-dd'),
+          amount: data.amount,
           category: 'Cash Received',
           description: null,
           referenceType: null,
@@ -237,15 +237,15 @@ export default function CashReceivedPage() {
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (data.success) {
+      if (result.success) {
         toast.success('Cash received entry updated successfully');
-        setIsEditDialogOpen(false);
+        setIsEditSheetOpen(false);
         setEditingEntry(null);
         fetchEntries();
       } else {
-        throw new Error(data.error || 'Failed to update entry');
+        throw new Error(result.error || 'Failed to update entry');
       }
     } catch (error) {
       console.error('Error updating cash received entry:', error);
@@ -536,11 +536,7 @@ export default function CashReceivedPage() {
 
   const openEditDialog = (entry: CashReceivedEntry) => {
     setEditingEntry(entry);
-    setEditForm({
-      date: new Date(entry.date),
-      amount: entry.amount.toString()
-    });
-    setIsEditDialogOpen(true);
+    setIsEditSheetOpen(true);
   };
 
   const openDeleteDialog = (entryId: string) => {
@@ -558,69 +554,61 @@ export default function CashReceivedPage() {
             Manage incoming cash transactions and revenue entries
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
+        {/* Create Sheet */}
+        <Sheet open={isCreateSheetOpen} onOpenChange={setIsCreateSheetOpen}>
+          <SheetTrigger asChild>
             <Button className="flex items-center justify-center gap-2">
               <IconPlus className="h-4 w-4" />
               <span>Add Cash Received</span>
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add Cash Received Entry</DialogTitle>
-              <DialogDescription>
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>Add Cash Received Entry</SheetTitle>
+              <SheetDescription>
                 Enter the details of the cash received transaction
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Date *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !createForm.date && "text-muted-foreground"
-                      )}
-                    >
-                      <IconCalendar className="mr-2 h-4 w-4" />
-                      {createForm.date ? format(createForm.date, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={createForm.date}
-                      onSelect={(date) => setCreateForm({ ...createForm, date })}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-amount">Amount (BDT) *</Label>
-                <Input
-                  id="create-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={createForm.amount}
-                  onChange={(e) => setCreateForm({ ...createForm, amount: e.target.value })}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={createEntry} disabled={creating}>
-                {creating ? 'Creating...' : 'Create Entry'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </SheetDescription>
+            </SheetHeader>
+            <CashReceivedForm
+              mode="create"
+              onSubmit={async (data) => {
+                await createEntry(data);
+                setIsCreateSheetOpen(false);
+              }}
+              onCancel={() => setIsCreateSheetOpen(false)}
+              loading={creating}
+            />
+          </SheetContent>
+        </Sheet>
+
+        {/* Edit Sheet */}
+        <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
+          <SheetContent className="w-full sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>Edit Cash Received Entry</SheetTitle>
+              <SheetDescription>
+                Update the details of the cash received transaction
+              </SheetDescription>
+            </SheetHeader>
+            {editingEntry && (
+              <CashReceivedForm
+                mode="edit"
+                initialData={{
+                  date: new Date(editingEntry.date),
+                  amount: editingEntry.amount
+                }}
+                onSubmit={async (data) => {
+                  await updateEntry(data);
+                }}
+                onCancel={() => {
+                  setIsEditSheetOpen(false);
+                  setEditingEntry(null);
+                }}
+                loading={updating}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Enhanced Filter Section */}
@@ -943,65 +931,6 @@ export default function CashReceivedPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Cash Received Entry</DialogTitle>
-            <DialogDescription>
-              Update the details of the cash received transaction
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Date *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !editForm.date && "text-muted-foreground"
-                    )}
-                  >
-                    <IconCalendar className="mr-2 h-4 w-4" />
-                    {editForm.date ? format(editForm.date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={editForm.date}
-                    onSelect={(date) => setEditForm({ ...editForm, date })}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-amount">Amount (BDT) *</Label>
-              <Input
-                id="edit-amount"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={editForm.amount}
-                onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={updateEntry} disabled={updating}>
-              {updating ? 'Updating...' : 'Update Entry'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

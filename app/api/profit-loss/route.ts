@@ -150,8 +150,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching profit and loss data:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch profit and loss data', details: error.message },
+      { success: false, error: 'Failed to fetch profit and loss data', details: errorMessage },
       { status: 500 }
     );
   }
