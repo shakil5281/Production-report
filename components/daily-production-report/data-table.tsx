@@ -28,22 +28,6 @@ export function DataTable({
   isMobile,
   onViewReport
 }: DataTableProps) {
-  // Debug logging
-  console.log('DataTable props:', {
-    reportsByLine: Object.keys(reportsByLine),
-    reportsWithoutLine: reportsWithoutLine.length,
-    lineSummaries: Object.keys(lineSummaries),
-    searchTerm,
-    lineFilter
-  });
-
-  // Log the actual data structure
-  console.log('DataTable detailed data:', {
-    reportsByLine,
-    reportsWithoutLine,
-    lineSummaries
-  });
-
   // Filter reports based on search term
   const filterReports = (reports: DailyProductionReport[]) => {
     if (!searchTerm) return reports;
@@ -64,15 +48,7 @@ export function DataTable({
     return filteredLineReports.length > 0;
   }) || (lineFilter === 'all' || lineFilter === '') && filterReports(reportsWithoutLine).length > 0;
 
-  console.log('DataTable conditions:', {
-    hasData,
-    hasFilteredData,
-    reportsByLineKeys: Object.keys(reportsByLine),
-    reportsWithoutLineLength: reportsWithoutLine.length
-  });
-
   if (!hasData) {
-    console.log('DataTable: No data available');
     return (
       <Card>
         <CardContent className="p-8">
@@ -89,7 +65,6 @@ export function DataTable({
   }
 
   if (!hasFilteredData) {
-    console.log('DataTable: No filtered data available');
     return (
       <Card>
         <CardContent className="p-8">
@@ -104,8 +79,6 @@ export function DataTable({
       </Card>
     );
   }
-
-  console.log('DataTable: Rendering data table with data');
 
   return (
     <div className="space-y-6">
@@ -126,29 +99,12 @@ export function DataTable({
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
-                      <span>Line Production Report</span>
+                      <span>Line {lineNo} Production Report</span>
                     </CardTitle>
                     <CardDescription>
                       Production performance for {format(selectedDate, 'PPP')}
                     </CardDescription>
                   </div>
-                  {lineSummary && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div className="text-center">
-                        <div className="font-bold text-blue-600">{(lineSummary?.totalTargetQty || 0).toLocaleString()}</div>
-                        <div className="text-muted-foreground">Target</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-bold text-green-600">{(lineSummary?.totalProductionQty || 0).toLocaleString()}</div>
-                        <div className="text-muted-foreground">Production</div>
-                      </div>
-
-                      <div className="text-center">
-                        <div className="font-bold text-orange-600">{(lineSummary?.totalNetAmount || 0).toLocaleString()}</div>
-                        <div className="text-muted-foreground">Net Amount (BDT)</div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardHeader>
               <CardContent className="p-0 sm:p-0">
@@ -221,6 +177,7 @@ export function DataTable({
                           <TableHead>Production Qty</TableHead>
                           <TableHead>Unit Price</TableHead>
                           <TableHead>Total Amount</TableHead>
+                          <TableHead>%</TableHead>
                           <TableHead>Net Amount</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -235,13 +192,14 @@ export function DataTable({
                               <TableCell className="font-mono">{(report.productionQty || 0).toLocaleString()}</TableCell>
                               <TableCell className="font-mono">${Number(report.unitPrice || 0).toFixed(2)}</TableCell>
                               <TableCell className="font-mono">${Number(report.totalAmount || 0).toLocaleString()}</TableCell>
+                              <TableCell className="font-mono text-blue-600 font-semibold">{Number(report.productionList?.percentage || 0).toFixed(2)}%</TableCell>
                               <TableCell className="font-mono text-green-600 font-semibold">{Number(report.netAmount || 0).toLocaleString()}</TableCell>
                             </TableRow>
                           );
                         })}
                         {filteredLineReports.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                            <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                               No reports for this line
                             </TableCell>
                           </TableRow>
@@ -251,6 +209,38 @@ export function DataTable({
                   </div>
                 )}
               </CardContent>
+              
+              {/* Footer with Line Totals */}
+              {lineSummary && (
+                <div className="bg-muted/30 p-4 border-t">
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
+                    <div className="text-center">
+                      <div className="font-bold text-blue-600">{(lineSummary?.totalTargetQty || 0).toLocaleString()}</div>
+                      <div className="text-muted-foreground">Total Target</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-green-600">{(lineSummary?.totalProductionQty || 0).toLocaleString()}</div>
+                      <div className="text-muted-foreground">Total Production</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-purple-600">${(lineSummary?.totalUnitPrice || 0).toLocaleString()}</div>
+                      <div className="text-muted-foreground">Total UNIT PRICE</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-cyan-600">${(lineSummary?.totalAmount || 0).toLocaleString()}</div>
+                      <div className="text-muted-foreground">Total Amount</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-blue-600">{(lineSummary?.averagePercentage || 0).toFixed(2)}%</div>
+                      <div className="text-muted-foreground">Average %</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-orange-600">{(lineSummary?.totalNetAmount || 0).toLocaleString()}</div>
+                      <div className="text-muted-foreground">Net Amount (BDT)</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </Card>
           );
         })}
@@ -336,6 +326,7 @@ export function DataTable({
                       <TableHead>Production Qty</TableHead>
                       <TableHead>Unit Price</TableHead>
                       <TableHead>Total Amount</TableHead>
+                      <TableHead>%</TableHead>
                       <TableHead>Net Amount</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -350,13 +341,14 @@ export function DataTable({
                           <TableCell className="font-mono">{(report.productionQty || 0).toLocaleString()}</TableCell>
                           <TableCell className="font-mono">${Number(report.unitPrice || 0).toFixed(2)}</TableCell>
                           <TableCell className="font-mono">${Number(report.totalAmount || 0).toLocaleString()}</TableCell>
+                          <TableCell className="font-mono text-blue-600 font-semibold">{Number(report.productionList?.percentage || 0).toFixed(2)}%</TableCell>
                           <TableCell className="font-mono text-green-600 font-semibold">{Number(report.netAmount || 0).toLocaleString()}</TableCell>
                         </TableRow>
                       );
                     })}
                     {filterReports(reportsWithoutLine).length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                           No unassigned reports found
                         </TableCell>
                       </TableRow>
@@ -365,6 +357,193 @@ export function DataTable({
                 </Table>
               </div>
             )}
+          </CardContent>
+          
+          {/* Footer with Unassigned Reports Totals */}
+          {reportsWithoutLine.length > 0 && (
+            <div className="bg-muted/20 p-4 border-t">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="font-bold text-blue-600">
+                    {filterReports(reportsWithoutLine).reduce((sum, report) => sum + (report.targetQty || 0), 0).toLocaleString()}
+                  </div>
+                  <div className="text-muted-foreground">Total Target</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-bold text-green-600">
+                    {filterReports(reportsWithoutLine).reduce((sum, report) => sum + (report.productionQty || 0), 0).toLocaleString()}
+                  </div>
+                  <div className="text-muted-foreground">Total Production</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-bold text-purple-600">
+                    ${filterReports(reportsWithoutLine).reduce((sum, report) => sum + Number(report.unitPrice || 0), 0).toLocaleString()}
+                  </div>
+                  <div className="text-muted-foreground">Total UNIT PRICE</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-bold text-cyan-600">
+                    ${filterReports(reportsWithoutLine).reduce((sum, report) => sum + Number(report.totalAmount || 0), 0).toLocaleString()}
+                  </div>
+                  <div className="text-muted-foreground">Total Amount</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-bold text-blue-600">
+                    {(filterReports(reportsWithoutLine).reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0) / Math.max(filterReports(reportsWithoutLine).length, 1)).toFixed(2)}%
+                  </div>
+                  <div className="text-muted-foreground">Average %</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-bold text-orange-600">
+                    {filterReports(reportsWithoutLine).reduce((sum, report) => sum + Number(report.netAmount || 0), 0).toLocaleString()}
+                  </div>
+                  <div className="text-muted-foreground">Net Amount (BDT)</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Overall Totals Footer */}
+      {hasFilteredData && (
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
+          <CardHeader className="bg-blue-100/50">
+            <CardTitle className="text-lg font-bold text-blue-800 text-center">
+              📊 OVERALL TOTALS - {format(selectedDate, 'PPP')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-6 text-center">
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-blue-600">
+                  {(() => {
+                    let total = 0;
+                    // Add totals from filtered line reports
+                    Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
+                      if (lineFilter === 'all' || lineNo === lineFilter) {
+                        const filteredLineReports = filterReports(lineReports);
+                        total += filteredLineReports.reduce((sum, report) => sum + (report.targetQty || 0), 0);
+                      }
+                    });
+                    // Add totals from unassigned reports if showing all
+                    if (lineFilter === 'all' || lineFilter === '') {
+                      total += filterReports(reportsWithoutLine).reduce((sum, report) => sum + (report.targetQty || 0), 0);
+                    }
+                    return total.toLocaleString();
+                  })()}
+                </div>
+                <div className="text-sm font-medium text-blue-700">Total Target Qty</div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-green-600">
+                  {(() => {
+                    let total = 0;
+                    // Add totals from filtered line reports
+                    Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
+                      if (lineFilter === 'all' || lineNo === lineFilter) {
+                        const filteredLineReports = filterReports(lineReports);
+                        total += filteredLineReports.reduce((sum, report) => sum + (report.productionQty || 0), 0);
+                      }
+                    });
+                    // Add totals from unassigned reports if showing all
+                    if (lineFilter === 'all' || lineFilter === '') {
+                      total += filterReports(reportsWithoutLine).reduce((sum, report) => sum + (report.productionQty || 0), 0);
+                    }
+                    return total.toLocaleString();
+                  })()}
+                </div>
+                <div className="text-sm font-medium text-green-700">Total Production Qty</div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-purple-600">
+                  ${(() => {
+                    let total = 0;
+                    // Add totals from filtered line reports
+                    Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
+                      if (lineFilter === 'all' || lineNo === lineFilter) {
+                        const filteredLineReports = filterReports(lineReports);
+                        total += filteredLineReports.reduce((sum, report) => sum + Number(report.unitPrice || 0), 0);
+                      }
+                    });
+                    // Add totals from unassigned reports if showing all
+                    if (lineFilter === 'all' || lineFilter === '') {
+                      total += filterReports(reportsWithoutLine).reduce((sum, report) => sum + Number(report.unitPrice || 0), 0);
+                    }
+                    return total.toLocaleString();
+                  })()}
+                </div>
+                <div className="text-sm font-medium text-purple-700">Total UNIT PRICE</div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-cyan-600">
+                  ${(() => {
+                    let total = 0;
+                    // Add totals from filtered line reports
+                    Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
+                      if (lineFilter === 'all' || lineNo === lineFilter) {
+                        const filteredLineReports = filterReports(lineReports);
+                        total += filteredLineReports.reduce((sum, report) => sum + Number(report.totalAmount || 0), 0);
+                      }
+                    });
+                    // Add totals from unassigned reports if showing all
+                    if (lineFilter === 'all' || lineFilter === '') {
+                      total += filterReports(reportsWithoutLine).reduce((sum, report) => sum + Number(report.totalAmount || 0), 0);
+                    }
+                    return total.toLocaleString();
+                  })()}
+                </div>
+                <div className="text-sm font-medium text-cyan-700">Total Amount</div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-blue-600">
+                  {(() => {
+                    let total = 0;
+                    let count = 0;
+                    // Add totals from filtered line reports
+                    Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
+                      if (lineFilter === 'all' || lineNo === lineFilter) {
+                        const filteredLineReports = filterReports(lineReports);
+                        total += filteredLineReports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0);
+                        count += filteredLineReports.length;
+                      }
+                    });
+                    // Add totals from unassigned reports if showing all
+                    if (lineFilter === 'all' || lineFilter === '') {
+                      total += filterReports(reportsWithoutLine).reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0);
+                      count += filterReports(reportsWithoutLine).length;
+                    }
+                    return count > 0 ? (total / count).toFixed(2) : '0.00';
+                  })()}%
+                </div>
+                <div className="text-sm font-medium text-blue-700">Average %</div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-orange-600">
+                  {(() => {
+                    let total = 0;
+                    // Add totals from filtered line reports
+                    Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
+                      if (lineFilter === 'all' || lineNo === lineFilter) {
+                        const filteredLineReports = filterReports(lineReports);
+                        total += filteredLineReports.reduce((sum, report) => sum + Number(report.netAmount || 0), 0);
+                      }
+                    });
+                    // Add totals from unassigned reports if showing all
+                    if (lineFilter === 'all' || lineFilter === '') {
+                      total += filterReports(reportsWithoutLine).reduce((sum, report) => sum + Number(report.netAmount || 0), 0);
+                    }
+                    return total.toLocaleString();
+                  })()}
+                </div>
+                <div className="text-sm font-medium text-orange-700">Net Amount (BDT)</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

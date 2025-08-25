@@ -90,18 +90,21 @@ export async function GET(request: NextRequest) {
     
     // console.log(`Unique time slots found: ${timeSlotHeaders.join(', ')}`);
     
-    // Group targets by line, date, and time to show all lines separately
-    // Each unique combination of line + date + time = separate row
+    // Group targets by line, style, buyer, item, and target to consolidate similar entries
+    // Each unique combination of line + style + buyer + item + target = one consolidated row
     const targetGroups = new Map();
     
     targets.forEach(target => {
-      // Create unique key for each individual target entry
-      const groupKey = `${target.lineNo}-${target.styleNo}-${target.id}`;
+      // Create unique key for consolidation: line + style + buyer + item + target
+      const groupKey = `${target.lineNo}-${target.styleNo}-${target.productionList?.buyer || 'N/A'}-${target.productionList?.item || 'N/A'}-${target.lineTarget}`;
       
       if (!targetGroups.has(groupKey)) {
         targetGroups.set(groupKey, {
           lineNo: target.lineNo,
           styleNo: target.styleNo,
+          buyer: target.productionList?.buyer || 'N/A',
+          item: target.productionList?.item || 'N/A',
+          baseTarget: target.lineTarget, // Base target (per hour)
           targets: [],
           productionList: target.productionList
         });
@@ -110,12 +113,12 @@ export async function GET(request: NextRequest) {
       targetGroups.get(groupKey).targets.push(target);
     });
     
-    console.log(`Grouped into ${targetGroups.size} unique target entries`);
+    console.log(`Grouped into ${targetGroups.size} consolidated target entries`);
     
-    // Debug: Show each group
+    // Debug: Show each consolidated group
     let debugIndex = 1;
     targetGroups.forEach((group, groupKey) => {
-      console.log(`  Group ${debugIndex}: Line ${group.lineNo}, Style ${group.styleNo}, Targets: ${group.targets.length}`);
+      console.log(`  Group ${debugIndex}: Line ${group.lineNo}, Style ${group.styleNo}, Buyer: ${group.buyer}, Item: ${group.item}, Base Target: ${group.baseTarget}, Entries: ${group.targets.length}`);
       debugIndex++;
     });
     
@@ -123,12 +126,9 @@ export async function GET(request: NextRequest) {
     const reportData: any[] = [];
     
     targetGroups.forEach((group, groupKey) => {
-      // console.log(`Processing group: ${groupKey}`);
+      // console.log(`Processing consolidated group: ${groupKey}`);
       
-      // Calculate total target (sum of all targets in this group)
-      const totalTarget = group.targets.reduce((sum: number, target: any) => sum + target.lineTarget, 0);
-      
-      // Calculate total working hours (sum of all hours in this group)
+      // Calculate total working hours (sum of all hours from all entries in this group)
       const totalWorkingHours = group.targets.reduce((sum: number, target: any) => {
         const inTime = target.inTime || '08:00';
         const outTime = target.outTime || '20:00';
@@ -137,8 +137,8 @@ export async function GET(request: NextRequest) {
         return sum + Math.max(1, endHour - startHour);
       }, 0);
       
-      // Calculate total targets (target * hours)
-      const totalTargets = totalTarget * totalWorkingHours;
+      // Calculate total targets (base target * total working hours)
+      const totalTargets = group.baseTarget * totalWorkingHours;
       
       // Initialize hourly production with 0 for all time slots
       const hourlyProduction: Record<string, number> = {};
@@ -146,12 +146,12 @@ export async function GET(request: NextRequest) {
         hourlyProduction[timeSlot] = 0;
       });
       
-      // Map production data from targets to time slots
+      // Map production data from all targets in this group to time slots
       group.targets.forEach((target: any) => {
         const timeSlot = `${target.inTime || '08:00'}-${target.outTime || '20:00'}`;
         if (hourlyProduction.hasOwnProperty(timeSlot)) {
-          hourlyProduction[timeSlot] = target.hourlyProduction || 0;
-          // console.log(`Style ${group.styleNo}: Added ${target.hourlyProduction || 0} to time slot ${timeSlot}`);
+          // Add production from this target to the existing time slot
+          hourlyProduction[timeSlot] += target.hourlyProduction || 0;
         }
       });
       
@@ -159,23 +159,34 @@ export async function GET(request: NextRequest) {
       const totalProduction = Object.values(hourlyProduction).reduce((sum: number, val: number) => sum + val, 0);
       const averageProductionPerHour = totalWorkingHours > 0 ? totalProduction / totalWorkingHours : 0;
       
-      // console.log(`Style ${group.styleNo} hourly production:`, hourlyProduction);
-      // console.log(`Style ${group.styleNo} total production: ${totalProduction}`);
+      // console.log(`Consolidated Style ${group.styleNo} hourly production:`, hourlyProduction);
+      // console.log(`Consolidated Style ${group.styleNo} total production: ${totalProduction}`);
       
       reportData.push({
-        id: groupKey, // Use the group key as unique ID
+        id: groupKey, // Use the consolidated group key as unique ID
         lineNo: group.lineNo,
         lineName: lineMap.get(group.lineNo)?.name || 'Unknown Line',
         styleNo: group.styleNo,
-        buyer: group.productionList?.buyer || 'N/A',
-        item: group.productionList?.item || 'N/A',
-        target: totalTarget,
-        hours: totalWorkingHours,
-        totalTargets: totalTargets,
+        buyer: group.buyer,
+        item: group.item,
+        baseTarget: group.baseTarget, // Base target per hour
+        hours: totalWorkingHours, // Total working hours
+        totalTargets: totalTargets, // Base target * total hours
         hourlyProduction,
         totalProduction,
-        averageProductionPerHour
+        averageProductionPerHour,
+        targetEntries: group.targets.length // Number of original target entries consolidated
       });
+    });
+    
+    // Sort report data by line (A to Z) and then by style number
+    reportData.sort((a, b) => {
+      // First sort by line number (A to Z)
+      if (a.lineNo !== b.lineNo) {
+        return a.lineNo.localeCompare(b.lineNo);
+      }
+      // Then sort by style number
+      return a.styleNo.localeCompare(b.styleNo);
     });
     
     // Calculate summary statistics
@@ -186,6 +197,8 @@ export async function GET(request: NextRequest) {
       averageProductionPerHour: reportData.length > 0 
         ? reportData.reduce((sum, item) => sum + item.averageProductionPerHour, 0) / reportData.length 
         : 0,
+      totalConsolidatedEntries: reportData.length,
+      totalOriginalEntries: reportData.reduce((sum, item) => sum + item.targetEntries, 0),
       date: formattedDate
     };
     

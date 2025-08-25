@@ -5,7 +5,6 @@ import {
   SortingState,
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   ColumnFiltersState,
@@ -21,6 +20,7 @@ import { format } from 'date-fns';
 import { columns } from './table-columns';
 import type { Target } from './schema';
 import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 interface TargetDataTableProps {
   data: Target[];
@@ -30,9 +30,37 @@ interface TargetDataTableProps {
   onEdit: (item: Target) => void;
   onDelete: (item: Target) => void;
   onBulkDelete: (targetIds: string[]) => void;
+  loading?: boolean;
+  error?: string | null;
+  // Pagination props
+  currentPage: number;
+  pageSize: number;
+  totalPages: number;
+  totalRecords: number;
+  hasMore: boolean;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
 }
 
-export function TargetDataTable({ data, selectedDate, onDateChange, onView, onEdit, onDelete, onBulkDelete }: TargetDataTableProps) {
+export function TargetDataTable({ 
+  data, 
+  selectedDate, 
+  onDateChange, 
+  onView, 
+  onEdit, 
+  onDelete, 
+  onBulkDelete,
+  loading = false,
+  error = null,
+  // Pagination props
+  currentPage,
+  pageSize,
+  totalPages,
+  totalRecords,
+  hasMore,
+  onPageChange,
+  onPageSizeChange
+}: TargetDataTableProps) {
   const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
   
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -45,7 +73,6 @@ export function TargetDataTable({ data, selectedDate, onDateChange, onView, onEd
     columns,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onRowSelectionChange: setRowSelection,
     state: {
@@ -58,6 +85,25 @@ export function TargetDataTable({ data, selectedDate, onDateChange, onView, onEd
       onDelete: (item: Target) => onDelete(item),
     },
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">Error loading target data</p>
+          <p className="text-sm text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -98,38 +144,36 @@ export function TargetDataTable({ data, selectedDate, onDateChange, onView, onEd
         {table.getFilteredSelectedRowModel().rows.length > 0 && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="h-8">
-                <IconTrash className="mr-2 h-4 w-4" />
+              <Button variant="destructive" size="sm">
+                <IconTrash className="h-4 w-4 mr-2" />
                 Delete Selected ({table.getFilteredSelectedRowModel().rows.length})
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete Selected Targets</AlertDialogTitle>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete {table.getFilteredSelectedRowModel().rows.length} selected target(s)? 
-                  This action cannot be undone and will also remove any associated daily production reports.
+                  This action cannot be undone. This will permanently delete the selected targets.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => {
-                    const selectedTargetIds = table.getFilteredSelectedRowModel().rows.map(
-                      (row) => row.original.id
-                    );
-                    onBulkDelete(selectedTargetIds);
+                    const selectedIds = table.getFilteredSelectedRowModel().rows.map(row => row.original.id);
+                    onBulkDelete(selectedIds);
                     setRowSelection({});
                   }}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Delete {table.getFilteredSelectedRowModel().rows.length} Target(s)
+                  Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
         )}
       </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -180,28 +224,73 @@ export function TargetDataTable({ data, selectedDate, onDateChange, onView, onEd
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2">
+            <p className="text-sm font-medium">Rows per page</p>
+            <select
+              value={pageSize}
+              onChange={e => {
+                onPageSizeChange(Number(e.target.value))
+              }}
+              className="h-8 w-16 rounded border border-input bg-background px-2 py-1 text-sm"
+            >
+              {[5, 10, 20, 50].map(size => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {table.getFilteredSelectedRowModel().rows.length} of{" "}
+            {totalRecords} row(s) selected.
+          </div>
         </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <IconChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <IconChevronRight className="h-4 w-4" />
-          </Button>
+        
+        <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2">
+            <p className="text-sm font-medium">
+              Page {currentPage} of {totalPages}
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(1)}
+              disabled={currentPage <= 1}
+            >
+              <IconChevronLeft className="h-4 w-4" />
+              <IconChevronLeft className="h-4 w-4 -ml-2" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+            >
+              <IconChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+            >
+              <IconChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(totalPages)}
+              disabled={currentPage >= totalPages}
+            >
+              <IconChevronRight className="h-4 w-4" />
+              <IconChevronRight className="h-4 w-4 -ml-2" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

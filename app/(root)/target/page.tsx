@@ -93,6 +93,13 @@ export default function TargetPage() {
   const [lineAssignments, setLineAssignments] = useState<LineAssignment[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [formData, setFormData] = useState({
     productionListId: '',
     lineNo: '',
@@ -135,11 +142,12 @@ export default function TargetPage() {
   }, []);
 
   useEffect(() => {
-    fetchTargets();
+    setCurrentPage(1); // Reset to first page when date changes
+    fetchTargets(1, pageSize);
     fetchLineAssignments();
-  }, [selectedDate]);
+  }, [selectedDate, pageSize]);
 
-  const fetchTargets = async () => {
+  const fetchTargets = async (page = 1, size = pageSize) => {
     setLoading(true);
     try {
       // Format date as YYYY-MM-DD in local timezone to avoid timezone issues
@@ -149,12 +157,16 @@ export default function TargetPage() {
       const formattedDate = `${year}-${month}-${day}`;
       
       // Debug log to verify correct date formatting
-      console.log(`📅 Fetching targets for date: ${formattedDate} (Selected: ${selectedDate.toDateString()})`);
+      console.log(`📅 Fetching targets for date: ${formattedDate} (Selected: ${selectedDate.toDateString()}) - Page: ${page}, Size: ${size}`);
       
-      const response = await fetch(`/api/target?date=${formattedDate}`);
+      const response = await fetch(`/api/target?date=${formattedDate}&page=${page}&limit=${size}`);
       const data = await response.json();
       if (data.success) {
         setTargets(data.data || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalRecords(data.total || 0);
+        setHasMore(data.hasMore || false);
+        setCurrentPage(page);
       }
     } catch (error) {
       console.error('Error fetching targets:', error);
@@ -282,6 +294,18 @@ export default function TargetPage() {
     // You can implement a view modal later if needed
     console.log('Viewing target:', target);
     toast.info(`Viewing target: Line ${target.lineNo} - Style ${target.styleNo}`);
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchTargets(page, pageSize);
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1); // Reset to first page when changing page size
+    fetchTargets(1, size);
   };
 
   const resetForm = () => {
@@ -643,6 +667,15 @@ export default function TargetPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onBulkDelete={handleBulkDelete}
+              // Pagination props
+              currentPage={currentPage}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              totalRecords={totalRecords}
+              hasMore={hasMore}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              loading={loading}
             />
           )}
         </CardContent>

@@ -10,13 +10,14 @@ import { EditSheet } from './edit-sheet';
 import { ViewSheet } from './view-sheet';
 import { DeleteDialog } from './delete-dialog';
 import { PaginationControls } from './pagination';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 interface ProductionListDataTableProps {
   statusFilter?: 'all' | 'RUNNING' | 'PENDING' | 'COMPLETE' | 'CANCELLED';
 }
 
 export function ProductionListDataTable({ statusFilter = 'all' }: ProductionListDataTableProps) {
-  const { productionItems, updateProductionItem, deleteProductionItem } = useProduction();
+  const { productionItems, updateProductionItem, deleteProductionItem, loading, error } = useProduction();
   const [editingItem, setEditingItem] = useState<ProductionItem | null>(null);
   const [viewingItem, setViewingItem] = useState<ProductionItem | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -59,6 +60,25 @@ export function ProductionListDataTable({ statusFilter = 'all' }: ProductionList
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">Error loading production data</p>
+          <p className="text-sm text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="overflow-x-auto">
@@ -74,8 +94,8 @@ export function ProductionListDataTable({ statusFilter = 'all' }: ProductionList
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead className="text-right">Price</TableHead>
                 <TableHead className="text-right">%</TableHead>
-                              <TableHead>Status</TableHead>
-              <TableHead className="w-24">Actions</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -100,25 +120,29 @@ export function ProductionListDataTable({ statusFilter = 'all' }: ProductionList
         onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
       />
 
-      <EditSheet
-        open={!!editingItem}
-        onOpenChange={(o) => { if (!o) setEditingItem(null); }}
-        item={editingItem}
-        onSubmit={handleUpdateItem}
-        onCancel={() => setEditingItem(null)}
-      />
+      {editingItem && (
+        <EditSheet
+          open={!!editingItem}
+          onOpenChange={(open) => !open && setEditingItem(null)}
+          item={editingItem}
+          onSubmit={handleUpdateItem}
+          onCancel={() => setEditingItem(null)}
+        />
+      )}
 
-      <ViewSheet
-        open={!!viewingItem}
-        onOpenChange={(o) => { if (!o) setViewingItem(null); }}
-        item={viewingItem}
-      />
+      {viewingItem && (
+        <ViewSheet
+          open={!!viewingItem}
+          onOpenChange={(open) => !open && setViewingItem(null)}
+          item={viewingItem}
+        />
+      )}
 
       <DeleteDialog
         open={deleteOpen}
-        onOpenChange={(o) => setDeleteOpen(o)}
-        item={itemToDelete}
+        onOpenChange={setDeleteOpen}
         onConfirm={handleConfirmDelete}
+        item={itemToDelete}
       />
     </>
   );

@@ -6,12 +6,13 @@ export interface ComprehensiveTargetData {
   styleNo: string;
   buyer: string;
   item: string;
-  target: number;
-  hours: number;
-  totalTargets: number;
+  baseTarget: number; // Base target per hour
+  hours: number; // Total working hours
+  totalTargets: number; // Base target * total hours
   hourlyProduction: Record<string, number>;
   totalProduction: number;
   averageProductionPerHour: number;
+  targetEntries: number; // Number of original target entries consolidated
 }
 
 export interface SummaryData {
@@ -19,6 +20,8 @@ export interface SummaryData {
   totalTarget: number;
   totalProduction: number;
   averageProductionPerHour: number;
+  totalConsolidatedEntries: number; // Number of consolidated rows
+  totalOriginalEntries: number; // Total number of original target entries
   date: string;
 }
 

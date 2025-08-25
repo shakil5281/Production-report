@@ -90,23 +90,27 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                      validateQuantities(formData.quantities);
 
   return (
-    <div className="min-h-screen sm:h-full flex flex-col">
+    <div className="min-h-screen sm:h-full flex flex-col bg-background">
       {/* Header - Fixed */}
-      <div className="flex-shrink-0 border-b p-4 sm:p-6">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="flex-shrink-0 border-b bg-card p-4 sm:p-6">
+        <div className="flex items-center gap-3 mb-3">
           {mode === 'create' ? (
             <>
-              <IconPlus className="h-5 w-5 text-primary" />
-              <h2 className="text-lg sm:text-xl font-bold">Add New Production Item</h2>
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <IconPlus className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Add New Production Item</h2>
             </>
           ) : (
             <>
-              <IconEdit className="h-5 w-5 text-primary" />
-              <h2 className="text-lg sm:text-xl font-bold">Edit Production Item</h2>
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <IconEdit className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Edit Production Item</h2>
             </>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground ml-11">
           {mode === 'create' 
             ? 'Create a new production item with all required details'
             : 'Update the production item information'
@@ -115,83 +119,79 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
       </div>
 
       {/* Form Content - Scrollable with full height support */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        <form onSubmit={handleSubmit} className="space-y-6 pb-24 sm:pb-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information Card */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">Basic Information</CardTitle>
-              <CardDescription className="text-sm">
+          <Card className="shadow-sm border-0 bg-card/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-foreground">Basic Information</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">
                 Enter the basic details for the production item
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="programCode" className="text-sm font-medium">Program Code *</Label>
-                    <Input
-                      id="programCode"
-                      value={formData.programCode}
-                      onChange={(e) => handleInputChange('programCode', e.target.value)}
-                      placeholder="e.g., PRG-001"
-                      className="h-10"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="styleNo" className="text-sm font-medium">Style No *</Label>
-                    <Input
-                      id="styleNo"
-                      value={formData.styleNo}
-                      onChange={(e) => handleInputChange('styleNo', e.target.value)}
-                      placeholder="e.g., STY-001"
-                      className="h-10"
-                      required
-                    />
-                  </div>
+            <CardContent className="space-y-5">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="programCode" className="text-sm font-medium">Program Code *</Label>
+                  <Input
+                    id="programCode"
+                    value={formData.programCode}
+                    onChange={(e) => handleInputChange('programCode', e.target.value)}
+                    placeholder="e.g., PRG-001"
+                    className="h-11 w-full"
+                    required
+                  />
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="buyer" className="text-sm font-medium">Buyer *</Label>
-                    <Input
-                      id="buyer"
-                      value={formData.buyer}
-                      onChange={(e) => handleInputChange('buyer', e.target.value)}
-                      placeholder="e.g., Buyer A"
-                      className="h-10"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="item" className="text-sm font-medium">Item *</Label>
-                    <Input
-                      id="item"
-                      value={formData.item}
-                      onChange={(e) => handleInputChange('item', e.target.value)}
-                      placeholder="e.g., Shirt"
-                      className="h-10"
-                      required
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="styleNo" className="text-sm font-medium">Style No *</Label>
+                  <Input
+                    id="styleNo"
+                    value={formData.styleNo}
+                    onChange={(e) => handleInputChange('styleNo', e.target.value)}
+                    placeholder="e.g., STY-001"
+                    className="h-11 w-full"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="buyer" className="text-sm font-medium">Buyer *</Label>
+                  <Input
+                    id="buyer"
+                    value={formData.buyer}
+                    onChange={(e) => handleInputChange('buyer', e.target.value)}
+                    placeholder="e.g., Buyer A"
+                    className="h-11 w-full"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="item" className="text-sm font-medium">Item *</Label>
+                  <Input
+                    id="item"
+                    value={formData.item}
+                    onChange={(e) => handleInputChange('item', e.target.value)}
+                    placeholder="e.g., Shirt"
+                    className="h-11 w-full"
+                    required
+                  />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Financial Information Card */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">Financial & Status</CardTitle>
-              <CardDescription className="text-sm">
+          <Card className="shadow-sm border-0 bg-card/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-foreground">Financial & Status</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">
                 Set pricing, percentage, and production status
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <CardContent className="space-y-5">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="price" className="text-sm font-medium">Unit Price ($) *</Label>
                   <Input
@@ -202,7 +202,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                     value={formData.price || ''}
                     onChange={(e) => handleInputChange('price', e.target.value)}
                     placeholder="e.g., 10.00"
-                    className="h-10"
+                    className="h-11 w-full"
                     required
                   />
                 </div>
@@ -218,69 +218,69 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                     value={formData.percentage || ''}
                     onChange={(e) => handleInputChange('percentage', e.target.value)}
                     placeholder="e.g., 25.5"
-                    className="h-10"
+                    className="h-11 w-full"
                   />
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="status" className="text-sm font-medium">Production Status *</Label>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(value: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED') => 
-                    setFormData(prev => ({ ...prev, status: value }))
-                  }
-                >
-                  <SelectTrigger className="w-full h-10">
-                    <SelectValue placeholder="Select production status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PENDING">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                        Pending
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="RUNNING">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        Running
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="COMPLETE">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        Complete
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="CANCELLED">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                        Cancelled
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="status" className="text-sm font-medium">Production Status *</Label>
+                  <Select 
+                    value={formData.status} 
+                    onValueChange={(value: 'PENDING' | 'RUNNING' | 'COMPLETE' | 'CANCELLED') => 
+                      setFormData(prev => ({ ...prev, status: value }))
+                    }
+                  >
+                    <SelectTrigger className="w-full h-11">
+                      <SelectValue placeholder="Select production status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PENDING">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                          Pending
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="RUNNING">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          Running
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="COMPLETE">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          Complete
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="CANCELLED">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                          Cancelled
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Quantity Management Card */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold flex items-center justify-between">
+          <Card className="shadow-sm border-0 bg-card/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-foreground flex items-center justify-between">
                 Quantity Details
                 {totalQuantity > 0 && (
-                  <Badge variant="secondary" className="text-sm font-semibold">
+                  <Badge variant="secondary" className="text-sm font-semibold bg-primary/10 text-primary border-primary/20">
                     Total: {totalQuantity.toLocaleString()}
                   </Badge>
                 )}
               </CardTitle>
-              <CardDescription className="text-sm">
+              <CardDescription className="text-sm text-muted-foreground">
                 Add quantity breakdown by variant and color
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-2">
               <QuantityManager
                 quantities={formData.quantities}
                 onChange={handleQuantitiesChange}
@@ -290,23 +290,23 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
           </Card>
 
           {/* Mobile Action Buttons - Inside scrollable area */}
-          <div className="block sm:hidden pt-6">
-            <div className="flex flex-col gap-3">
+          <div className="block sm:hidden pt-8">
+            <div className="flex flex-col gap-4">
               <Button
                 type="submit"
                 disabled={loading || !isFormValid}
-                className="w-full h-12"
+                className="w-full h-12 text-base font-medium"
                 onClick={handleSubmit}
               >
                 {mode === 'create' ? (
                   <>
-                    <IconPlus className="h-4 w-4 mr-2" />
-                    {loading ? 'Creating...' : 'Create Item'}
+                    <IconPlus className="h-5 w-5 mr-2" />
+                    {loading ? 'Creating...' : 'Create Production Item'}
                   </>
                 ) : (
                   <>
-                    <IconEdit className="h-4 w-4 mr-2" />
-                    {loading ? 'Updating...' : 'Update Item'}
+                    <IconEdit className="h-5 w-5 mr-2" />
+                    {loading ? 'Updating...' : 'Update Production Item'}
                   </>
                 )}
               </Button>
@@ -315,9 +315,9 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
                 variant="outline"
                 onClick={onCancel}
                 disabled={loading}
-                className="w-full h-12"
+                className="w-full h-12 text-base font-medium"
               >
-                <IconX className="h-4 w-4 mr-2" />
+                <IconX className="h-5 w-5 mr-2" />
                 Cancel
               </Button>
             </div>
@@ -326,14 +326,14 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
       </div>
 
       {/* Desktop Footer Actions - Fixed (hidden on mobile) */}
-      <div className="hidden sm:block flex-shrink-0 border-t bg-muted/30 p-4 sm:p-6">
+      <div className="hidden sm:block flex-shrink-0 border-t bg-card/80 backdrop-blur-sm p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row justify-end gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
             disabled={loading}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto h-11 px-6"
           >
             <IconX className="h-4 w-4 mr-2" />
             Cancel
@@ -341,18 +341,18 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
           <Button
             type="submit"
             disabled={loading || !isFormValid}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto h-11 px-6"
             onClick={handleSubmit}
           >
             {mode === 'create' ? (
               <>
                 <IconPlus className="h-4 w-4 mr-2" />
-                {loading ? 'Creating...' : 'Create Item'}
+                {loading ? 'Creating...' : 'Create Production Item'}
               </>
             ) : (
               <>
                 <IconEdit className="h-4 w-4 mr-2" />
-                {loading ? 'Updating...' : 'Update Item'}
+                {loading ? 'Updating...' : 'Update Production Item'}
               </>
             )}
           </Button>
