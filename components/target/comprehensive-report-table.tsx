@@ -81,7 +81,7 @@ export function ComprehensiveReportTable({
                 {row.item}
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-semibold text-blue-700 bg-blue-50">
-                {row.target.toLocaleString()}
+                {row.baseTarget.toLocaleString()}
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center text-gray-700 bg-blue-50">
                 {row.hours}h
@@ -116,7 +116,7 @@ export function ComprehensiveReportTable({
                 TOTALS
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-blue-800 bg-blue-100">
-                {data.reduce((sum, row) => sum + row.target, 0).toLocaleString()}
+                {data.reduce((sum, row) => sum + row.baseTarget, 0).toLocaleString()}
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-blue-800 bg-blue-100">
                 {data.reduce((sum, row) => sum + row.hours, 0)}h

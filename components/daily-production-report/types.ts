@@ -9,11 +9,13 @@ export interface DailyProductionReport {
   netAmount: number;
   lineNo: string | null;
   notes: string | null;
+  percentage: number;
   productionList: {
     buyer: string;
     item: string;
     price: number;
     totalQty: number;
+    percentage: number;
   };
 }
 
@@ -23,6 +25,10 @@ export interface ProductionSummary {
   totalProductionQty: number;
   totalAmount: number;
   totalNetAmount: number;
+  totalUnitPrice: number;
+  totalPercentage: number;
+  averagePercentage: number;
+  averageEfficiency: number;
   totalLines: number;
   linesWithProduction: number;
 }
@@ -34,6 +40,10 @@ export interface LineSummary {
   totalProductionQty: number;
   totalAmount: number;
   totalNetAmount: number;
+  totalUnitPrice: number;
+  totalPercentage: number;
+  averagePercentage: number;
+  averageEfficiency: number;
 }
 
 export interface ExportDataRow {

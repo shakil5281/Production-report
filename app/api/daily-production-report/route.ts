@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
       whereClause.lineNo = lineNo;
     }
 
+    // Get daily production reports for the specified date
     const reports = await prisma.dailyProductionReport.findMany({
       where: whereClause,
       include: {
@@ -45,7 +46,8 @@ export async function GET(request: NextRequest) {
             buyer: true,
             item: true,
             price: true,
-            totalQty: true
+            totalQty: true,
+            percentage: true
           }
         }
       },
@@ -88,6 +90,10 @@ export async function GET(request: NextRequest) {
         totalProductionQty: lineReports.reduce((sum, report) => sum + (report.productionQty || 0), 0),
         totalAmount: lineReports.reduce((sum, report) => sum + Number(report.totalAmount || 0), 0),
         totalNetAmount: lineReports.reduce((sum, report) => sum + Number(report.netAmount || 0), 0),
+        totalUnitPrice: lineReports.reduce((sum, report) => sum + Number(report.unitPrice || 0), 0),
+        totalPercentage: lineReports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0),
+        averagePercentage: lineReports.length > 0 ? 
+          lineReports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0) / lineReports.length : 0,
         averageEfficiency: lineReports.length > 0 ? 
           lineReports.reduce((sum, report) => {
             const target = report.targetQty || 0;
@@ -105,6 +111,10 @@ export async function GET(request: NextRequest) {
       totalProductionQty: reports.reduce((sum, report) => sum + (report.productionQty || 0), 0),
       totalAmount: reports.reduce((sum, report) => sum + Number(report.totalAmount || 0), 0),
       totalNetAmount: reports.reduce((sum, report) => sum + Number(report.netAmount || 0), 0),
+      totalUnitPrice: reports.reduce((sum, report) => sum + Number(report.unitPrice || 0), 0),
+      totalPercentage: reports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0),
+      averagePercentage: reports.length > 0 ? 
+        reports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0) / reports.length : 0,
       averageEfficiency: reports.length > 0 ? 
         reports.reduce((sum, report) => {
           const target = report.targetQty || 0;

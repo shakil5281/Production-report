@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, TrendingDown, Package, DollarSign, AlertCircle } from 'lucide-react';
+import { Calendar, TrendingUp, TrendingDown, Package, DollarSign, AlertCircle, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
+import { LoadingSection } from '@/components/ui/loading';
 
 interface ProductionSummary {
   totalLines: number;
@@ -50,6 +51,7 @@ export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
   
   // Format current date as YYYY-MM-DD in local timezone to avoid timezone issues
   const today = new Date();
@@ -65,6 +67,7 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch(`/api/production/dashboard?date=${selectedDate}`);
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
@@ -77,6 +80,12 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    await fetchDashboardData();
+    setRetrying(false);
   };
 
   const getStatusColor = (status: string) => {
@@ -95,15 +104,12 @@ export default function DashboardPage() {
   };
 
   const getProgressPercentage = (output: number, orderQty: number) => {
+    if (orderQty === 0) return 0;
     return Math.round((output / orderQty) * 100);
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingSection text="Loading dashboard data..." />;
   }
 
   if (error) {
@@ -118,8 +124,19 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={fetchDashboardData} className="w-full">
-              Retry
+            <Button 
+              onClick={handleRetry} 
+              className="w-full"
+              disabled={retrying}
+            >
+              {retrying ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Retrying...
+                </>
+              ) : (
+                'Retry'
+              )}
             </Button>
           </CardContent>
         </Card>

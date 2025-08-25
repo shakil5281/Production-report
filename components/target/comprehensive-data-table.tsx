@@ -25,7 +25,9 @@ interface ComprehensiveDataTableProps {
 
 export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }: ComprehensiveDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    targetEntries: false, // Hide Entries column by default
+  });
 
   const columns = useMemo<ColumnDef<ComprehensiveTargetData>[]>(() => {
     const base: ColumnDef<ComprehensiveTargetData>[] = [
@@ -61,9 +63,9 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
         enableHiding: false,
       },
       {
-        accessorKey: 'target',
-        header: () => <div className="text-center">Target</div>,
-        cell: ({ row }) => <div className="text-center font-semibold text-blue-700">{(row.original.target || 0).toLocaleString()}</div>,
+        accessorKey: 'baseTarget',
+        header: () => <div className="text-center">Base Target</div>,
+        cell: ({ row }) => <div className="text-center font-semibold text-blue-700">{(row.original.baseTarget || 0).toLocaleString()}</div>,
         enableHiding: false,
       },
       {
@@ -77,6 +79,12 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
         header: () => <div className="text-center">Total Targets</div>,
         cell: ({ row }) => <div className="text-center font-semibold text-blue-700">{(row.original.totalTargets || 0).toLocaleString()}</div>,
         enableHiding: false,
+      },
+      {
+        accessorKey: 'targetEntries',
+        header: () => <div className="text-center">Entries</div>,
+        cell: ({ row }) => <div className="text-center text-xs text-muted-foreground">{row.original.targetEntries || 0}</div>,
+        enableHiding: true,
       },
     ];
 
@@ -125,22 +133,28 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
   });
 
   const totals = useMemo(() => {
-    const sumTarget = data.reduce((sum, row) => sum + row.target, 0);
+    const sumBaseTarget = data.reduce((sum, row) => sum + row.baseTarget, 0);
     const sumHours = data.reduce((sum, row) => sum + row.hours, 0);
     const sumTotalTargets = data.reduce((sum, row) => sum + row.totalTargets, 0);
     const sumTotalProduction = data.reduce((sum, row) => sum + row.totalProduction, 0);
+    const sumTargetEntries = data.reduce((sum, row) => sum + row.targetEntries, 0);
     const avgAvg = data.length > 0
       ? data.reduce((sum, row) => sum + row.averageProductionPerHour, 0) / data.length
       : 0;
-    return { sumTarget, sumHours, sumTotalTargets, sumTotalProduction, avgAvg };
+    return { sumBaseTarget, sumHours, sumTotalTargets, sumTotalProduction, sumTargetEntries, avgAvg };
   }, [data]);
 
   return (
     <div className="w-full">
-      <div className="flex items-center py-4 gap-2">
+      <div className="flex items-center py-4 gap-2 no-print">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
@@ -195,16 +209,16 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
                 <TableRow className="bg-muted/50 font-bold">
                   {/* TOTALS label spans the first 4 columns (non-hideable) */}
                   <TableCell colSpan={4}>TOTALS</TableCell>
-                  <TableCell className="text-center text-blue-800">{(totals.sumTarget || 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-center text-blue-800">{(totals.sumBaseTarget || 0).toLocaleString()}</TableCell>
                   <TableCell className="text-center text-blue-800">{totals.sumHours || 0}h</TableCell>
                   <TableCell className="text-center text-blue-800">{(totals.sumTotalTargets || 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-center text-blue-800">{(totals.sumTargetEntries || 0).toLocaleString()}</TableCell>
                   {timeSlotHeaders.map((slot) => (
                     <TableCell key={slot} className="text-center text-blue-800">
                       {(timeSlotTotals[slot] ?? 0).toLocaleString()}
                     </TableCell>
                   ))}
                   <TableCell className="text-center text-green-800">{(totals.sumTotalProduction || 0).toLocaleString()}</TableCell>
-                  <TableCell className="text-center text-green-800">{(totals.avgAvg || 0).toFixed(0)}</TableCell>
                 </TableRow>
               </>
             ) : (
@@ -217,24 +231,69 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <IconChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <IconChevronRight className="h-4 w-4" />
-          </Button>
+      <div className="flex items-center justify-between space-x-2 py-4 no-print">
+        <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2">
+            <p className="text-sm font-medium">Rows per page</p>
+            <select
+              value={table.getState().pagination.pageSize}
+              onChange={e => {
+                table.setPageSize(Number(e.target.value))
+              }}
+              className="h-8 w-16 rounded border border-input bg-background px-2 py-1 text-sm"
+            >
+              {[5, 10, 20, 50].map(pageSize => (
+                <option key={pageSize} value={pageSize}>
+                  {pageSize}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2">
+            <p className="text-sm font-medium">
+              Page {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount()}
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <IconChevronLeft className="h-4 w-4" />
+              <IconChevronLeft className="h-4 w-4 -ml-2" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <IconChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <IconChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+            >
+              <IconChevronRight className="h-4 w-4" />
+              <IconChevronRight className="h-4 w-4 -ml-2" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

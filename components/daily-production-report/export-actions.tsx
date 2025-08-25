@@ -38,9 +38,9 @@ export function ExportActions({
           'DAILY PRODUCTION': report.productionQty,
           'UNIT PRICE': Number(report.unitPrice).toFixed(2),
           'TOTAL PRICE': Number(report.totalAmount).toFixed(2),
-          '%': 0.15, // Default 15% - you can make this configurable
-          '% Dollar': (Number(report.totalAmount) * 0.15).toFixed(2),
-          'Taka': (Number(report.totalAmount) * 0.15 * 120).toFixed(0), // Default exchange rate 120
+          '%': Number(report.productionList.percentage || 0),
+          '% Dollar': (Number(report.totalAmount) * Number(report.productionList.percentage || 0) / 100).toFixed(2),
+          'Taka': (Number(report.totalAmount) * Number(report.productionList.percentage || 0) / 100 * 120).toFixed(0),
           'Remarks': report.notes || ''
         });
       });
@@ -59,9 +59,9 @@ export function ExportActions({
         'DAILY PRODUCTION': report.productionQty,
         'UNIT PRICE': Number(report.unitPrice).toFixed(2),
         'TOTAL PRICE': Number(report.totalAmount).toFixed(2),
-        '%': 0.15, // Default 15% - you can make this configurable
-        '% Dollar': (Number(report.totalAmount) * 0.15).toFixed(2),
-        'Taka': (Number(report.totalAmount) * 0.15 * 120).toFixed(0), // Default exchange rate 120
+        '%': Number(report.productionList.percentage || 0),
+        '% Dollar': (Number(report.totalAmount) * Number(report.productionList.percentage || 0) / 100).toFixed(2),
+        'Taka': (Number(report.totalAmount) * Number(report.productionList.percentage || 0) / 100 * 120).toFixed(0),
         'Remarks': report.notes || ''
       });
     });
@@ -69,6 +69,7 @@ export function ExportActions({
     // Add total row
     const totalTargetQty = exportData.reduce((sum, row) => sum + (row['DAILY TARGET'] || 0), 0);
     const totalProductionQty = exportData.reduce((sum, row) => sum + (row['DAILY PRODUCTION'] || 0), 0);
+    const totalUnitPrice = exportData.reduce((sum, row) => sum + parseFloat(row['UNIT PRICE'] || '0'), 0);
     const totalAmount = exportData.reduce((sum, row) => sum + parseFloat(row['TOTAL PRICE'] || '0'), 0);
     const totalPercentDollar = exportData.reduce((sum, row) => sum + parseFloat(row['% Dollar'] || '0'), 0);
     const totalTaka = exportData.reduce((sum, row) => sum + parseFloat(row['Taka'] || '0'), 0);
@@ -82,7 +83,7 @@ export function ExportActions({
       'ITEM': '',
       'DAILY TARGET': 0,
       'DAILY PRODUCTION': totalProductionQty,
-      'UNIT PRICE': '',
+      'UNIT PRICE': totalUnitPrice.toFixed(2),
       'TOTAL PRICE': totalAmount.toFixed(2),
       '%': 0,
       '% Dollar': totalPercentDollar.toFixed(2),

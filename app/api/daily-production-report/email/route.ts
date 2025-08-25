@@ -313,6 +313,14 @@ function generateEmailHTML(dateString: string, reportData: any[], summary: any) 
                 <div class="summary-value">$${(summary.totalAmount || 0).toLocaleString()}</div>
               </div>
               <div class="summary-item">
+                <div class="summary-label">Total UNIT PRICE</div>
+                <div class="summary-value">$${(summary.totalUnitPrice || 0).toLocaleString()}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Average %</div>
+                <div class="summary-value">{(summary.averagePercentage || 0).toFixed(2)}%</div>
+              </div>
+              <div class="summary-item">
                 <div class="summary-label">Net Amount (BDT)</div>
                 <div class="summary-value">${(summary.totalNetAmount || 0).toLocaleString()}</div>
               </div>

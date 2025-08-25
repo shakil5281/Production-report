@@ -16,24 +16,29 @@ export interface UserWithPermissions {
 }
 
 function extractTokenFromRequest(request: Request): string | null {
-  // 1) Authorization header: Bearer <token>
-  const authHeader = request.headers.get('authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authHeader.substring(7);
-  }
+  try {
+    // 1) Authorization header: Bearer <token>
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return authHeader.substring(7);
+    }
 
-  // 2) Cookie header: auth-token=<token>
-  const cookieHeader = request.headers.get('cookie');
-  if (cookieHeader) {
-    const cookies = cookieHeader.split(';').map((c) => c.trim());
-    for (const cookie of cookies) {
-      if (cookie.startsWith('auth-token=')) {
-        return decodeURIComponent(cookie.substring('auth-token='.length));
+    // 2) Cookie header: auth-token=<token>
+    const cookieHeader = request.headers.get('cookie');
+    if (cookieHeader) {
+      const cookies = cookieHeader.split(';').map((c) => c.trim());
+      for (const cookie of cookies) {
+        if (cookie.startsWith('auth-token=')) {
+          return decodeURIComponent(cookie.substring('auth-token='.length));
+        }
       }
     }
-  }
 
-  return null;
+    return null;
+  } catch (error) {
+    console.error('Error extracting token from request:', error);
+    return null;
+  }
 }
 
 export class AuthService {
@@ -43,9 +48,18 @@ export class AuthService {
       throw new Error('Password hashing must be done on the server');
     }
     
-    const bcrypt = await import('bcrypt');
-    const saltRounds = 12;
-    return bcrypt.hash(password, saltRounds);
+    if (!password || password.length < 6) {
+      throw new Error('Password must be at least 6 characters long');
+    }
+    
+    try {
+      const bcrypt = await import('bcrypt');
+      const saltRounds = 12;
+      return bcrypt.hash(password, saltRounds);
+    } catch (error) {
+      console.error('Error hashing password:', error);
+      throw new Error('Failed to hash password');
+    }
   }
 
   // Compare password using bcrypt (server-side only)
@@ -54,8 +68,17 @@ export class AuthService {
       throw new Error('Password comparison must be done on the server');
     }
     
-    const bcrypt = await import('bcrypt');
-    return bcrypt.compare(password, hashedPassword);
+    if (!password || !hashedPassword) {
+      return false;
+    }
+    
+    try {
+      const bcrypt = await import('bcrypt');
+      return bcrypt.compare(password, hashedPassword);
+    } catch (error) {
+      console.error('Error comparing passwords:', error);
+      return false;
+    }
   }
 
   // Generate JWT token (server-side only)
@@ -64,14 +87,23 @@ export class AuthService {
       throw new Error('Token generation must be done on the server');
     }
     
-    const jwt = await import('jsonwebtoken');
-    const secret = process.env.JWT_SECRET || 'your-secret-key';
+    if (!userId || !role) {
+      throw new Error('User ID and role are required for token generation');
+    }
     
-    return jwt.sign(
-      { userId, role },
-      secret,
-      { expiresIn: '7d' }
-    );
+    try {
+      const jwt = await import('jsonwebtoken');
+      const secret = process.env.JWT_SECRET || 'your-secret-key';
+      
+      return jwt.sign(
+        { userId, role },
+        secret,
+        { expiresIn: '7d' }
+      );
+    } catch (error) {
+      console.error('Error generating token:', error);
+      throw new Error('Failed to generate authentication token');
+    }
   }
 
   // Validate JWT token (server-side only)
@@ -80,12 +112,17 @@ export class AuthService {
       throw new Error('Token validation must be done on the server');
     }
     
+    if (!token) {
+      return null;
+    }
+    
     try {
       const jwt = await import('jsonwebtoken');
       const secret = process.env.JWT_SECRET || 'your-secret-key';
       
       return jwt.verify(token, secret) as { userId: string; role: UserRole };
-    } catch {
+    } catch (error) {
+      console.error('Error validating token:', error);
       return null;
     }
   }
@@ -96,9 +133,13 @@ export class AuthService {
       throw new Error('User authentication must be done on the server');
     }
 
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+
     try {
       const user = await prisma.user.findUnique({
-        where: { email },
+        where: { email: email.toLowerCase() },
         include: {
           userPermissions: {
             include: {
@@ -112,10 +153,16 @@ export class AuthService {
         return null;
       }
 
-      const isPasswordValid = await this.comparePassword(password, user.password);
-      if (!isPasswordValid) {
+      const isValidPassword = await this.comparePassword(password, user.password);
+      if (!isValidPassword) {
         return null;
       }
+
+      // Generate token
+      const token = await this.generateToken(user.id, user.role);
+
+      // Create or update session
+      await this.createOrUpdateSession(user.id, token);
 
       // Update last login
       await prisma.user.update({
@@ -123,58 +170,52 @@ export class AuthService {
         data: { lastLogin: new Date() },
       });
 
-      // Generate token
-      const token = await this.generateToken(user.id, user.role);
-
-      // Create session
-      await this.createSession(user.id, token);
-
-      // Pick only allowed fields and transform
-      const userCore = (({ id, name, email, role, isActive, lastLogin, createdAt, updatedAt }) => ({
-        id,
-        name,
-        email,
-        role,
-        isActive,
-        lastLogin,
-        createdAt,
-        updatedAt,
-      }))(user);
-      const userPermissionsRelation = user.userPermissions;
-
+      // Transform user data
       const userWithPermissions: UserWithPermissions = {
-        ...userCore,
-        permissions: userPermissionsRelation.map(up => up.permission.name),
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        permissions: user.userPermissions.map(up => up.permission.name),
         token,
         userPermissions: undefined,
       };
 
       return userWithPermissions;
     } catch (error) {
-      console.error('Authentication error:', error);
-      return null;
+      console.error('Error authenticating user:', error);
+      throw new Error('Authentication failed');
     }
   }
 
-  // Create session (server-side only)
-  async createSession(userId: string, token: string): Promise<void> {
+  // Create or update session
+  async createOrUpdateSession(userId: string, token: string): Promise<void> {
     if (typeof window !== 'undefined') {
-      throw new Error('Session creation must be done on the server');
+      throw new Error('Session management must be done on the server');
     }
 
     try {
       const expires = new Date();
-      expires.setDate(expires.getDate() + 7); // 7 days
+      expires.setDate(expires.getDate() + 7); // 7 days from now
 
-      await prisma.session.create({
-        data: {
-          userId,
+      await prisma.session.upsert({
+        where: { token },
+        update: {
+          expires,
+        },
+        create: {
           token,
+          userId,
           expires,
         },
       });
     } catch (error) {
-      console.error('Session creation error:', error);
+      console.error('Error creating/updating session:', error);
+      throw new Error('Failed to create session');
     }
   }
 
@@ -182,6 +223,10 @@ export class AuthService {
   async validateSession(token: string): Promise<UserWithPermissions | null> {
     if (typeof window !== 'undefined') {
       throw new Error('Session validation must be done on the server');
+    }
+
+    if (!token) {
+      return null;
     }
 
     try {
@@ -200,9 +245,11 @@ export class AuthService {
         },
       });
 
-      if (!session || session.expires < new Date()) {
+      if (!session || !session.user || session.expires < new Date()) {
         // Delete expired session
-        await this.deleteSession(token);
+        if (session) {
+          await this.deleteSession(token);
+        }
         return null;
       }
 
@@ -285,6 +332,11 @@ export class AuthService {
 
 // Export standalone getCurrentUser function for API routes
 export async function getCurrentUser(request: Request): Promise<UserWithPermissions | null> {
-  const authService = new AuthService();
-  return await authService.getCurrentUser(request);
+  try {
+    const authService = new AuthService();
+    return await authService.getCurrentUser(request);
+  } catch (error) {
+    console.error('Error in getCurrentUser:', error);
+    return null;
+  }
 }
