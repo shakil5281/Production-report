@@ -4,51 +4,30 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, TrendingDown, Package, DollarSign, AlertCircle, RefreshCw } from 'lucide-react';
+import { Calendar, TrendingUp, TrendingDown, Package, DollarSign, AlertCircle, RefreshCw, Target, Scissors, FileText, BarChart3, Calculator } from 'lucide-react';
 import { format } from 'date-fns';
 import { LoadingSection } from '@/components/ui/loading';
+import { SummaryCards } from '@/components/dashboard/summary-cards';
+import { DetailedSummaries } from '@/components/dashboard/detailed-summaries';
+import Link from 'next/link';
 
-interface ProductionSummary {
-  totalLines: number;
-  totalStyles: number;
-  byStatus: {
-    running: number;
-    pending: number;
-    complete: number;
-    waiting: number;
-  };
-}
-
-interface ProductionLine {
-  line: {
-    id: string;
-    name: string;
-    code: string;
-    factory: {
-      name: string;
-    };
-  };
-  styles: Array<{
-    id: string;
-    styleNumber: string;
-    buyer: string;
-    status: string;
-    orderQty: number;
-    dailyProgress: {
-      totalOutput: number;
-      totalDefects: number;
-    };
-  }>;
-}
-
-interface DashboardData {
+interface DashboardSummary {
   date: string;
-  summary: ProductionSummary;
-  lines: ProductionLine[];
+  production: any;
+  target: any;
+  cashbook: any;
+  cutting: any;
+  overview: {
+    totalProduction: number;
+    totalTarget: number;
+    targetAchievement: number;
+    netCashFlow: number;
+    cuttingEfficiency: number;
+  };
 }
 
 export default function DashboardPage() {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
@@ -68,7 +47,7 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/production/dashboard?date=${selectedDate}`);
+      const response = await fetch(`/api/dashboard/summary?date=${selectedDate}`);
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
       }
@@ -88,33 +67,13 @@ export default function DashboardPage() {
     setRetrying(false);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'running':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'complete':
-        return 'bg-blue-100 text-blue-800';
-      case 'waiting':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getProgressPercentage = (output: number, orderQty: number) => {
-    if (orderQty === 0) return 0;
-    return Math.round((output / orderQty) * 100);
-  };
-
   if (loading) {
     return <LoadingSection text="Loading dashboard data..." />;
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600 flex items-center gap-2">
@@ -146,20 +105,20 @@ export default function DashboardPage() {
 
   if (!dashboardData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen p-4">
         <p className="text-gray-500">No data available</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Production Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview of production status across all lines
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Production Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Comprehensive overview of production, targets, finances, and cutting operations
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -168,132 +127,79 @@ export default function DashboardPage() {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="border rounded px-3 py-2"
+            className="border rounded px-2 sm:px-3 py-2 text-sm sm:text-base w-full sm:w-auto"
           />
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Lines</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.summary.totalLines}</div>
-            <p className="text-xs text-muted-foreground">
-              Active production lines
-            </p>
-          </CardContent>
-        </Card>
+      <SummaryCards data={dashboardData} />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Styles</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.summary.totalStyles}</div>
-            <p className="text-xs text-muted-foreground">
-              Active styles in production
-            </p>
-          </CardContent>
-        </Card>
+      {/* Detailed Summaries */}
+      <DetailedSummaries data={dashboardData} />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Running</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {dashboardData.summary.byStatus.running}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Styles currently in production
-            </p>
-          </CardContent>
-        </Card>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl">Quick Actions</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
+            Access frequently used features and reports
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <Link 
+              href="/daily-production-report" 
+              className="group block"
+            >
+              <div className="h-16 sm:h-20 flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 group-hover:shadow-md">
+                <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm font-medium text-center leading-tight">Daily Production Report</span>
+              </div>
+            </Link>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Complete</CardTitle>
-            <TrendingDown className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {dashboardData.summary.byStatus.complete}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Finished styles today
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            <Link 
+              href="/target/comprehensive-report" 
+              className="group block"
+            >
+              <div className="h-16 sm:h-20 flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 border rounded-lg hover:border-green-500 hover:bg-green-50 transition-all duration-200 group-hover:shadow-md">
+                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm font-medium text-center leading-tight">Comprehensive Target Report</span>
+              </div>
+            </Link>
 
-      {/* Production Lines */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Production Lines</h2>
-        {dashboardData.lines?.map((line) => (
-          <Card key={line.line.id}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>
-                  {line.line.name} ({line.line.code})
-                </span>
-                <Badge variant="outline">
-                  {line.styles.length} Style{line.styles.length !== 1 ? 's' : ''}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {line.styles.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">
-                  No styles assigned to this line
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {line.styles.map((style) => (
-                    <div
-                      key={style.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-medium">{style.styleNumber}</h4>
-                          <Badge className={getStatusColor(style.status)}>
-                            {style.status}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {style.buyer} • Order: {style.orderQty}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-semibold">
-                          {style.dailyProgress.totalOutput}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {getProgressPercentage(
-                            style.dailyProgress.totalOutput,
-                            style.orderQty
-                          )}% complete
-                        </div>
-                        {style.dailyProgress.totalDefects > 0 && (
-                          <div className="text-xs text-red-600">
-                            {style.dailyProgress.totalDefects} defects
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            <Link 
+              href="/cashbook" 
+              className="group block"
+            >
+              <div className="h-16 sm:h-20 flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 border rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all duration-200 group-hover:shadow-md">
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm font-medium text-center leading-tight">Cashbook Summary</span>
+              </div>
+            </Link>
+
+            <Link 
+              href="/cutting" 
+              className="group block"
+            >
+              <div className="h-16 sm:h-20 flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 border rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all duration-200 group-hover:shadow-md">
+                <Scissors className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm font-medium text-center leading-tight">Cutting Department</span>
+              </div>
+            </Link>
+
+            <Link 
+              href="/profit-loss" 
+              className="group block col-span-2 sm:col-span-1"
+            >
+              <div className="h-16 sm:h-20 flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 border rounded-lg hover:border-red-500 hover:bg-red-50 transition-all duration-200 group-hover:shadow-md">
+                <Calculator className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm font-medium text-center leading-tight">Profit & Loss Statement</span>
+              </div>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

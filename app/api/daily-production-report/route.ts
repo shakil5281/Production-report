@@ -83,44 +83,117 @@ export async function GET(request: NextRequest) {
     // Calculate line-wise summaries (only for active lines)
     const lineSummaries = new Map<string, any>();
     activeReportsByLine.forEach((lineReports, lineNo) => {
+      console.log(`🔍 Processing Line ${lineNo} with ${lineReports.length} reports`);
+      
+      // Group reports by style number to avoid accumulating production across styles
+      const styleGroups = new Map<string, typeof lineReports>();
+      
+      lineReports.forEach(report => {
+        if (!styleGroups.has(report.styleNo)) {
+          styleGroups.set(report.styleNo, []);
+        }
+        styleGroups.get(report.styleNo)!.push(report);
+      });
+      
+      console.log(`   📊 Line ${lineNo} has ${styleGroups.size} unique styles: ${Array.from(styleGroups.keys()).join(', ')}`);
+      
+      // Calculate totals for each style separately, then sum for the line
+      let lineTotalTargetQty = 0;
+      let lineTotalProductionQty = 0;
+      let lineTotalAmount = 0;
+      let lineTotalNetAmount = 0;
+      let lineTotalUnitPrice = 0;
+      let lineTotalPercentage = 0;
+      
+      styleGroups.forEach((styleReports, styleNo) => {
+        // For each style, use the latest report or sum if multiple entries for same style
+        const latestStyleReport = styleReports[styleReports.length - 1];
+        
+        console.log(`   🎯 Style ${styleNo}: Production=${latestStyleReport.productionQty}, Target=${latestStyleReport.targetQty}`);
+        
+        lineTotalTargetQty += latestStyleReport.targetQty || 0;
+        lineTotalProductionQty += latestStyleReport.productionQty || 0;
+        lineTotalAmount += Number(latestStyleReport.totalAmount || 0);
+        lineTotalNetAmount += Number(latestStyleReport.netAmount || 0);
+        lineTotalUnitPrice += Number(latestStyleReport.unitPrice || 0);
+        lineTotalPercentage += Number(latestStyleReport.productionList?.percentage || 0);
+      });
+      
+      console.log(`   📈 Line ${lineNo} totals: Production=${lineTotalProductionQty}, Target=${lineTotalTargetQty}`);
+      
       const lineSummary = {
         lineNo,
         totalReports: lineReports.length,
-        totalTargetQty: lineReports.reduce((sum, report) => sum + (report.targetQty || 0), 0),
-        totalProductionQty: lineReports.reduce((sum, report) => sum + (report.productionQty || 0), 0),
-        totalAmount: lineReports.reduce((sum, report) => sum + Number(report.totalAmount || 0), 0),
-        totalNetAmount: lineReports.reduce((sum, report) => sum + Number(report.netAmount || 0), 0),
-        totalUnitPrice: lineReports.reduce((sum, report) => sum + Number(report.unitPrice || 0), 0),
-        totalPercentage: lineReports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0),
-        averagePercentage: lineReports.length > 0 ? 
-          lineReports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0) / lineReports.length : 0,
-        averageEfficiency: lineReports.length > 0 ? 
-          lineReports.reduce((sum, report) => {
-            const target = report.targetQty || 0;
-            const production = report.productionQty || 0;
+        totalTargetQty: lineTotalTargetQty,
+        totalProductionQty: lineTotalProductionQty,
+        totalAmount: lineTotalAmount,
+        totalNetAmount: lineTotalNetAmount,
+        totalUnitPrice: lineTotalUnitPrice,
+        totalPercentage: lineTotalPercentage,
+        averagePercentage: styleGroups.size > 0 ? lineTotalPercentage / styleGroups.size : 0,
+        averageEfficiency: styleGroups.size > 0 ? 
+          Array.from(styleGroups.values()).reduce((sum, styleReports) => {
+            const latestReport = styleReports[styleReports.length - 1];
+            const target = latestReport.targetQty || 0;
+            const production = latestReport.productionQty || 0;
             return sum + (target > 0 ? (production / target * 100) : 0);
-          }, 0) / lineReports.length : 0
+          }, 0) / styleGroups.size : 0,
       };
       lineSummaries.set(lineNo, lineSummary);
     });
 
     // Calculate overall summary statistics
+    // Group reports by style number to avoid accumulating production across styles
+    const overallStyleGroups = new Map<string, typeof reports>();
+    
+    reports.forEach(report => {
+      if (!overallStyleGroups.has(report.styleNo)) {
+        overallStyleGroups.set(report.styleNo, []);
+      }
+      overallStyleGroups.get(report.styleNo)!.push(report);
+    });
+    
+    console.log(`🌍 Overall summary: ${overallStyleGroups.size} unique styles across all lines`);
+    
+    let overallTotalTargetQty = 0;
+    let overallTotalProductionQty = 0;
+    let overallTotalAmount = 0;
+    let overallTotalNetAmount = 0;
+    let overallTotalUnitPrice = 0;
+    let overallTotalPercentage = 0;
+    
+    overallStyleGroups.forEach((styleReports, styleNo) => {
+      // For each style, use the latest report
+      const latestStyleReport = styleReports[styleReports.length - 1];
+      
+      console.log(`   🌍 Style ${styleNo}: Production=${latestStyleReport.productionQty}, Target=${latestStyleReport.targetQty}`);
+      
+      overallTotalTargetQty += latestStyleReport.targetQty || 0;
+      overallTotalProductionQty += latestStyleReport.productionQty || 0;
+      overallTotalAmount += Number(latestStyleReport.totalAmount || 0);
+      overallTotalNetAmount += Number(latestStyleReport.netAmount || 0);
+      overallTotalUnitPrice += Number(latestStyleReport.unitPrice || 0);
+      overallTotalPercentage += Number(latestStyleReport.productionList?.percentage || 0);
+    });
+    
+    console.log(`🌍 Overall totals: Production=${overallTotalProductionQty}, Target=${overallTotalTargetQty}`);
+    
     const overallSummary = {
       totalReports: reports.length,
-      totalTargetQty: reports.reduce((sum, report) => sum + (report.targetQty || 0), 0),
-      totalProductionQty: reports.reduce((sum, report) => sum + (report.productionQty || 0), 0),
-      totalAmount: reports.reduce((sum, report) => sum + Number(report.totalAmount || 0), 0),
-      totalNetAmount: reports.reduce((sum, report) => sum + Number(report.netAmount || 0), 0),
-      totalUnitPrice: reports.reduce((sum, report) => sum + Number(report.unitPrice || 0), 0),
-      totalPercentage: reports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0),
-      averagePercentage: reports.length > 0 ? 
-        reports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0) / reports.length : 0,
-      averageEfficiency: reports.length > 0 ? 
-        reports.reduce((sum, report) => {
-          const target = report.targetQty || 0;
-          const production = report.productionQty || 0;
+      totalTargetQty: overallTotalTargetQty,
+      totalProductionQty: overallTotalProductionQty,
+      totalAmount: overallTotalAmount,
+      totalNetAmount: overallTotalNetAmount,
+      totalUnitPrice: overallTotalUnitPrice,
+      totalPercentage: overallTotalPercentage,
+      averagePercentage: overallStyleGroups.size > 0 ? overallTotalPercentage / overallStyleGroups.size : 0,
+      averageEfficiency: overallStyleGroups.size > 0 ? 
+        Array.from(overallStyleGroups.values()).reduce((sum, styleReports) => {
+          const latestReport = styleReports[styleReports.length - 1];
+          const target = latestReport.targetQty || 0;
+          const production = latestReport.productionQty || 0;
           return sum + (target > 0 ? (production / target * 100) : 0);
-        }, 0) / reports.length : 0,
+        }, 0) / overallStyleGroups.size : 0,
       totalLines: activeReportsByLine.size,
       linesWithProduction: Array.from(activeReportsByLine.keys()).filter(lineNo => {
         const lineReports = activeReportsByLine.get(lineNo)!;

@@ -18,6 +18,8 @@ import { Input } from '@/components/ui/input';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { columns } from './table-columns';
 import type { Line } from './schema';
+import { MobileResponsivePagination } from '@/components/ui/mobile-responsive-pagination';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LinesDataTableProps {
   data: Line[];
@@ -30,6 +32,7 @@ export function LinesDataTable({ data, onView, onEdit, onDelete }: LinesDataTabl
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState({});
+  const isMobile = useIsMobile();
 
   const table = useReactTable({
     data,
@@ -116,30 +119,19 @@ export function LinesDataTable({ data, onView, onEdit, onDelete }: LinesDataTabl
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <IconChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <IconChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      {/* Mobile-Responsive Pagination */}
+      <MobileResponsivePagination
+        pageIndex={table.getState().pagination.pageIndex}
+        pageSize={table.getState().pagination.pageSize}
+        pageCount={table.getPageCount()}
+        totalRows={data.length}
+        filteredRows={table.getFilteredRowModel().rows.length}
+        selectedRows={table.getFilteredSelectedRowModel().rows.length}
+        onPageChange={(page) => table.setPageIndex(page)}
+        onPageSizeChange={(size) => table.setPageSize(size)}
+        pageSizeOptions={isMobile ? [5, 10, 15, 20] : [10, 20, 30, 40, 50]}
+        maxVisiblePages={isMobile ? 3 : 5}
+      />
     </div>
   );
 }

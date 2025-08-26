@@ -105,6 +105,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { MobileResponsivePagination } from '@/components/ui/mobile-responsive-pagination';
 
 export const schema = z.object({
   id: z.number(),
@@ -354,6 +355,7 @@ export function DataTable({
     pageSize: 10,
   })
   const sortableId = React.useId()
+  const isMobile = useIsMobile()
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
     useSensor(TouchSensor, {}),
@@ -607,6 +609,19 @@ export function DataTable({
             </div>
           </div>
         </div>
+        {/* Mobile-Responsive Pagination */}
+        <MobileResponsivePagination
+          pageIndex={table.getState().pagination.pageIndex}
+          pageSize={table.getState().pagination.pageSize}
+          pageCount={table.getPageCount()}
+          totalRows={data.length}
+          filteredRows={table.getFilteredRowModel().rows.length}
+          selectedRows={table.getFilteredSelectedRowModel().rows.length}
+          onPageChange={(page) => table.setPageIndex(page)}
+          onPageSizeChange={(size) => table.setPageSize(size)}
+          pageSizeOptions={isMobile ? [5, 10, 15, 20] : [10, 20, 30, 40, 50]}
+          maxVisiblePages={isMobile ? 3 : 5}
+        />
       </TabsContent>
       <TabsContent
         value="past-performance"

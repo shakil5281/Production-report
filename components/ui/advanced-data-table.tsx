@@ -18,8 +18,10 @@ import {
   IconChevronRight,
   IconArrowUp,
   IconArrowDown,
+  IconDots,
 
 } from '@tabler/icons-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Column<T> {
   key: keyof T | string;
@@ -83,6 +85,7 @@ export function AdvancedDataTable<T extends Record<string, any>>({
   showFilters = true,
   defaultFiltersVisible = false
 }: AdvancedDataTableProps<T>) {
+  const isMobile = useIsMobile();
   const [filtersVisible, setFiltersVisible] = useState(defaultFiltersVisible);
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const [sortBy, setSortBy] = useState<string>('');
@@ -315,17 +318,19 @@ export function AdvancedDataTable<T extends Record<string, any>>({
         </CardContent>
       </Card>
 
-      {/* Pagination */}
+      {/* Mobile-Responsive Pagination */}
       {pagination && pagination.totalPages > 1 && (
         <Card>
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-4">
-                <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              {/* Row Information and Page Size Selector */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <div className="text-sm text-muted-foreground">
                   Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
                   {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                   {pagination.total} results
-                </p>
+                </div>
+                
                 {onLimitChange && (
                   <div className="flex items-center gap-2">
                     <Label className="text-sm">Per page:</Label>
@@ -333,62 +338,115 @@ export function AdvancedDataTable<T extends Record<string, any>>({
                       value={pagination.limit.toString()} 
                       onValueChange={(value) => onLimitChange(parseInt(value))}
                     >
-                      <SelectTrigger className="w-20">
+                      <SelectTrigger className="w-16 sm:w-20">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
+                        {(isMobile ? [5, 10, 15, 20] : [10, 20, 50, 100]).map((size) => (
+                          <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                 )}
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page - 1)}
-                  disabled={pagination.page <= 1}
-                >
-                  <IconChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                
-                <div className="flex items-center space-x-1">
-                  {(() => {
-                    const maxVisiblePages = 5;
-                    const startPage = Math.max(1, pagination.page - Math.floor(maxVisiblePages / 2));
-                    const endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1);
-                    
-                    return [...Array(endPage - startPage + 1)].map((_, i) => {
-                      const pageNum = startPage + i;
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={pagination.page === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => onPageChange?.(pageNum)}
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    });
-                  })()}
+              {/* Pagination Controls */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+                <div className="flex items-center justify-center text-sm font-medium">
+                  Page {pagination.page} of {pagination.totalPages}
                 </div>
                 
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => onPageChange?.(pagination.page + 1)}
-                  disabled={pagination.page >= pagination.totalPages}
-                >
-                  Next
-                  <IconChevronRight className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => onPageChange?.(pagination.page - 1)}
+                    disabled={pagination.page <= 1}
+                  >
+                    <IconChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {(() => {
+                      const maxVisiblePages = isMobile ? 3 : 5;
+                      const startPage = Math.max(1, pagination.page - Math.floor(maxVisiblePages / 2));
+                      const endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1);
+                      
+                      const visiblePages = [];
+                      for (let i = startPage; i <= endPage; i++) {
+                        visiblePages.push(i);
+                      }
+                      
+                      return (
+                        <>
+                          {/* Show ellipsis at start if needed */}
+                          {startPage > 1 && (
+                            <div className="flex items-center">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => onPageChange?.(1)}
+                              >
+                                1
+                              </Button>
+                              {startPage > 2 && (
+                                <div className="px-2 text-muted-foreground">
+                                  <IconDots className="h-4 w-4" />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Visible page numbers */}
+                          {visiblePages.map((pageNum) => (
+                            <Button
+                              key={pageNum}
+                              variant={pagination.page === pageNum ? "default" : "outline"}
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => onPageChange?.(pageNum)}
+                            >
+                              {pageNum}
+                            </Button>
+                          ))}
+                          
+                          {/* Show ellipsis at end if needed */}
+                          {endPage < pagination.totalPages && (
+                            <div className="flex items-center">
+                              {endPage < pagination.totalPages - 1 && (
+                                <div className="px-2 text-muted-foreground">
+                                  <IconDots className="h-4 w-4" />
+                                </div>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => onPageChange?.(pagination.totalPages)}
+                              >
+                                {pagination.totalPages}
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                  
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => onPageChange?.(pagination.page + 1)}
+                    disabled={pagination.page >= pagination.totalPages}
+                  >
+                    <IconChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
