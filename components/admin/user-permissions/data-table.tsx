@@ -36,6 +36,8 @@ import { UserRole } from '@prisma/client';
 import { columns } from './table-columns';
 import { getRoleDisplayName } from './schema';
 import type { UserPermissionData } from './schema';
+import { MobileResponsivePagination } from '@/components/ui/mobile-responsive-pagination';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UserPermissionsDataTableProps {
   data: UserPermissionData[];
@@ -58,6 +60,7 @@ export function UserPermissionsDataTable({
   onRoleFilterChange,
   onStatusFilterChange
 }: UserPermissionsDataTableProps) {
+  const isMobile = useIsMobile();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -265,77 +268,19 @@ export function UserPermissionsDataTable({
         </Table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="flex items-center space-x-6 lg:space-x-8">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Rows per page</p>
-            <Select
-              value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => {
-                table.setPageSize(Number(value));
-              }}
-            >
-              <SelectTrigger className="h-8 w-[70px]">
-                <SelectValue placeholder={table.getState().pagination.pageSize} />
-              </SelectTrigger>
-              <SelectContent side="top">
-                {[10, 20, 30, 40, 50].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`}>
-                    {pageSize}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <span className="sr-only">Go to first page</span>
-              {"<<"}
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <span className="sr-only">Go to previous page</span>
-              <IconChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <span className="sr-only">Go to next page</span>
-              <IconChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-            >
-              <span className="sr-only">Go to last page</span>
-              {">>"}
-            </Button>
-          </div>
-        </div>
-      </div>
+      {/* Mobile-Responsive Pagination */}
+      <MobileResponsivePagination
+        pageIndex={table.getState().pagination.pageIndex}
+        pageSize={table.getState().pagination.pageSize}
+        pageCount={table.getPageCount()}
+        totalRows={data.length}
+        filteredRows={table.getFilteredRowModel().rows.length}
+        selectedRows={table.getFilteredSelectedRowModel().rows.length}
+        onPageChange={(page) => table.setPageIndex(page)}
+        onPageSizeChange={(size) => table.setPageSize(size)}
+        pageSizeOptions={isMobile ? [5, 10, 15, 20] : [10, 20, 30, 40, 50]}
+        maxVisiblePages={isMobile ? 3 : 5}
+      />
     </div>
   );
 }

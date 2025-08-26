@@ -21,6 +21,8 @@ import { columns } from './table-columns';
 import type { Target } from './schema';
 import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 import { LoadingSpinner } from '@/components/ui/loading';
+import { SimpleMobilePagination } from '@/components/ui/simple-mobile-pagination';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TargetDataTableProps {
   data: Target[];
@@ -62,6 +64,7 @@ export function TargetDataTable({
   onPageSizeChange
 }: TargetDataTableProps) {
   const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
+  const isMobile = useIsMobile();
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -225,74 +228,18 @@ export function TargetDataTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Rows per page</p>
-            <select
-              value={pageSize}
-              onChange={e => {
-                onPageSizeChange(Number(e.target.value))
-              }}
-              className="h-8 w-16 rounded border border-input bg-background px-2 py-1 text-sm"
-            >
-              {[5, 10, 20, 50].map(size => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {totalRecords} row(s) selected.
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">
-              Page {currentPage} of {totalPages}
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(1)}
-              disabled={currentPage <= 1}
-            >
-              <IconChevronLeft className="h-4 w-4" />
-              <IconChevronLeft className="h-4 w-4 -ml-2" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage <= 1}
-            >
-              <IconChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-            >
-              <IconChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(totalPages)}
-              disabled={currentPage >= totalPages}
-            >
-              <IconChevronRight className="h-4 w-4" />
-              <IconChevronRight className="h-4 w-4 -ml-2" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      {/* Mobile-Responsive Pagination */}
+      <SimpleMobilePagination
+        currentPage={currentPage}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        selectedRecords={table.getFilteredSelectedRowModel().rows.length}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+        pageSizeOptions={isMobile ? [5, 10, 15, 20] : [5, 10, 20, 50]}
+        maxVisiblePages={isMobile ? 3 : 5}
+      />
     </div>
   );
 }

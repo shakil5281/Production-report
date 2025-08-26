@@ -17,7 +17,8 @@ import {
   ExportActions,
   EmailActions,
   DataTable,
-  NotesSection
+  NotesSection,
+  SummaryCards
 } from '@/components/daily-production-report';
 import { DailyProductionReport, ProductionSummary, LineSummary } from '@/components/daily-production-report/types';
 
@@ -184,6 +185,9 @@ export default function DailyProductionReportPage() {
         uniqueLines={uniqueLines}
         isMobile={isMobile}
       />
+
+      {/* Summary Cards */}
+      <SummaryCards summary={summary} />
 
       {/* Production Reports Data Table */}
       {loading ? (

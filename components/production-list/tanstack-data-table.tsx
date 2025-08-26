@@ -25,6 +25,7 @@ import { columns } from './table-columns';
 import type { ProductionItem } from './schema';
 import { QuantityCell } from './quantity-cell';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileResponsivePagination } from '@/components/ui/mobile-responsive-pagination';
 
 
 interface ProductionListTanStackDataTableProps {
@@ -203,84 +204,18 @@ export function ProductionListTanStackDataTable({ data, statusFilter = 'all', on
       </div>
 
       {/* Mobile-Responsive Pagination */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-          <div className="text-sm text-muted-foreground">
-            Showing {table.getFilteredRowModel().rows.length} of {filteredData.length} entries
-          </div>
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Rows per page</p>
-            <Select
-              value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => {
-                table.setPageSize(Number(value));
-              }}
-            >
-              <SelectTrigger className="h-8 w-16 border-border/50">
-                <SelectValue placeholder={table.getState().pagination.pageSize} />
-              </SelectTrigger>
-              <SelectContent side="top">
-                {(isMobile ? [5, 10, 15] : [10, 20, 30, 40, 50]).map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`}>
-                    {pageSize}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between sm:justify-center lg:justify-end">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
-            </p>
-          </div>
-          <div className="flex items-center space-x-2 ml-4">
-            {!isMobile && (
-              <Button
-                variant="outline"
-                className="h-8 w-8 p-0 border-border/50"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <span className="sr-only">Go to first page</span>
-                <IconChevronsLeft className="h-4 w-4" />
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0 border-border/50"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <span className="sr-only">Go to previous page</span>
-              <IconChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0 border-border/50"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <span className="sr-only">Go to next page</span>
-              <IconChevronRight className="h-4 w-4" />
-            </Button>
-            {!isMobile && (
-              <Button
-                variant="outline"
-                className="h-8 w-8 p-0 border-border/50"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-              >
-                <span className="sr-only">Go to last page</span>
-                <IconChevronsRight className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+      <MobileResponsivePagination
+        pageIndex={table.getState().pagination.pageIndex}
+        pageSize={table.getState().pagination.pageSize}
+        pageCount={table.getPageCount()}
+        totalRows={filteredData.length}
+        filteredRows={table.getFilteredRowModel().rows.length}
+        selectedRows={table.getFilteredSelectedRowModel().rows.length}
+        onPageChange={(page) => table.setPageIndex(page)}
+        onPageSizeChange={(size) => table.setPageSize(size)}
+        pageSizeOptions={isMobile ? [5, 10, 15, 20] : [10, 20, 30, 40, 50]}
+        maxVisiblePages={isMobile ? 3 : 5}
+      />
     </div>
   );
 }

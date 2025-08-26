@@ -111,123 +111,258 @@ export function ExportActions({
         <head>
           <title>Daily Production Report - ${dateString}</title>
           <style>
+            @page {
+              margin: 15mm;
+              size: A4 landscape;
+            }
             body { 
               font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              line-height: 1.6;
+              line-height: 1.4;
               color: #333;
-              max-width: 1200px;
-              margin: 0 auto;
-              padding: 20px;
-              background-color: #f8f9fa;
+              margin: 0;
+              padding: 0;
+              background-color: white;
             }
             .email-container {
               background-color: white;
-              border-radius: 8px;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              overflow: hidden;
+              width: 100%;
+              max-width: none;
             }
             .header {
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
               color: white;
-              padding: 30px;
+              padding: 20px 30px;
               text-align: center;
+              border-bottom: 3px solid #1e3a8a;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             .header h1 {
               margin: 0;
-              font-size: 28px;
-              font-weight: bold;
+              font-size: 32px;
+              font-weight: 800;
+              text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+              letter-spacing: 1px;
             }
             .header .date {
-              font-size: 18px;
-              margin-top: 10px;
+              font-size: 20px;
+              margin-top: 8px;
+              opacity: 0.95;
+              font-weight: 600;
+            }
+            .header .company-info {
+              font-size: 14px;
+              margin-top: 8px;
               opacity: 0.9;
+              font-weight: 500;
             }
             .content {
-              padding: 30px;
+              padding: 20px 30px;
             }
             .table-section {
-              margin-top: 30px;
+              margin-top: 20px;
             }
             .table-title {
-              font-size: 20px;
-              font-weight: bold;
-              color: #495057;
-              margin-bottom: 15px;
-              border-bottom: 2px solid #e9ecef;
-              padding-bottom: 10px;
+              font-size: 18px;
+              font-weight: 700;
+              color: #1e40af;
+              margin-bottom: 12px;
+              border-bottom: 2px solid #3b82f6;
+              padding-bottom: 8px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
             }
             .data-table {
               width: 100%;
               border-collapse: collapse;
-              margin-top: 15px;
-              font-size: 12px;
+              margin-top: 0;
+              font-size: 11px;
               background-color: white;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              border-radius: 8px;
+              border: 2px solid #1e40af;
+              border-radius: 6px;
               overflow: hidden;
             }
             .data-table th {
-              background-color: #495057;
+              background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
               color: white;
-              padding: 12px 8px;
+              padding: 10px 6px;
               text-align: center;
-              font-weight: bold;
-              font-size: 11px;
-              border-bottom: 2px solid #343a40;
+              font-weight: 700;
+              font-size: 10px;
+              border: 1px solid #1e3a8a;
+              text-transform: uppercase;
+              letter-spacing: 0.3px;
+              vertical-align: middle;
             }
             .data-table td {
-              padding: 10px 8px;
-              border-bottom: 1px solid #dee2e6;
+              padding: 8px 6px;
+              border: 1px solid #d1d5db;
               text-align: center;
+              vertical-align: middle;
+              line-height: 1.2;
             }
             .data-table tr:nth-child(even) {
-              background-color: #f8f9fa;
+              background-color: #f8fafc;
+            }
+            .data-table tr:nth-child(odd) {
+              background-color: white;
             }
             .data-table tr:hover {
-              background-color: #e3f2fd;
+              background-color: #eff6ff;
             }
             .total-row {
-              background-color: #fff3cd !important;
-              font-weight: bold;
-              border-top: 2px solid #ffc107;
+              background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+              font-weight: 800;
+              border-top: 2px solid #d97706;
+              color: #000000;
             }
             .total-row td {
-              border-bottom: 2px solid #ffc107;
+              border: 1px solid #d97706;
+              font-weight: 800;
             }
-            .line-cell { color: #007bff; font-weight: bold; }
-            .code-cell { color: #28a745; font-weight: bold; }
-            .buyer-cell { text-align: left; font-weight: 600; }
-            .qty-cell { color: #6f42c1; font-weight: bold; }
-            .target-cell { color: #28a745; background-color: #d4edda; }
-            .production-cell { color: #dc3545; background-color: #f8d7da; }
-            .price-cell { color: #fd7e14; }
-            .percentage-cell { color: #007bff; background-color: #cce7ff; }
-            .taka-cell { color: #dc3545; font-weight: bold; }
+            .line-cell { 
+              color: #000000; 
+              font-weight: 700; 
+              background-color: #dbeafe;
+            }
+            .code-cell { 
+              color: #000000; 
+              font-weight: 700; 
+              background-color: #d1fae5;
+            }
+            .buyer-cell { 
+              text-align: left; 
+              font-weight: 600; 
+              background-color: #fef3c7;
+              color: #000000;
+            }
+            .qty-cell { 
+              color: #000000; 
+              font-weight: 700; 
+              background-color: #ede9fe;
+            }
+            .target-cell { 
+              color: #000000; 
+              background-color: #d1fae5; 
+              font-weight: 600;
+            }
+            .production-cell { 
+              color: #000000; 
+              background-color: #fee2e2; 
+              font-weight: 600;
+            }
+            .price-cell { 
+              color: #000000; 
+              background-color: #fed7aa;
+              font-weight: 600;
+            }
+            .percentage-cell { 
+              color: #000000; 
+              background-color: #dbeafe; 
+              font-weight: 600;
+            }
+            .taka-cell { 
+              color: #000000; 
+              font-weight: 800; 
+              background-color: #fecaca;
+            }
             .footer {
-              background-color: #495057;
+              background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
               color: white;
-              padding: 20px;
+              padding: 15px 30px;
               text-align: center;
-              font-size: 14px;
+              font-size: 12px;
+              border-top: 3px solid #4b5563;
+              margin-top: 20px;
             }
             .footer-info {
               opacity: 0.8;
+              margin-top: 8px;
+              font-size: 11px;
+            }
+            .summary-section {
+              background-color: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              padding: 15px;
+              margin-bottom: 20px;
+            }
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 15px;
               margin-top: 10px;
             }
+            .summary-item {
+              background-color: white;
+              padding: 10px;
+              border-radius: 4px;
+              border-left: 4px solid #3b82f6;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+            .summary-label {
+              font-size: 11px;
+              color: #6b7280;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .summary-value {
+              font-size: 16px;
+              color: #1f2937;
+              font-weight: 700;
+              margin-top: 4px;
+            }
             @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
+              body { 
+                margin: 0; 
+                padding: 0;
+              }
+              .no-print { 
+                display: none; 
+              }
+              .email-container {
+                box-shadow: none;
+              }
+              .data-table {
+                page-break-inside: avoid;
+              }
+              .data-table tr {
+                page-break-inside: avoid;
+              }
             }
           </style>
         </head>
         <body>
           <div class="email-container">
             <div class="header">
-              <h1>📊 Daily Production Report</h1>
-              <div class="date">📅 ${dateString}</div>
+              <h1>🏭 EKUSHE FASHIONS LTD</h1>
+              <div class="date">📅 Daily Production Report - ${dateString}</div>
+              <div class="company-info">Factory: Masterbari, Gazipur City, Gazipur | Production Management System</div>
             </div>
             
             <div class="content">
+              <div class="summary-section">
+                <div class="table-title">📊 Production Summary</div>
+                <div class="summary-grid">
+                  <div class="summary-item">
+                    <div class="summary-label">Total Lines</div>
+                    <div class="summary-value">${Object.keys(reportsByLine).length}</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Total Styles</div>
+                    <div class="summary-value">${new Set(exportData.filter(row => row['P/COD']).map(row => row['P/COD'])).size}</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Total Target</div>
+                    <div class="summary-value">${exportData.filter(row => row['LINE'] !== 'Total').reduce((sum, row) => sum + (row['DAILY TARGET'] || 0), 0).toLocaleString()}</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Total Production</div>
+                    <div class="summary-value">${exportData.filter(row => row['LINE'] !== 'Total').reduce((sum, row) => sum + (row['DAILY PRODUCTION'] || 0), 0).toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+
               <div class="table-section">
                 <div class="table-title">📋 Production Details</div>
                 <table class="data-table">
@@ -241,11 +376,11 @@ export function ExportActions({
                       <th>ITEM</th>
                       <th>DAILY<br/>TARGET</th>
                       <th>DAILY<br/>PRODUCTION</th>
-                      <th>UNIT PRICE</th>
-                      <th>TOTAL PRICE</th>
+                      <th>UNIT<br/>PRICE</th>
+                      <th>TOTAL<br/>PRICE</th>
                       <th>%</th>
-                      <th>% Dollar</th>
-                      <th>Taka</th>
+                      <th>% DOLLAR</th>
+                      <th>TAKA</th>
                       <th>REMARKS</th>
                     </tr>
                   </thead>
@@ -279,14 +414,14 @@ export function ExportActions({
             <div class="footer">
               <div>🏭 Production Management System</div>
               <div class="footer-info">
-                Generated on ${new Date().toLocaleString()} | Automated Daily Report
+                Generated on ${new Date().toLocaleString()} | Automated Daily Report | EKUSHE FASHIONS LTD
               </div>
             </div>
           </div>
           
-          <div class="no-print" style="text-align: center; margin-top: 30px;">
-            <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">Print/Save as PDF</button>
-            <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">Close</button>
+          <div class="no-print" style="text-align: center; margin-top: 30px; padding: 20px;">
+            <button onclick="window.print()" style="padding: 12px 24px; background: #1e40af; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: 15px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">🖨️ Print/Save as PDF</button>
+            <button onclick="window.close()" style="padding: 12px 24px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">❌ Close</button>
           </div>
         </body>
       </html>
