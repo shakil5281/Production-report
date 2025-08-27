@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import type { Prisma, CashbookType } from '@prisma/client';
+import { ProfitLossService } from '@/lib/services/profit-loss-service';
 
 // GET /api/cashbook - Get cashbook entries with filters
 export async function GET(request: NextRequest) {
@@ -182,6 +183,21 @@ export async function POST(request: NextRequest) {
         line: true,
       },
     });
+
+    // Update Profit & Loss Statement automatically (only for DEBIT entries that affect expenses)
+    if (type === 'DEBIT') {
+      try {
+        await ProfitLossService.handleProfitLossUpdate({
+          date: date,
+          type: 'CASHBOOK',
+          action: 'CREATE',
+          recordId: entry.id
+        });
+      } catch (error) {
+        console.warn('Failed to update Profit & Loss Statement:', error);
+        // Continue with cashbook creation even if P&L update fails
+      }
+    }
 
     const normalizedEntry = {
       ...entry,

@@ -37,6 +37,10 @@ export async function GET(request: NextRequest) {
       ['Loader', 8, 0, 0, 0, 8, 'Support staff'],
       ['Cleaner', 7, 0, 0, 0, 7, 'Support staff'],
       ['', '', '', '', '', '', ''], // Empty row for separation
+      ['SECURITY & OTHERS (will create "Security & Others Total")', '', '', '', '', '', ''],
+      ['Security', 12, 1, 0, 0, 13, 'Security personnel'],
+      ['Others', 5, 0, 0, 0, 5, 'Other workers'],
+      ['', '', '', '', '', '', ''], // Empty row for separation
       ['STAFF SECTIONS (will create "Total Staff")', '', '', '', '', '', ''],
       ['Office Staff', 9, 0, 0, 0, 9, 'Staff member'],
       ['Mechanical Staff', 3, 0, 1, 0, 4, 'Staff member'],
@@ -48,6 +52,7 @@ export async function GET(request: NextRequest) {
       ['✓ Special Workers Total', '', '', '', '', '', 'Auto-calculated'],
       ['✓ Operator Lines Total', '', '', '', '', '', 'Auto-calculated'],
       ['✓ Support Staff Total', '', '', '', '', '', 'Auto-calculated'],
+      ['✓ Security & Others Total', '', '', '', '', '', 'Auto-calculated'],
       ['✓ Total Worker', '', '', '', '', '', 'Auto-calculated'],
       ['✓ Total Staff', '', '', '', '', '', 'Auto-calculated'],
       ['✓ Grand Total', '', '', '', '', '', 'Auto-calculated']

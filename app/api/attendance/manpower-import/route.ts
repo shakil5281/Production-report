@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       'specialWorkers': ['Inputman', 'Ironman'],
       'operatorLines': [] as string[], // Will be filled with Line-XX(Operator)
       'supportStaff': ['Loader', 'Cleaner'],
+      'securityOthers': ['Security', 'Others'],
       'officeStaff': ['Office Staff'],
       'mechanicalStaff': ['Mechanical Staff'],
       'productionStaff': ['Production Staff']
@@ -129,6 +130,9 @@ export async function POST(request: NextRequest) {
         itemType = 'SECTION';
       } else if (sectionRaw.includes('Loder') || sectionRaw.includes('Loader') || sectionRaw.includes('Cleaner')) {
         // Handle variations in spelling (Loder/Loader)
+        section = sectionRaw;
+        itemType = 'SECTION';
+      } else if (['Security', 'Others'].includes(sectionRaw)) {
         section = sectionRaw;
         itemType = 'SECTION';
       } else if (sectionRaw.includes('Office') && sectionRaw.includes('Staff')) {
@@ -297,9 +301,32 @@ export async function POST(request: NextRequest) {
       calculatedTotals.push(supportTotal);
     }
 
-    // 6. Total Worker (sum of all production totals)
+    // 6. Security & Others Total (Security + Others)
+    const securityOthers = manpowerData.filter(m => 
+      sectionGroups.securityOthers.includes(m.section) && m.itemType === 'SECTION'
+    );
+    if (securityOthers.length > 0) {
+      const securityOthersTotal = {
+        id: `total_security_others_${Date.now()}`,
+        date: new Date(dateString + 'T12:00:00.000Z'),
+        section: 'Security & Others Total',
+        subsection: null,
+        lineNumber: null,
+        itemType: 'TOTAL',
+        present: securityOthers.reduce((sum, s) => sum + s.present, 0),
+        absent: securityOthers.reduce((sum, s) => sum + s.absent, 0),
+        leave: securityOthers.reduce((sum, s) => sum + s.leave, 0),
+        others: securityOthers.reduce((sum, s) => sum + s.others, 0),
+        total: securityOthers.reduce((sum, s) => sum + s.total, 0),
+        remarks: 'Auto-calculated: Security + Others',
+        parentId: null
+      };
+      calculatedTotals.push(securityOthersTotal);
+    }
+
+    // 7. Total Worker (sum of all production totals)
     const workerTotals = calculatedTotals.filter(t => 
-      ['Production Total', 'Sewing Helper Total', 'Special Workers Total', 'Operator Lines Total', 'Support Staff Total'].includes(t.section)
+      ['Production Total', 'Sewing Helper Total', 'Special Workers Total', 'Operator Lines Total', 'Support Staff Total', 'Security & Others Total'].includes(t.section)
     );
     if (workerTotals.length > 0) {
       const totalWorker = {
@@ -320,7 +347,7 @@ export async function POST(request: NextRequest) {
       calculatedTotals.push(totalWorker);
     }
 
-    // 7. Total Staff (Office Staff + Mechanical/Macanical Staff + Production Staff)
+    // 8. Total Staff (Office Staff + Mechanical/Macanical Staff + Production Staff)
     const staffSections = manpowerData.filter(m => 
       (m.section === 'Office Staff' || 
        m.section.includes('Mechanical') || 
@@ -346,7 +373,7 @@ export async function POST(request: NextRequest) {
       calculatedTotals.push(totalStaff);
     }
 
-    // 8. Grand Total (Total Worker + Total Staff)
+    // 9. Grand Total (Total Worker + Total Staff)
     const totalWorkerEntry = calculatedTotals.find(t => t.section === 'Total Worker');
     const totalStaffEntry = calculatedTotals.find(t => t.section === 'Total Staff');
     

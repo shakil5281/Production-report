@@ -691,32 +691,32 @@ export default function OvertimeManagementPage() {
                                   <div className="flex items-center gap-2 min-w-0">
                                     <Label className="text-sm md:text-base font-medium min-w-[60px] md:min-w-[70px]">People:</Label>
                                     <div className="flex items-center gap-1">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
-                                        onClick={() => updateOvertimeDetail(record.section, index, 'workerCount', Math.max(0, detail.workerCount - 1))}
-                                        disabled={detail.workerCount <= 0}
-                                      >
-                                        <Minus className="h-4 w-4 md:h-3 md:w-3" />
-                                      </Button>
-                                      <Input
-                                        type="number"
-                                        value={detail.workerCount}
-                                        onChange={(e) => updateOvertimeDetail(record.section, index, 'workerCount', parseInt(e.target.value) || 0)}
-                                        className="w-16 md:w-14 text-center h-9 md:h-8 text-sm md:text-base"
-                                        min="0"
-                                        max={getAvailableWorkers(record) + detail.workerCount}
-                                      />
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
-                                        onClick={() => updateOvertimeDetail(record.section, index, 'workerCount', detail.workerCount + 1)}
-                                        disabled={getAvailableWorkers(record) <= 0}
-                                      >
-                                        <Plus className="h-4 w-4 md:h-3 md:w-3" />
-                                      </Button>
+                                                                             <Button
+                                         variant="outline"
+                                         size="sm"
+                                         className="hidden md:flex h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
+                                         onClick={() => updateOvertimeDetail(record.section, index, 'workerCount', Math.max(0, detail.workerCount - 1))}
+                                         disabled={detail.workerCount <= 0}
+                                       >
+                                         <Minus className="h-4 w-4 md:h-3 md:w-3" />
+                                       </Button>
+                                                                               <Input
+                                          type="number"
+                                          value={detail.workerCount === 0 ? '' : detail.workerCount}
+                                          onChange={(e) => updateOvertimeDetail(record.section, index, 'workerCount', parseInt(e.target.value) || 0)}
+                                          className="w-24 md:w-24 text-center h-9 md:h-8 text-sm md:text-base"
+                                          min="0"
+                                          max={getAvailableWorkers(record) + detail.workerCount}
+                                        />
+                                       <Button
+                                         variant="outline"
+                                         size="sm"
+                                         className="hidden md:flex h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
+                                         onClick={() => updateOvertimeDetail(record.section, index, 'workerCount', detail.workerCount + 1)}
+                                         disabled={getAvailableWorkers(record) <= 0}
+                                       >
+                                         <Plus className="h-4 w-4 md:h-3 md:w-3" />
+                                       </Button>
                                     </div>
                                   </div>
 
@@ -724,33 +724,33 @@ export default function OvertimeManagementPage() {
                                   <div className="flex items-center gap-2 min-w-0">
                                     <Label className="text-sm md:text-base font-medium min-w-[50px] md:min-w-[55px]">Hours:</Label>
                                     <div className="flex items-center gap-1">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
-                                        onClick={() => updateOvertimeDetail(record.section, index, 'hours', Math.max(0, detail.hours - 0.5))}
-                                        disabled={detail.hours <= 0}
-                                      >
-                                        <Minus className="h-4 w-4 md:h-3 md:w-3" />
-                                      </Button>
-                                      <Input
-                                        type="number"
-                                        value={detail.hours}
-                                        onChange={(e) => updateOvertimeDetail(record.section, index, 'hours', parseFloat(e.target.value) || 0)}
-                                        className="w-16 md:w-14 text-center h-9 md:h-8 text-sm md:text-base"
-                                        min="0"
-                                        max="24"
-                                        step="0.5"
-                                      />
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
-                                        onClick={() => updateOvertimeDetail(record.section, index, 'hours', Math.min(24, detail.hours + 0.5))}
-                                        disabled={detail.hours >= 24}
-                                      >
-                                        <Plus className="h-4 w-4 md:h-3 md:w-3" />
-                                      </Button>
+                                                                             <Button
+                                         variant="outline"
+                                         size="sm"
+                                         className="hidden md:flex h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
+                                         onClick={() => updateOvertimeDetail(record.section, index, 'hours', Math.max(0, detail.hours - 0.5))}
+                                         disabled={detail.hours <= 0}
+                                       >
+                                         <Minus className="h-4 w-4 md:h-3 md:w-3" />
+                                       </Button>
+                                       <Input
+                                         type="number"
+                                         value={detail.hours}
+                                         onChange={(e) => updateOvertimeDetail(record.section, index, 'hours', parseFloat(e.target.value) || 0)}
+                                         className="w-24 text-center h-9 md:h-8 text-sm md:text-base"
+                                         min="0"
+                                         max="24"
+                                         step="0.5"
+                                       />
+                                       <Button
+                                         variant="outline"
+                                         size="sm"
+                                         className="hidden md:flex h-9 w-9 md:h-8 md:w-8 p-0 touch-manipulation"
+                                         onClick={() => updateOvertimeDetail(record.section, index, 'hours', Math.min(24, detail.hours + 0.5))}
+                                         disabled={detail.hours >= 24}
+                                       >
+                                         <Plus className="h-4 w-4 md:h-3 md:w-3" />
+                                       </Button>
                                     </div>
                                   </div>
 

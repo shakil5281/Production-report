@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import type { CashbookType } from '@prisma/client';
+import { ProfitLossService } from '@/lib/services/profit-loss-service';
 
 // GET /api/cashbook/[id] - Optional: fetch a specific cashbook entry
 export async function GET(
@@ -113,6 +114,21 @@ export async function PUT(
       },
     });
 
+    // Update Profit & Loss Statement automatically (only for DEBIT entries that affect expenses)
+    if (updated.type === 'DEBIT') {
+      try {
+        await ProfitLossService.handleProfitLossUpdate({
+          date: updated.date.toISOString().split('T')[0],
+          type: 'CASHBOOK',
+          action: 'UPDATE',
+          recordId: updated.id
+        });
+      } catch (error) {
+        console.warn('Failed to update Profit & Loss Statement:', error);
+        // Continue with cashbook update even if P&L update fails
+      }
+    }
+
     const normalized = {
       ...updated,
       date: updated.date.toISOString().split('T')[0],
@@ -145,6 +161,21 @@ export async function DELETE(
     const existing = await prisma.cashbookEntry.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Cashbook entry not found' }, { status: 404 });
+    }
+
+    // Update Profit & Loss Statement automatically (only for DEBIT entries that affect expenses)
+    if (existing.type === 'DEBIT') {
+      try {
+        await ProfitLossService.handleProfitLossUpdate({
+          date: existing.date.toISOString().split('T')[0],
+          type: 'CASHBOOK',
+          action: 'DELETE',
+          recordId: existing.id
+        });
+      } catch (error) {
+        console.warn('Failed to update Profit & Loss Statement:', error);
+        // Continue with cashbook deletion even if P&L update fails
+      }
     }
 
     await prisma.cashbookEntry.delete({ where: { id } });

@@ -41,7 +41,7 @@ interface ProfitLossData {
     totalExpenses: number;
     netProfit: number;
     profitMargin: number;
-    breakdown: { dailySalary: number; dailyOvertime: number; dailyCashExpenses: number; };
+            breakdown: { dailySalary: number; dailyOvertime: number; dailyCashExpenses: number; };
   };
   dailyBreakdown: DailyBreakdown[];
   lineBreakdown: LineBreakdown[];
@@ -161,7 +161,7 @@ export default function ProfitLossPage() {
             <div className="text-2xl font-bold text-red-600">
               ৳{data.summary.totalExpenses.toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Salary + Overtime + Cash</p>
+            <p className="text-xs text-muted-foreground mt-1">Salary + Cash Expenses</p>
           </CardContent>
         </Card>
         <Card>
@@ -213,7 +213,6 @@ export default function ProfitLossPage() {
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Earnings</TableHead>
                     <TableHead className="text-right">Daily Salary</TableHead>
-                    <TableHead className="text-right">Daily Overtime</TableHead>
                     <TableHead className="text-right">Cash Expenses</TableHead>
                     <TableHead className="text-right">Net Profit</TableHead>
                   </TableRow>
@@ -229,9 +228,6 @@ export default function ProfitLossPage() {
                       </TableCell>
                       <TableCell className="text-right text-red-600">
                         ৳{day.dailySalary.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-red-600">
-                        ৳{day.dailyOvertime.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-red-600">
                         ৳{day.dailyCashExpenses.toLocaleString()}
@@ -260,7 +256,6 @@ export default function ProfitLossPage() {
                     <TableHead>Section</TableHead>
                     <TableHead className="text-right">Earnings</TableHead>
                     <TableHead className="text-right">Daily Salary</TableHead>
-                    <TableHead className="text-right">Daily Overtime</TableHead>
                     <TableHead className="text-right">Net Profit</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -273,9 +268,6 @@ export default function ProfitLossPage() {
                       </TableCell>
                       <TableCell className="text-right text-red-600">
                         ৳{line.dailySalary.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-red-600">
-                        ৳{line.dailyOvertime.toLocaleString()}
                       </TableCell>
                       <TableCell className={`text-right font-bold ${getNetProfitColor(line.netProfit)}`}>
                         ৳{line.netProfit.toLocaleString()}

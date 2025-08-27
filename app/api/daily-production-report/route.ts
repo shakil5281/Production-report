@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { ProfitLossService } from '@/lib/services/profit-loss-service';
 
 // GET /api/daily-production-report - Get daily production reports
 export async function GET(request: NextRequest) {
@@ -343,6 +344,19 @@ export async function POST(request: NextRequest) {
           productionList: true
         }
       });
+    }
+
+    // Update Profit & Loss Statement automatically
+    try {
+      await ProfitLossService.handleProfitLossUpdate({
+        date: date,
+        type: 'PRODUCTION',
+        action: existingReport ? 'UPDATE' : 'CREATE',
+        recordId: report.id
+      });
+    } catch (error) {
+      console.warn('Failed to update Profit & Loss Statement:', error);
+      // Continue with production update even if P&L update fails
     }
 
     return NextResponse.json({
