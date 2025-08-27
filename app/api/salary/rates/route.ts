@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
 
     // Default sections with default rates
     const defaultSections = [
-      'Staff', 'Operator', 'Helper', 'Cutting', 'Finishing', 'Quality', 'Security'
+      'Staff', 'Operator', 'Helper', 'Cutting', 'Finishing', 'Quality', 
+      'Inputman', 'Ironman', 'Cleaner', 'Loader', 'Security', 'Others'
     ];
 
     defaultSections.forEach(section => {

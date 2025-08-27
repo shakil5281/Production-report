@@ -66,23 +66,8 @@ export async function GET(request: NextRequest) {
 
     console.log('Daily salary query successful, count:', dailySalary.length);
 
-    // Fetch Overtime Records (Expenses) - simplified query
-    const overtimeRecords = await prisma.overtimeRecord.findMany({
-      where: {
-        date: {
-          gte: new Date(dateFilter.gte),
-          lte: new Date(dateFilter.lte)
-        }
-      },
-      select: {
-        id: true,
-        date: true,
-        totalOtHours: true,
-        section: true
-      }
-    });
-
-    console.log('Overtime records query successful, count:', overtimeRecords.length);
+    // Note: Overtime is now included in Daily Salary total, so we don't fetch it separately
+    console.log('Overtime is included in Daily Salary total');
 
     // Fetch Daily Cash Expenses from Cashbook - simplified query
     const dailyCashExpenses = await prisma.cashbookEntry.findMany({
@@ -108,15 +93,11 @@ export async function GET(request: NextRequest) {
     const totalEarnings = dailyProduction.reduce((sum, item) => sum + Number(item.netAmount || 0), 0);
     const totalDailySalary = dailySalary.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0);
     
-    // Calculate overtime expenses (assuming 100 taka per hour as default rate)
-    const overtimeRate = 100; // This should come from salary rates
-    const totalOvertimeExpenses = overtimeRecords.reduce((sum, item) => 
-      sum + (Number(item.totalOtHours || 0) * overtimeRate), 0
-    );
-    
+    // Note: Overtime is now included in Daily Salary total (regular + overtime amounts)
     const totalDailyCashExpenses = dailyCashExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
 
-    const totalExpenses = totalDailySalary + totalOvertimeExpenses + totalDailyCashExpenses;
+    // Net Profit = Daily Production (Grand Total) - Daily Salary (Grand Total) - Daily Cashbook Expense
+    const totalExpenses = totalDailySalary + totalDailyCashExpenses;
     const netProfit = totalEarnings - totalExpenses;
     const profitMargin = totalEarnings > 0 ? (netProfit / totalEarnings) * 100 : 0;
 
@@ -136,14 +117,14 @@ export async function GET(request: NextRequest) {
           profitMargin,
           breakdown: {
             dailySalary: totalDailySalary,
-            dailyOvertime: totalOvertimeExpenses,
+            dailyOvertime: 0, // Overtime is included in dailySalary total
             dailyCashExpenses: totalDailyCashExpenses
           }
         },
-        dailyBreakdown: createDailyBreakdown(dailyProduction, dailySalary, overtimeRecords, dailyCashExpenses, overtimeRate),
-        lineBreakdown: createSectionBreakdown(dailyProduction, dailySalary, overtimeRecords, overtimeRate),
-        topPerformingLines: createSectionBreakdown(dailyProduction, dailySalary, overtimeRecords, overtimeRate).slice(0, 5),
-        worstPerformingLines: createSectionBreakdown(dailyProduction, dailySalary, overtimeRecords, overtimeRate).slice(-5).reverse()
+        dailyBreakdown: createDailyBreakdown(dailyProduction, dailySalary, dailyCashExpenses),
+        lineBreakdown: createSectionBreakdown(dailyProduction, dailySalary),
+        topPerformingLines: createSectionBreakdown(dailyProduction, dailySalary).slice(0, 5),
+        worstPerformingLines: createSectionBreakdown(dailyProduction, dailySalary).slice(-5).reverse()
       }
     };
 
@@ -159,7 +140,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Helper function to create daily breakdown
-function createDailyBreakdown(dailyProduction: any[], dailySalary: any[], overtimeRecords: any[], dailyCashExpenses: any[], overtimeRate: number) {
+function createDailyBreakdown(dailyProduction: any[], dailySalary: any[], dailyCashExpenses: any[]) {
   const dailyBreakdown = new Map();
 
   // Add production data
@@ -175,7 +156,6 @@ function createDailyBreakdown(dailyProduction: any[], dailySalary: any[], overti
         netProfit: 0,
         productionCount: 0,
         salaryCount: 0,
-        overtimeCount: 0,
         cashExpenseCount: 0
       });
     }
@@ -184,7 +164,7 @@ function createDailyBreakdown(dailyProduction: any[], dailySalary: any[], overti
     day.productionCount += 1;
   });
 
-  // Add salary data
+  // Add salary data (includes both regular and overtime amounts)
   dailySalary.forEach(item => {
     const date = format(item.date, 'yyyy-MM-dd');
     if (!dailyBreakdown.has(date)) {
@@ -197,35 +177,12 @@ function createDailyBreakdown(dailyProduction: any[], dailySalary: any[], overti
         netProfit: 0,
         productionCount: 0,
         salaryCount: 0,
-        overtimeCount: 0,
         cashExpenseCount: 0
       });
     }
     const day = dailyBreakdown.get(date);
     day.dailySalary += Number(item.totalAmount || 0);
     day.salaryCount += 1;
-  });
-
-  // Add overtime data
-  overtimeRecords.forEach(item => {
-    const date = format(item.date, 'yyyy-MM-dd');
-    if (!dailyBreakdown.has(date)) {
-      dailyBreakdown.set(date, {
-        date,
-        earnings: 0,
-        dailySalary: 0,
-        dailyOvertime: 0,
-        dailyCashExpenses: 0,
-        netProfit: 0,
-        productionCount: 0,
-        salaryCount: 0,
-        overtimeCount: 0,
-        cashExpenseCount: 0
-      });
-    }
-    const day = dailyBreakdown.get(date);
-    day.dailyOvertime += Number(item.totalOtHours || 0) * overtimeRate;
-    day.overtimeCount += 1;
   });
 
   // Add cash expense data
@@ -241,7 +198,6 @@ function createDailyBreakdown(dailyProduction: any[], dailySalary: any[], overti
         netProfit: 0,
         productionCount: 0,
         salaryCount: 0,
-        overtimeCount: 0,
         cashExpenseCount: 0
       });
     }
@@ -250,15 +206,15 @@ function createDailyBreakdown(dailyProduction: any[], dailySalary: any[], overti
     day.cashExpenseCount += 1;
   });
 
-  // Calculate daily net profit and sort by date
+  // Calculate daily net profit: Earnings - Daily Salary - Daily Cash Expenses
   return Array.from(dailyBreakdown.values()).map(day => ({
     ...day,
-    netProfit: day.earnings - day.dailySalary - day.dailyOvertime - day.dailyCashExpenses
+    netProfit: day.earnings - day.dailySalary - day.dailyCashExpenses
   })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 // Helper function to create section breakdown
-function createSectionBreakdown(dailyProduction: any[], dailySalary: any[], overtimeRecords: any[], overtimeRate: number) {
+function createSectionBreakdown(dailyProduction: any[], dailySalary: any[]) {
   const sectionBreakdown = new Map();
 
   // Add production by section (using line numbers)
@@ -273,8 +229,7 @@ function createSectionBreakdown(dailyProduction: any[], dailySalary: any[], over
         dailyOvertime: 0,
         netProfit: 0,
         productionCount: 0,
-        salaryCount: 0,
-        overtimeCount: 0
+        salaryCount: 0
       });
     }
     const sectionData = sectionBreakdown.get(section);
@@ -282,7 +237,7 @@ function createSectionBreakdown(dailyProduction: any[], dailySalary: any[], over
     sectionData.productionCount += 1;
   });
 
-  // Add salary by section
+  // Add salary by section (includes both regular and overtime amounts)
   dailySalary.forEach(item => {
     const section = item.section;
     if (!sectionBreakdown.has(section)) {
@@ -294,8 +249,7 @@ function createSectionBreakdown(dailyProduction: any[], dailySalary: any[], over
         dailyOvertime: 0,
         netProfit: 0,
         productionCount: 0,
-        salaryCount: 0,
-        overtimeCount: 0
+        salaryCount: 0
       });
     }
     const sectionData = sectionBreakdown.get(section);
@@ -303,30 +257,9 @@ function createSectionBreakdown(dailyProduction: any[], dailySalary: any[], over
     sectionData.salaryCount += 1;
   });
 
-  // Add overtime by section
-  overtimeRecords.forEach(item => {
-    const section = item.section;
-    if (!sectionBreakdown.has(section)) {
-      sectionBreakdown.set(section, {
-        sectionId: section,
-        sectionName: section,
-        earnings: 0,
-        dailySalary: 0,
-        dailyOvertime: 0,
-        netProfit: 0,
-        productionCount: 0,
-        salaryCount: 0,
-        overtimeCount: 0
-      });
-    }
-    const sectionData = sectionBreakdown.get(section);
-    sectionData.dailyOvertime += Number(item.totalOtHours || 0) * overtimeRate;
-    sectionData.overtimeCount += 1;
-  });
-
-  // Calculate section-wise net profit
+  // Calculate section-wise net profit: Earnings - Daily Salary
   return Array.from(sectionBreakdown.values()).map(section => ({
     ...section,
-    netProfit: section.earnings - section.dailySalary - section.dailyOvertime
+    netProfit: section.earnings - section.dailySalary
   })).sort((a, b) => b.netProfit - a.netProfit);
 }

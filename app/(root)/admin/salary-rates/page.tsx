@@ -60,7 +60,7 @@ export default function ManageSalaryRatesPage() {
   // Standard sections for salary management
   const standardSections = [
     'Staff', 'Operator', 'Helper', 'Cutting', 'Finishing', 'Quality', 
-    'Inputman', 'Ironman', 'Cleaner', 'Loader', 'Security'
+    'Inputman', 'Ironman', 'Cleaner', 'Loader', 'Security', 'Others'
   ];
 
   useEffect(() => {

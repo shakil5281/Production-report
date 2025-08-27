@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { randomUUID } from 'crypto';
+import { ProfitLossService } from '@/lib/services/profit-loss-service';
 
 // GET daily salary records for a specific date
 export async function GET(request: NextRequest) {
@@ -185,6 +186,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Update Profit & Loss Statement automatically
+    try {
+      await ProfitLossService.handleProfitLossUpdate({
+        date: dateString,
+        type: 'SALARY',
+        action: 'UPDATE',
+        recordId: `salary_${dateString}`
+      });
+    } catch (error) {
+      console.warn('Failed to update Profit & Loss Statement:', error);
+      // Continue with salary update even if P&L update fails
+    }
+
     // Get summary of inserted data
     const summary = await prisma.$queryRaw`
       SELECT 
@@ -261,6 +275,19 @@ export async function DELETE(request: NextRequest) {
       DELETE FROM daily_salaries 
       WHERE date::date = ${dateString}::date
     `;
+
+    // Update Profit & Loss Statement automatically
+    try {
+      await ProfitLossService.handleProfitLossUpdate({
+        date: dateString,
+        type: 'SALARY',
+        action: 'DELETE',
+        recordId: `salary_${dateString}`
+      });
+    } catch (error) {
+      console.warn('Failed to update Profit & Loss Statement:', error);
+      // Continue with salary deletion even if P&L update fails
+    }
 
     return NextResponse.json({
       success: true,

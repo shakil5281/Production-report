@@ -37,17 +37,18 @@ export default function DailySalaryPage() {
   const [salaryData, setSalaryData] = useState<SalaryRecord[]>([]);
   // Default hardcoded salary rates
   const defaultSalaryRates = {
-    'Staff': { regular: 835, overtime: 0 },
-    'Operator': { regular: 487, overtime: 80 },
-    'Helper': { regular: 355, overtime: 57 },
-    'Cutting': { regular: 410, overtime: 66 },
-    'Finishing': { regular: 420, overtime: 69 },
-    'Quality': { regular: 410, overtime: 66 },
-    'Inputman': { regular: 345, overtime: 0 },
-    'Ironman': { regular: 345, overtime: 0 },
-    'Cleaner': { regular: 345, overtime: 0 },
-    'Loader': { regular: 345, overtime: 0 },
-    'Security': { regular: 345, overtime: 0 }
+    'Staff': { regular: 960, overtime: 0 },
+    'Operator': { regular: 492, overtime: 80 },
+    'Helper': { regular: 367, overtime: 55.45 },
+    'Cutting': { regular: 404, overtime: 62.04 },
+    'Finishing': { regular: 451, overtime: 71.10 },
+    'Quality': { regular: 410, overtime: 63.15 },
+    'Inputman': { regular: 382, overtime: 57.75 },
+    'Ironman': { regular: 382, overtime: 57.75 },
+    'Cleaner': { regular: 360, overtime: 53.55 },
+    'Loader': { regular: 435, overtime: 0 },
+    'Security': { regular: 472, overtime: 0 },
+    'Others': { regular: 0, overtime: 0 }
   };
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -73,7 +74,7 @@ export default function DailySalaryPage() {
   // Default sections with new structure
   const defaultSections = [
     'Staff', 'Operator', 'Helper', 'Cutting', 'Finishing', 'Quality', 
-    'Inputman', 'Ironman', 'Cleaner', 'Loader'
+    'Inputman', 'Ironman', 'Cleaner', 'Loader', 'Security', 'Others'
   ];
 
   useEffect(() => {
@@ -252,7 +253,9 @@ export default function DailySalaryPage() {
         'Finishing': 'Finishing',
         'Quality': 'Quality',
         'Helper': 'Helper',
-        'Operator': 'Operator'
+        'Operator': 'Operator',
+        'Security': 'Security',
+        'Others': 'Others'
       };
 
       // Aggregate workers by salary section
@@ -327,7 +330,9 @@ export default function DailySalaryPage() {
       'Finishing': 'Finishing',
       'Quality': 'Quality',
       'Helper': 'Helper',
-      'Operator': 'Operator'
+      'Operator': 'Operator',
+      'Security': 'Security',
+      'Others': 'Others'
     };
 
     // Aggregate workers by salary section

@@ -35,11 +35,15 @@ export async function GET(request: NextRequest) {
           WHEN 'Quality' THEN 3
           WHEN 'Inputman' THEN 4
           WHEN 'Ironman' THEN 5
-          WHEN 'Office Staff' THEN 6
-          WHEN 'Mechanical Staff' THEN 7
-          WHEN 'Macanical - Staff' THEN 7
-          WHEN 'Production Staff' THEN 8
-          ELSE 9
+          WHEN 'Loader' THEN 6
+          WHEN 'Cleaner' THEN 7
+          WHEN 'Security' THEN 8
+          WHEN 'Others' THEN 9
+          WHEN 'Office Staff' THEN 10
+          WHEN 'Mechanical Staff' THEN 11
+          WHEN 'Macanical - Staff' THEN 11
+          WHEN 'Production Staff' THEN 12
+          ELSE 13
         END,
         section ASC
     ` as any[];

@@ -39,7 +39,7 @@ interface ManpowerImportResult {
 }
 
 const sampleExcelStructure = [
-  { column: 'A', field: 'Section/Line', example: 'Cutting, Line-01(Helper)', required: true },
+  { column: 'A', field: 'Section/Line', example: 'Cutting, Line-01(Helper), Security, Others', required: true },
   { column: 'B', field: 'Present', example: '22', required: true },
   { column: 'C', field: 'Absent', example: '6', required: true },
   { column: 'D', field: 'Leave', example: '0', required: true },
@@ -329,7 +329,7 @@ export default function ManpowerImportPage() {
               <div className="space-y-1 text-sm">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">Main Section</Badge>
-                  <span>Cutting, Sewing, Finishing</span>
+                  <span>Cutting, Finishing, Quality, Security, Others</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">Line Item</Badge>
