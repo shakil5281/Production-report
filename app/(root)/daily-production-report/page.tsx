@@ -30,7 +30,6 @@ export default function DailyProductionReportPage() {
   const [loading, setLoading] = useState(false);
   const [viewingReport, setViewingReport] = useState<DailyProductionReport | null>(null);
   const [viewingLineNo, setViewingLineNo] = useState<string>('');
-  const [emailSending, setEmailSending] = useState(false);
   const [productionHours, setProductionHours] = useState<Record<string, number>>({});
   const isMobile = useIsMobile();
 
@@ -151,8 +150,6 @@ export default function DailyProductionReportPage() {
             reportsWithoutLine={reportsWithoutLine}
             selectedDate={selectedDate}
             loading={loading}
-            emailSending={emailSending}
-            setEmailSending={setEmailSending}
             productionHours={productionHours}
           />
 

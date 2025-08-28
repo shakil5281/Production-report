@@ -77,9 +77,9 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		if (!['ADMIN', 'MANAGER'].includes(user.role)) {
-			return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-		}
+		    if (!user.role || user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Insufficient permissions - SUPER_ADMIN access required' }, { status: 403 });
+    }
 
 		const body = await request.json();
 		const { lineId, styleId, startDate, endDate, targetPerHour } = body as {

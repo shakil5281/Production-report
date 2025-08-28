@@ -13,6 +13,7 @@ const protectedRoutes = [
 const protectedApiRoutes = [
   '/api/production',
   '/api/admin',
+  '/api/backup',
   '/api/cashbook',
   '/api/expenses',
   '/api/factories',
