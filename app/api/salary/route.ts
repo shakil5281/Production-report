@@ -17,28 +17,23 @@ export async function GET(request: NextRequest) {
     }
 
     const dateString = date;
+    const startOfDay = new Date(dateString + 'T00:00:00Z');
+    const endOfDay = new Date(dateString + 'T23:59:59Z');
 
-    // Get daily salary records for the specific date
-    const salaryRecords = await prisma.$queryRaw`
-      SELECT 
-        id, date, section, "workerCount", "regularRate", "overtimeHours", "overtimeRate",
-        "regularAmount", "overtimeAmount", "totalAmount", remarks,
-        "createdAt", "updatedAt"
-      FROM daily_salaries
-      WHERE date::date = ${dateString}::date
-      ORDER BY 
-        CASE section
-          WHEN 'Staff' THEN 1
-          WHEN 'Operator' THEN 2
-          WHEN 'Helper' THEN 3
-          WHEN 'Cutting' THEN 4
-          WHEN 'Finishing' THEN 5
-          WHEN 'Quality' THEN 6
-          WHEN 'Security' THEN 7
-          ELSE 8
-        END,
-        section ASC
-    ` as any[];
+    // Get daily salary records for the specific date using Prisma ORM
+    const salaryRecords = await prisma.dailySalary.findMany({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      },
+      orderBy: [
+        {
+          section: 'asc'
+        }
+      ]
+    });
 
     // Calculate summary
     const summary = {
@@ -53,7 +48,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        records: salaryRecords.map((record: any) => ({
+        records: salaryRecords.map((record) => ({
           id: record.id,
           date: record.date.toISOString().split('T')[0],
           section: record.section,
@@ -95,23 +90,30 @@ export async function POST(request: NextRequest) {
     }
 
     const dateString = date;
+    const startOfDay = new Date(dateString + 'T00:00:00Z');
+    const endOfDay = new Date(dateString + 'T23:59:59Z');
 
     // Get overtime data from overtime management if auto-calculation is enabled
     let overtimeDataBySection: Record<string, number> = {};
     
     if (autoCalculateOvertime) {
       try {
-        // Query overtime data directly from database
-        const overtimeData = await prisma.$queryRaw`
-          SELECT 
-            section,
-            "totalOtHours" as total_overtime_hours
-          FROM overtime_records
-          WHERE date::date = ${dateString}::date
-        ` as any[];
+        // Query overtime data using Prisma ORM
+        const overtimeData = await prisma.overtimeRecord.findMany({
+          where: {
+            date: {
+              gte: startOfDay,
+              lte: endOfDay
+            }
+          },
+          select: {
+            section: true,
+            totalOtHours: true
+          }
+        });
 
-        overtimeData.forEach((record: any) => {
-          overtimeDataBySection[record.section] = Number(record.total_overtime_hours) || 0;
+        overtimeData.forEach((record) => {
+          overtimeDataBySection[record.section] = Number(record.totalOtHours) || 0;
         });
       } catch (error) {
         console.warn('Could not fetch overtime data for auto-calculation:', error);
@@ -119,9 +121,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Clear existing records for this date
-    await prisma.$executeRaw`
-      DELETE FROM daily_salaries WHERE date::date = ${dateString}::date
-    `;
+    await prisma.dailySalary.deleteMany({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
 
     // Insert new records
     let insertedCount = 0;
@@ -160,24 +167,22 @@ export async function POST(request: NextRequest) {
         const overtimeAmount = overtimeHoursVal * overtimeRateVal;
         const totalAmount = regularAmount + overtimeAmount;
         
-        const recordId = randomUUID();
         const recordDate = new Date(dateString + 'T12:00:00.000Z');
-        const workerCountNum = workerCountVal;
-        const regularRateNum = regularRateVal;
-        const overtimeHoursNum = overtimeHoursVal;
-        const overtimeRateNum = overtimeRateVal;
-        const remarksText = remarks || '';
 
-        await prisma.$queryRaw`
-          INSERT INTO daily_salaries (
-            id, date, section, "workerCount", "regularRate", "overtimeHours", "overtimeRate",
-            "regularAmount", "overtimeAmount", "totalAmount", remarks, "createdAt", "updatedAt"
-          ) VALUES (
-            ${recordId}, ${recordDate}, ${section}, ${workerCountNum}, ${regularRateNum}, ${overtimeHoursNum}, 
-            ${overtimeRateNum}, ${regularAmount}, ${overtimeAmount}, ${totalAmount},
-            ${remarksText}, NOW(), NOW()
-          )
-        `;
+        await prisma.dailySalary.create({
+          data: {
+            date: recordDate,
+            section: section,
+            workerCount: workerCountVal,
+            regularRate: regularRateVal,
+            overtimeHours: overtimeHoursVal,
+            overtimeRate: overtimeRateVal,
+            regularAmount: regularAmount,
+            overtimeAmount: overtimeAmount,
+            totalAmount: totalAmount,
+            remarks: remarks || ''
+          }
+        });
         
         insertedCount++;
       } catch (error) {
@@ -200,16 +205,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Get summary of inserted data
-    const summary = await prisma.$queryRaw`
-      SELECT 
-        COUNT(*)::integer as total_records,
-        SUM("workerCount")::integer as total_workers,
-        SUM("totalAmount")::numeric as grand_total_amount,
-        SUM("regularAmount")::numeric as total_regular_amount,
-        SUM("overtimeAmount")::numeric as total_overtime_amount
-      FROM daily_salaries
-      WHERE date::date = ${dateString}::date
-    ` as any[];
+    const summary = await prisma.dailySalary.aggregate({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      },
+      _count: {
+        id: true
+      },
+      _sum: {
+        workerCount: true,
+        totalAmount: true,
+        regularAmount: true,
+        overtimeAmount: true
+      }
+    });
 
     return NextResponse.json({
       success: insertedCount > 0,
@@ -220,11 +232,11 @@ export async function POST(request: NextRequest) {
         errors: errors.length,
         errorDetails: errors.slice(0, 10),
         summary: {
-          totalRecords: Number(summary[0]?.total_records || 0),
-          totalWorkers: Number(summary[0]?.total_workers || 0),
-          grandTotalAmount: Number(summary[0]?.grand_total_amount || 0),
-          totalRegularAmount: Number(summary[0]?.total_regular_amount || 0),
-          totalOvertimeAmount: Number(summary[0]?.total_overtime_amount || 0)
+          totalRecords: summary._count.id || 0,
+          totalWorkers: Number(summary._sum.workerCount || 0),
+          grandTotalAmount: Number(summary._sum.totalAmount || 0),
+          totalRegularAmount: Number(summary._sum.regularAmount || 0),
+          totalOvertimeAmount: Number(summary._sum.overtimeAmount || 0)
         }
       },
       message: `Daily salary records saved. ${insertedCount}/${records.length} records inserted successfully.`
@@ -253,17 +265,20 @@ export async function DELETE(request: NextRequest) {
     }
 
     const dateString = date;
+    const startOfDay = new Date(dateString + 'T00:00:00Z');
+    const endOfDay = new Date(dateString + 'T23:59:59Z');
 
     // Get count before deletion
-    const countResult = await prisma.$queryRaw`
-      SELECT COUNT(*)::integer as count
-      FROM daily_salaries
-      WHERE date::date = ${dateString}::date
-    ` as any[];
+    const countResult = await prisma.dailySalary.count({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
 
-    const recordCount = Number(countResult[0]?.count || 0);
-
-    if (recordCount === 0) {
+    if (countResult === 0) {
       return NextResponse.json(
         { success: false, error: 'No salary records found for the specified date' },
         { status: 404 }
@@ -271,10 +286,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete records
-    await prisma.$executeRaw`
-      DELETE FROM daily_salaries 
-      WHERE date::date = ${dateString}::date
-    `;
+    await prisma.dailySalary.deleteMany({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
 
     // Update Profit & Loss Statement automatically
     try {
@@ -293,9 +312,9 @@ export async function DELETE(request: NextRequest) {
       success: true,
       data: {
         date: dateString,
-        deletedRecords: recordCount
+        deletedRecords: countResult
       },
-      message: `Successfully deleted ${recordCount} salary records for ${dateString}`
+      message: `Successfully deleted ${countResult} salary records for ${dateString}`
     });
 
   } catch (error) {

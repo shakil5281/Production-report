@@ -1,12 +1,438 @@
 generator client {
   provider = "prisma-client-js"
-  seed    = "ts-node prisma/seed.ts"
+  seed     = "ts-node prisma/seed.ts"
 }
 
-// PostgreSQL database configuration
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String           @id @default(uuid())
+  name            String
+  email           String           @unique
+  password        String
+  role            UserRole         @default(USER)
+  isActive        Boolean          @default(true)
+  lastLogin       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdBy       AuditLog[]       @relation("CreatedBy")
+  updatedBy       AuditLog[]       @relation("UpdatedBy")
+  sessions        Session[]
+  userPermissions UserPermission[]
+
+  @@map("users")
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            UserRole         @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model PermissionModel {
+  id              String           @id @default(uuid())
+  name            PermissionType   @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String          @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime        @default(now())
+  permission   PermissionModel @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String          @id @default(uuid())
+  userId       String
+  permissionId String
+  createdAt    DateTime        @default(now())
+  permission   PermissionModel @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Factory {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("factories")
+}
+
+model Line {
+  id                String            @id @default(uuid())
+  name              String
+  code              String            @unique
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+  cashbookEntries   CashbookEntry[]
+  expenses          Expense[]
+  productionEntries ProductionEntry[]
+  salaryEntries     SalaryEntry[]
+  styleAssignments  StyleAssignment[]
+
+  @@map("lines")
+}
+
+model Style {
+  id                String            @id @default(uuid())
+  styleNumber       String            @unique
+  buyer             String
+  poNumber          String
+  orderQty          Int
+  unitPrice         Decimal
+  plannedStart      DateTime
+  plannedEnd        DateTime
+  status            StyleStatus       @default(PENDING)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+  productionEntries ProductionEntry[]
+  shipments         Shipment[]
+  styleAssignments  StyleAssignment[]
+
+  @@map("styles")
+}
+
+model StyleAssignment {
+  id            String    @id @default(uuid())
+  lineId        String
+  styleId       String
+  startDate     DateTime
+  endDate       DateTime?
+  targetPerHour Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now())
+  line          Line      @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  style         Style     @relation(fields: [styleId], references: [id], onDelete: Cascade)
+
+  @@map("style_assignments")
+}
+
+model ProductionEntry {
+  id        String          @id @default(uuid())
+  date      DateTime
+  hourIndex Int
+  lineId    String
+  styleId   String
+  stage     ProductionStage
+  inputQty  Int             @default(0)
+  outputQty Int             @default(0)
+  defectQty Int             @default(0)
+  reworkQty Int             @default(0)
+  notes     String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now())
+  line      Line            @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  style     Style           @relation(fields: [styleId], references: [id], onDelete: Cascade)
+
+  @@map("production_entries")
+}
+
+model ProductionList {
+  id           String                  @id @default(uuid())
+  programCode  String
+  styleNo      String                  @unique
+  buyer        String
+  item         String
+  price        Decimal
+  percentage   Decimal                 @default(0)
+  status       ProductionStatus        @default(PENDING)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  quantities   Json                    @default("[]")
+  totalQty     Int                     @default(0)
+  dailyReports DailyProductionReport[]
+  targets      Target[]
+
+  @@map("production_list")
+}
+
+model Target {
+  id               String         @id @default(uuid())
+  lineNo           String
+  styleNo          String
+  lineTarget       Int
+  inTime           String
+  outTime          String
+  hourlyProduction Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  date             DateTime
+  productionList   ProductionList @relation(fields: [styleNo], references: [styleNo], onDelete: Cascade)
+
+  @@map("targets")
+}
+
+model ExpenseCategory {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  isSalaryFlag Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now())
+  expenses     Expense[]
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  id            String          @id @default(uuid())
+  date          DateTime
+  lineId        String?
+  categoryId    String
+  amount        Decimal
+  description   String?
+  paymentMethod PaymentMethod
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @default(now())
+  category      ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  line          Line?           @relation(fields: [lineId], references: [id])
+
+  @@map("expenses")
+}
+
+model SalaryEntry {
+  id          String   @id @default(uuid())
+  date        DateTime
+  lineId      String?
+  employeeId  String?
+  amount      Decimal
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+  line        Line?    @relation(fields: [lineId], references: [id])
+
+  @@map("salary_entries")
+}
+
+model CashbookEntry {
+  id            String       @id @default(uuid())
+  date          DateTime
+  type          CashbookType
+  amount        Decimal
+  category      String
+  referenceType String?
+  referenceId   String?
+  lineId        String?
+  description   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @default(now())
+  line          Line?        @relation(fields: [lineId], references: [id])
+
+  @@map("cashbook_entries")
+}
+
+model Shipment {
+  id             String   @id @default(uuid())
+  date           DateTime
+  styleId        String
+  quantity       Int
+  destination    String
+  awbOrContainer String?
+  remarks        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+  style          Style    @relation(fields: [styleId], references: [id], onDelete: Cascade)
+
+  @@map("shipments")
+}
+
+model DailyProductionReport {
+  id             String         @id @default(uuid())
+  date           DateTime
+  styleNo        String
+  targetQty      Int
+  totalAmount    Decimal
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  lineNo         String?
+  productionQty  Int
+  unitPrice      Decimal
+  netAmount      Decimal        @default(0)
+  productionList ProductionList @relation(fields: [styleNo], references: [styleNo], onDelete: Cascade)
+
+  @@unique([date, styleNo, lineNo])
+  @@map("daily_production_reports")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  tableName     String
+  recordId      String
+  action        String
+  oldValues     Json?
+  newValues     Json?
+  createdBy     String
+  updatedBy     String?
+  createdAt     DateTime @default(now())
+  user          User     @relation("CreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  updatedByUser User?    @relation("UpdatedBy", fields: [updatedBy], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Employee {
+  id          String            @id @default(uuid())
+  employeeId  String            @unique
+  name        String
+  department  Department
+  designation String
+  shiftType   ShiftType         @default(DAY_SHIFT)
+  salary      Decimal?
+  joiningDate DateTime?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  attendance  DailyAttendance[]
+
+  @@map("employees")
+}
+
+model DailyAttendance {
+  id         String           @id @default(uuid())
+  date       DateTime
+  employeeId String
+  status     AttendanceStatus
+  inTime     String?
+  outTime    String?
+  workHours  Decimal?
+  overtime   Decimal?
+  remarks    String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  employee   Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([date, employeeId])
+  @@map("daily_attendance")
+}
+
+model ManpowerSummary {
+  id         String            @id @default(uuid())
+  date       DateTime
+  section    String
+  subsection String?
+  lineNumber String?
+  itemType   ManpowerItemType
+  present    Int               @default(0)
+  absent     Int               @default(0)
+  leave      Int               @default(0)
+  others     Int               @default(0)
+  total      Int               @default(0)
+  remarks    String?
+  parentId   String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  parent     ManpowerSummary?  @relation("ManpowerHierarchy", fields: [parentId], references: [id])
+  children   ManpowerSummary[] @relation("ManpowerHierarchy")
+
+  @@unique([date, section, subsection, lineNumber])
+  @@map("manpower_summary")
+}
+
+model OvertimeRecord {
+  id              String   @id @default(uuid())
+  date            DateTime
+  section         String
+  presentWorkers  Int      @default(0)
+  totalWorkers    Int      @default(0)
+  overtimeDetails Json?
+  totalOtHours    Decimal  @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([date, section])
+  @@map("overtime_records")
+}
+
+model DailySalary {
+  id              String   @id @default(uuid())
+  date            DateTime
+  section         String
+  workerCount     Int      @default(0)
+  regularRate     Decimal  @default(0)
+  overtimeHours   Decimal  @default(0)
+  overtimeRate    Decimal  @default(0)
+  regularAmount   Decimal  @default(0)
+  overtimeAmount  Decimal  @default(0)
+  totalAmount     Decimal  @default(0)
+  remarks         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([date, section])
+  @@map("daily_salaries")
+}
+
+model MonthlyExpense {
+  id            String        @id @default(uuid())
+  month         Int
+  year          Int
+  category      String
+  amount        Decimal       @default(0)
+  description   String?
+  paymentDate   DateTime?
+  paymentStatus PaymentStatus @default(PENDING)
+  remarks       String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([month, year, category])
+  @@map("monthly_expenses")
+}
+
+model MonthlyAttendanceReport {
+  id                String     @id @default(uuid())
+  month             Int
+  year              Int
+  department        Department
+  totalWorkingDays  Int        @default(0)
+  totalPresent      Int        @default(0)
+  totalAbsent       Int        @default(0)
+  totalLeave        Int        @default(0)
+  totalOvertime     Decimal    @default(0)
+  averageAttendance Decimal    @default(0)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@unique([month, year, department])
+  @@map("monthly_attendance_report")
 }
 
 enum UserRole {
@@ -15,64 +441,45 @@ enum UserRole {
 }
 
 enum PermissionType {
-  // User management
   CREATE_USER
   READ_USER
   UPDATE_USER
   DELETE_USER
-  
-  // Production management
   CREATE_PRODUCTION
   READ_PRODUCTION
   UPDATE_PRODUCTION
   DELETE_PRODUCTION
-  
-  // Cutting management
-  CREATE_CUTTING
-  READ_CUTTING
-  UPDATE_CUTTING
-  DELETE_CUTTING
-  
-  // Cashbook management
-  CREATE_CASHBOOK
-  READ_CASHBOOK
-  UPDATE_CASHBOOK
-  DELETE_CASHBOOK
-  
-  // Reports
   CREATE_REPORT
   READ_REPORT
   UPDATE_REPORT
   DELETE_REPORT
-  
-  // Expense management
+  MANAGE_SYSTEM
+  MANAGE_ROLES
+  MANAGE_PERMISSIONS
+  CREATE_CUTTING
+  READ_CUTTING
+  UPDATE_CUTTING
+  DELETE_CUTTING
+  CREATE_CASHBOOK
+  READ_CASHBOOK
+  UPDATE_CASHBOOK
+  DELETE_CASHBOOK
   CREATE_EXPENSE
   READ_EXPENSE
   UPDATE_EXPENSE
   DELETE_EXPENSE
-  
-  // Target management
   CREATE_TARGET
   READ_TARGET
   UPDATE_TARGET
   DELETE_TARGET
-  
-  // Line management
   CREATE_LINE
   READ_LINE
   UPDATE_LINE
   DELETE_LINE
-  
-  // Shipment management
   CREATE_SHIPMENT
   READ_SHIPMENT
   UPDATE_SHIPMENT
   DELETE_SHIPMENT
-  
-  // System settings
-  MANAGE_SYSTEM
-  MANAGE_ROLES
-  MANAGE_PERMISSIONS
 }
 
 enum StyleStatus {
@@ -108,358 +515,6 @@ enum CashbookType {
   CREDIT
 }
 
-// Users & RBAC
-model User {
-  id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
-  password      String
-  role          UserRole @default(USER)
-  isActive      Boolean  @default(true)
-  lastLogin     DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  userPermissions UserPermission[]
-  sessions        Session[]
-  createdBy       AuditLog[]       @relation("CreatedBy")
-  updatedBy       AuditLog[]       @relation("UpdatedBy")
-  
-  @@map("users")
-}
-
-model Role {
-  id          String   @id @default(uuid())
-  name        UserRole @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  rolePermissions RolePermission[]
-  
-  @@map("roles")
-}
-
-model PermissionModel {
-  id          String         @id @default(uuid())
-  name        PermissionType @unique
-  description String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  
-  // Relations
-  rolePermissions RolePermission[]
-  userPermissions UserPermission[]
-  
-  @@map("permissions")
-}
-
-model RolePermission {
-  id           String   @id @default(uuid())
-  roleId       String
-  permissionId String
-  createdAt    DateTime @default(now())
-  
-  // Relations
-  role       Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission PermissionModel @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  
-  @@unique([roleId, permissionId])
-  @@map("role_permissions")
-}
-
-model UserPermission {
-  id           String   @id @default(uuid())
-  userId       String
-  permissionId String
-  createdAt    DateTime @default(now())
-  
-  // Relations
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permission PermissionModel @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, permissionId])
-  @@map("user_permissions")
-}
-
-model Session {
-  id        String   @id @default(uuid())
-  userId    String
-  token     String   @unique
-  expires   DateTime
-  createdAt DateTime @default(now())
-  
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("sessions")
-}
-
-// Factory
-model Factory {
-  id        String   @id @default(uuid())
-  name      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@map("factories")
-}
-
-model Line {
-  id         String   @id @default(uuid())
-  name       String
-  code       String   @unique
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
-  
-  // Relations
-  styleAssignments  StyleAssignment[]
-  productionEntries ProductionEntry[]
-  expenses         Expense[]
-  salaryEntries    SalaryEntry[]
-  cashbookEntries  CashbookEntry[]
-  
-  @@map("lines")
-}
-
-// Style & Assignments
-model Style {
-  id           String     @id @default(uuid())
-  styleNumber  String     @unique
-  buyer        String
-  poNumber     String
-  orderQty     Int
-  unitPrice    Decimal    
-  plannedStart DateTime
-  plannedEnd   DateTime
-  status       StyleStatus @default(PENDING)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @default(now())
-  
-  // Relations
-  styleAssignments StyleAssignment[]
-  productionEntries ProductionEntry[]
-  shipments        Shipment[]
-  
-  @@map("styles")
-}
-
-model StyleAssignment {
-  id           String    @id @default(uuid())
-  lineId       String
-  styleId      String
-  startDate    DateTime
-  endDate      DateTime?
-  targetPerHour Int?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @default(now())
-  
-  // Relations
-  line  Line  @relation(fields: [lineId], references: [id], onDelete: Cascade)
-  style Style @relation(fields: [styleId], references: [id], onDelete: Cascade)
-  
-  @@map("style_assignments")
-}
-
-// Production
-model ProductionEntry {
-  id         String         @id @default(uuid())
-  date       DateTime       
-  hourIndex  Int            // 0-23
-  lineId     String
-  styleId    String
-  stage      ProductionStage
-  inputQty   Int            @default(0)
-  outputQty  Int            @default(0)
-  defectQty  Int            @default(0)
-  reworkQty  Int            @default(0)
-  notes      String?
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @default(now())
-  
-  // Relations
-  line  Line  @relation(fields: [lineId], references: [id], onDelete: Cascade)
-  style Style @relation(fields: [styleId], references: [id], onDelete: Cascade)
-  
-  @@map("production_entries")
-}
-
-// Production List
-model ProductionList {
-  id           String           @id @default(uuid())
-  programCode  String
-  styleNo      String           @unique
-  buyer        String
-  item         String
-  price        Decimal
-  percentage   Decimal          @default(0)
-  quantities   Json             @default("[]") // Array of {variant: string, color: string, qty: number}
-  totalQty     Int              @default(0) // Calculated sum of all quantities
-  status       ProductionStatus @default(PENDING)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  
-  // Relations
-  targets Target[]
-  dailyReports DailyProductionReport[]
-  
-  @@map("production_list")
-}
-
-// Target Management
-model Target {
-  id                 String   @id @default(uuid())
-  lineNo             String
-  styleNo            String
-  lineTarget         Int
-  date               DateTime
-  inTime             String
-  outTime            String
-  hourlyProduction   Int      @default(0)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  
-  // Relations
-  productionList ProductionList @relation(fields: [styleNo], references: [styleNo], onDelete: Cascade)
-  
-  @@map("targets")
-}
-
-// Expenses & Salary
-model ExpenseCategory {
-  id           String @id @default(uuid())
-  name         String @unique
-  isSalaryFlag Boolean @default(false)
-  isActive     Boolean @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @default(now())
-  
-  // Relations
-  expenses Expense[]
-  
-  @@map("expense_categories")
-}
-
-model Expense {
-  id             String        @id @default(uuid())
-  date           DateTime      
-  lineId         String?
-  categoryId     String
-  amount         Decimal       
-  description    String?
-  paymentMethod  PaymentMethod
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @default(now())
-  
-  // Relations
-  line     Line?          @relation(fields: [lineId], references: [id], onDelete: SetNull)
-  category ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  
-  @@map("expenses")
-}
-
-model SalaryEntry {
-  id          String   @id @default(uuid())
-  date        DateTime 
-  lineId      String?
-  employeeId  String?
-  amount      Decimal  
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
-  
-  // Relations
-  line Line? @relation(fields: [lineId], references: [id], onDelete: SetNull)
-  
-  @@map("salary_entries")
-}
-
-// Cashbook
-model CashbookEntry {
-  id            String        @id @default(uuid())
-  date          DateTime      
-  type          CashbookType
-  amount        Decimal       
-  category      String
-  referenceType String?
-  referenceId   String?
-  lineId        String?
-  description   String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @default(now())
-  
-  // Relations
-  line Line? @relation(fields: [lineId], references: [id], onDelete: SetNull)
-  
-  @@map("cashbook_entries")
-}
-
-// Shipments
-model Shipment {
-  id              String   @id @default(uuid())
-  date            DateTime 
-  styleId         String
-  quantity        Int
-  destination     String
-  awbOrContainer  String?
-  remarks         String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now())
-  
-  // Relations
-  style Style @relation(fields: [styleId], references: [id], onDelete: Cascade)
-  
-  @@map("shipments")
-}
-
-// Daily Production Reports
-model DailyProductionReport {
-  id            String   @id @default(uuid())
-  date          DateTime 
-  styleNo       String
-  targetQty     Int      // Daily target quantity
-  productionQty Int      // Actual production quantity
-  unitPrice     Decimal  // Price per unit
-  totalAmount   Decimal  // productionQty * unitPrice
-  netAmount     Decimal  @default(0) // totalAmount * percentage * 120
-  lineNo        String?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  productionList ProductionList @relation(fields: [styleNo], references: [styleNo], onDelete: Cascade)
-  
-  @@unique([date, styleNo, lineNo])
-  @@map("daily_production_reports")
-}
-
-
-
-// Audit Log
-model AuditLog {
-  id        String   @id @default(uuid())
-  tableName String
-  recordId  String
-  action    String   // CREATE, UPDATE, DELETE
-  oldValues Json?
-  newValues Json?
-  createdBy String
-  updatedBy String?
-  createdAt DateTime @default(now())
-  
-  // Relations
-  user      User    @relation("CreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
-  updatedByUser User? @relation("UpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
-  
-  @@map("audit_logs")
-}
-
-// Attendance Management System
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -490,161 +545,16 @@ enum ShiftType {
   GENERAL_SHIFT
 }
 
-// Employee Master for Attendance
-model Employee {
-  id           String     @id @default(uuid())
-  employeeId   String     @unique
-  name         String
-  department   Department
-  designation  String
-  shiftType    ShiftType  @default(DAY_SHIFT)
-  salary       Decimal?
-  joiningDate  DateTime?
-  isActive     Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  
-  // Relations
-  attendance   DailyAttendance[]
-  
-  @@map("employees")
-}
-
-// Daily Attendance Records
-model DailyAttendance {
-  id          String           @id @default(uuid())
-  date        DateTime
-  employeeId  String
-  status      AttendanceStatus
-  inTime      String?
-  outTime     String?
-  workHours   Decimal?
-  overtime    Decimal?
-  remarks     String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  
-  // Relations
-  employee    Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  
-  @@unique([date, employeeId])
-  @@map("daily_attendance")
-}
-
-// Manpower Summary - Hierarchical Structure
-model ManpowerSummary {
-  id            String                @id @default(uuid())
-  date          DateTime
-  section       String                // Cutting, Finishing, Quality, Sewing, etc.
-  subsection    String?               // Helper, Operator, Iron/Input, Worker, Staff, etc.
-  lineNumber    String?               // Line-01, Line-02, etc.
-  itemType      ManpowerItemType      // SECTION, SUBSECTION, LINE, TOTAL
-  present       Int                   @default(0)
-  absent        Int                   @default(0)
-  leave         Int                   @default(0)
-  others        Int                   @default(0)
-  total         Int                   @default(0)
-  remarks       String?
-  parentId      String?               // For hierarchical structure
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  
-  // Self-referential relation for hierarchy
-  parent        ManpowerSummary?      @relation("ManpowerHierarchy", fields: [parentId], references: [id])
-  children      ManpowerSummary[]     @relation("ManpowerHierarchy")
-  
-  @@unique([date, section, subsection, lineNumber])
-  @@map("manpower_summary")
-}
-
 enum ManpowerItemType {
-  SECTION      // Main sections like Cutting, Sewing
-  SUBSECTION   // Helper, Operator, etc.
-  LINE         // Individual lines like Line-01(Helper)
-  TOTAL        // Total rows
+  SECTION
+  SUBSECTION
+  LINE
+  TOTAL
 }
 
-// Overtime Management
-model OvertimeRecord {
-  id              String            @id @default(uuid())
-  date            DateTime
-  section         String            // Operator, Helper, Cutting, Finishing, Quality, etc.
-  presentWorkers  Int               @default(0) // Present workers for the day
-  totalWorkers    Int               @default(0) // Total workers in section
-  overtimeDetails Json?             // JSON array of {hours: number, workerCount: number}
-  totalOtHours    Decimal           @default(0) // Total calculated OT hours
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  @@map("overtime_records")
-  @@unique([date, section])
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
 }
-
-// Daily Salary Management
-model SalaryRate {
-  id              String            @id @default(uuid())
-  section         String            // Staff, Operator, Helper, Cutting, Finishing, Quality, Security
-  rateType        SalaryRateType    // REGULAR, OVERTIME
-  amount          Decimal           @default(0)
-  isActive        Boolean           @default(true)
-  effectiveDate   DateTime          @default(now())
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  @@map("salary_rates")
-  @@unique([section, rateType, effectiveDate])
-}
-
-model DailySalary {
-  id              String            @id @default(uuid())
-  date            DateTime
-  section         String            // Staff, Operator, Helper, Cutting, Finishing, Quality, Security
-  workerCount     Int               @default(0)
-  regularRate     Decimal           @default(0)
-  overtimeHours   Decimal           @default(0)
-  overtimeRate    Decimal           @default(0)
-  regularAmount   Decimal           @default(0) // workerCount * regularRate
-  overtimeAmount  Decimal           @default(0) // overtimeHours * overtimeRate
-  totalAmount     Decimal           @default(0) // regularAmount + overtimeAmount
-  remarks         String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  @@map("daily_salaries")
-  @@unique([date, section])
-}
-
-enum SalaryRateType {
-  REGULAR
-  OVERTIME
-}
-
-// Monthly Attendance Report
-model MonthlyAttendanceReport {
-  id               String   @id @default(uuid())
-  month            Int      // 1-12
-  year             Int      // 2024, 2025, etc
-  department       Department
-  totalWorkingDays Int      @default(0)
-  totalPresent     Int      @default(0)
-  totalAbsent      Int      @default(0)
-  totalLeave       Int      @default(0)
-  totalOvertime    Decimal  @default(0)
-  averageAttendance Decimal @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
-  @@unique([month, year, department])
-  @@map("monthly_attendance_report")
-}
-
-
-
-
-
-
-
-
-
-
-

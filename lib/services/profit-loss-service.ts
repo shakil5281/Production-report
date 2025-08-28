@@ -68,7 +68,7 @@ export class ProfitLossService {
         }
       });
 
-      // Fetch Daily Salary Expenses (includes both regular and overtime amounts)
+      // Fetch Daily Salary Records using Prisma ORM
       const dailySalary = await prisma.dailySalary.findMany({
         where: {
           date: {
@@ -79,8 +79,38 @@ export class ProfitLossService {
         select: {
           id: true,
           date: true,
+          section: true,
+          workerCount: true,
+          regularRate: true,
+          overtimeHours: true,
+          overtimeRate: true,
+          regularAmount: true,
+          overtimeAmount: true,
           totalAmount: true,
-          section: true
+          remarks: true
+        },
+        orderBy: [
+          { date: 'asc' },
+          { section: 'asc' }
+        ]
+      });
+
+      // Fetch Monthly Expenses for the period
+      const monthlyExpenses = await prisma.monthlyExpense.findMany({
+        where: {
+          OR: [
+            {
+              year: parseInt(startDate.split('-')[0]),
+              month: parseInt(startDate.split('-')[1])
+            }
+          ]
+        },
+        select: {
+          id: true,
+          month: true,
+          year: true,
+          amount: true,
+          category: true
         }
       });
 
@@ -102,27 +132,40 @@ export class ProfitLossService {
         }
       });
 
-      // Calculate totals
-      const totalEarnings = dailyProduction.reduce((sum, item) => sum + Number(item.netAmount || 0), 0);
-      const totalDailySalary = dailySalary.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0);
-      const totalDailyCashExpenses = dailyCashExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
-
-      // Net Profit = Daily Production (Grand Total) - Daily Salary (Grand Total) - Daily Cashbook Expense
-      const totalExpenses = totalDailySalary + totalDailyCashExpenses;
+      // Calculate totals with default values for missing data
+      const totalEarnings = dailyProduction.length > 0 ? dailyProduction.reduce((sum, item) => sum + Number(item.netAmount || 0), 0) : 0;
+      const totalDailySalary = dailySalary.length > 0 ? dailySalary.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0) : 0;
+      const totalMonthlyExpenses = monthlyExpenses.length > 0 ? monthlyExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+      const totalDailyCashExpenses = dailyCashExpenses.length > 0 ? dailyCashExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+      
+      // Calculate daily equivalent of monthly expenses (Total Monthly Expense / 30)
+      const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 30;
+      
+      // Net Profit = Earnings - Daily Equivalent Monthly Expenses - Daily Cash Expenses - Daily Salary
+      const totalExpenses = dailyEquivalentMonthlyExpenses + totalDailyCashExpenses + totalDailySalary;
       const netProfit = totalEarnings - totalExpenses;
       const profitMargin = totalEarnings > 0 ? (netProfit / totalEarnings) * 100 : 0;
 
+      // Log salary expense details for debugging
+      console.log(`💰 Salary Expense Calculation:`);
+      console.log(`   - Daily Salary Records: ${dailySalary.length}`);
+      console.log(`   - Total Daily Salary Amount: ${totalDailySalary}`);
+      console.log(`   - Total Expenses: ${totalExpenses} (Monthly: ${dailyEquivalentMonthlyExpenses}, Cash: ${totalDailyCashExpenses}, Salary: ${totalDailySalary})`);
+      console.log(`   - Net Profit: ${netProfit} (Earnings: ${totalEarnings} - Expenses: ${totalExpenses})`);
+
       return {
-        totalEarnings,
-        totalExpenses,
-        netProfit,
-        profitMargin,
+        totalEarnings: Number(totalEarnings) || 0,
+        totalExpenses: Number(totalExpenses) || 0,
+        netProfit: Number(netProfit) || 0,
+        profitMargin: Number(profitMargin) || 0,
         breakdown: {
-          dailySalary: totalDailySalary,
-          dailyCashExpenses: totalDailyCashExpenses
+          monthlyExpenses: Number(totalMonthlyExpenses) || 0,
+          dailyEquivalentMonthlyExpenses: Number(dailyEquivalentMonthlyExpenses) || 0,
+          dailyCashExpenses: Number(totalDailyCashExpenses) || 0,
+          dailySalary: Number(totalDailySalary) || 0
         },
-        dailyBreakdown: this.createDailyBreakdown(dailyProduction, dailySalary, dailyCashExpenses),
-        lineBreakdown: this.createSectionBreakdown(dailyProduction, dailySalary)
+        dailyBreakdown: this.createDailyBreakdown(dailyProduction, monthlyExpenses, dailyCashExpenses, dailySalary),
+        lineBreakdown: this.createSectionBreakdown(dailyProduction, monthlyExpenses)
       };
     } catch (error) {
       console.error('Error calculating monthly profit and loss:', error);
@@ -130,11 +173,17 @@ export class ProfitLossService {
     }
   }
   
-  /**
+    /**
    * Create daily breakdown data
    */
-  private static createDailyBreakdown(dailyProduction: any[], dailySalary: any[], dailyCashExpenses: any[]) {
+  private static createDailyBreakdown(dailyProduction: any[], monthlyExpenses: any[], dailyCashExpenses: any[], dailySalary: any[] = []) {
     const dailyBreakdown = new Map();
+    
+    // Calculate total monthly expenses with default value 0 if no data
+    const totalMonthlyExpenses = monthlyExpenses.length > 0 ? monthlyExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    
+    // Calculate daily equivalent of monthly expenses (Total Monthly Expense / 30)
+    const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 30;
 
     // Add production data
     dailyProduction.forEach(item => {
@@ -143,37 +192,18 @@ export class ProfitLossService {
         dailyBreakdown.set(date, {
           date,
           earnings: 0,
-          dailySalary: 0,
+          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
           dailyCashExpenses: 0,
+          dailySalary: 0,
           netProfit: 0,
           productionCount: 0,
-          salaryCount: 0,
-          cashExpenseCount: 0
+          cashExpenseCount: 0,
+          salaryCount: 0
         });
       }
       const day = dailyBreakdown.get(date);
       day.earnings += Number(item.netAmount || 0);
       day.productionCount += 1;
-    });
-
-    // Add salary data (includes both regular and overtime amounts)
-    dailySalary.forEach(item => {
-      const date = format(item.date, 'yyyy-MM-dd');
-      if (!dailyBreakdown.has(date)) {
-        dailyBreakdown.set(date, {
-          date,
-          earnings: 0,
-          dailySalary: 0,
-          dailyCashExpenses: 0,
-          netProfit: 0,
-          productionCount: 0,
-          salaryCount: 0,
-          cashExpenseCount: 0
-        });
-      }
-      const day = dailyBreakdown.get(date);
-      day.dailySalary += Number(item.totalAmount || 0);
-      day.salaryCount += 1;
     });
 
     // Add cash expense data
@@ -183,12 +213,13 @@ export class ProfitLossService {
         dailyBreakdown.set(date, {
           date,
           earnings: 0,
-          dailySalary: 0,
+          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
           dailyCashExpenses: 0,
+          dailySalary: 0,
           netProfit: 0,
           productionCount: 0,
-          salaryCount: 0,
-          cashExpenseCount: 0
+          cashExpenseCount: 0,
+          salaryCount: 0
         });
       }
       const day = dailyBreakdown.get(date);
@@ -196,18 +227,52 @@ export class ProfitLossService {
       day.cashExpenseCount += 1;
     });
 
-    // Calculate daily net profit: Earnings - Daily Salary - Daily Cash Expenses
+    // Add salary data
+    dailySalary.forEach(item => {
+      const date = format(item.date, 'yyyy-MM-dd');
+      if (!dailyBreakdown.has(date)) {
+        dailyBreakdown.set(date, {
+          date,
+          earnings: 0,
+          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
+          dailyCashExpenses: 0,
+          dailySalary: 0,
+          netProfit: 0,
+          productionCount: 0,
+          cashExpenseCount: 0,
+          salaryCount: 0
+        });
+      }
+      const day = dailyBreakdown.get(date);
+      day.dailySalary += Number(item.totalAmount || 0);
+      day.salaryCount += 1;
+    });
+
+    // Calculate daily net profit: Earnings - Daily Equivalent Monthly Expenses - Daily Cash Expenses - Daily Salary
     return Array.from(dailyBreakdown.values()).map(day => ({
       ...day,
-      netProfit: day.earnings - day.dailySalary - day.dailyCashExpenses
+      earnings: Number(day.earnings) || 0,
+      monthlyExpenses: Number(day.monthlyExpenses) || 0,
+      dailyCashExpenses: Number(day.dailyCashExpenses) || 0,
+      dailySalary: Number(day.dailySalary) || 0,
+      netProfit: Number(day.earnings - day.monthlyExpenses - day.dailyCashExpenses - day.dailySalary) || 0,
+      productionCount: Number(day.productionCount) || 0,
+      cashExpenseCount: Number(day.cashExpenseCount) || 0,
+      salaryCount: Number(day.salaryCount) || 0
     })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
   
   /**
    * Create section breakdown data
    */
-  private static createSectionBreakdown(dailyProduction: any[], dailySalary: any[]) {
+  private static createSectionBreakdown(dailyProduction: any[], monthlyExpenses: any[]) {
     const sectionBreakdown = new Map();
+    
+    // Calculate total monthly expenses with default value 0 if no data
+    const totalMonthlyExpenses = monthlyExpenses.length > 0 ? monthlyExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    
+    // Calculate daily equivalent of monthly expenses (Total Monthly Expense / 30)
+    const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 30;
 
     // Add production by section (using line numbers)
     dailyProduction.forEach(item => {
@@ -217,10 +282,9 @@ export class ProfitLossService {
           sectionId: section,
           sectionName: section,
           earnings: 0,
-          dailySalary: 0,
+          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
           netProfit: 0,
-          productionCount: 0,
-          salaryCount: 0
+          productionCount: 0
         });
       }
       const sectionData = sectionBreakdown.get(section);
@@ -228,29 +292,13 @@ export class ProfitLossService {
       sectionData.productionCount += 1;
     });
 
-    // Add salary by section (includes both regular and overtime amounts)
-    dailySalary.forEach(item => {
-      const section = item.section;
-      if (!sectionBreakdown.has(section)) {
-        sectionBreakdown.set(section, {
-          sectionId: section,
-          sectionName: section,
-          earnings: 0,
-          dailySalary: 0,
-          netProfit: 0,
-          productionCount: 0,
-          salaryCount: 0
-        });
-      }
-      const sectionData = sectionBreakdown.get(section);
-      sectionData.dailySalary += Number(item.totalAmount || 0);
-      sectionData.salaryCount += 1;
-    });
-
-    // Calculate section-wise net profit: Earnings - Daily Salary
+    // Calculate section-wise net profit: Earnings - Daily Equivalent Monthly Expenses
     return Array.from(sectionBreakdown.values()).map(section => ({
       ...section,
-      netProfit: section.earnings - section.dailySalary
+      earnings: Number(section.earnings) || 0,
+      monthlyExpenses: Number(section.monthlyExpenses) || 0,
+      netProfit: Number(section.earnings - section.monthlyExpenses) || 0,
+      productionCount: Number(section.productionCount) || 0
     })).sort((a, b) => b.netProfit - a.netProfit);
   }
 }

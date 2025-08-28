@@ -26,80 +26,137 @@ export async function GET(request: NextRequest) {
     }
 
     // Test basic database connection first
-    const testQuery = await prisma.dailyProductionReport.count();
-    console.log('Database connection test successful, count:', testQuery);
+    let testQuery = 0;
+    try {
+      testQuery = await prisma.dailyProductionReport.count();
+      console.log('Database connection test successful, count:', testQuery);
+    } catch (error) {
+      console.error('Database connection test failed:', error);
+      testQuery = 0;
+    }
 
     // Fetch Daily Production Reports (Earnings) - simplified query
-    const dailyProduction = await prisma.dailyProductionReport.findMany({
-      where: {
-        date: {
-          gte: new Date(dateFilter.gte),
-          lte: new Date(dateFilter.lte)
-        }
-      },
-      select: {
-        id: true,
-        date: true,
-        netAmount: true,
-        lineNo: true,
-        styleNo: true
-      }
-    });
-
-    console.log('Daily production query successful, count:', dailyProduction.length);
-
-    // Fetch Daily Salary Expenses - simplified query
-    const dailySalary = await prisma.dailySalary.findMany({
-      where: {
-        date: {
-          gte: new Date(dateFilter.gte),
-          lte: new Date(dateFilter.lte)
-        }
-      },
-      select: {
-        id: true,
-        date: true,
-        totalAmount: true,
-        section: true
-      }
-    });
-
-    console.log('Daily salary query successful, count:', dailySalary.length);
-
-    // Note: Overtime is now included in Daily Salary total, so we don't fetch it separately
-    console.log('Overtime is included in Daily Salary total');
-
-    // Fetch Daily Cash Expenses from Cashbook - simplified query
-    const dailyCashExpenses = await prisma.cashbookEntry.findMany({
-      where: {
-        date: {
-          gte: new Date(dateFilter.gte),
-          lte: new Date(dateFilter.lte)
+    let dailyProduction: any[] = [];
+    try {
+      dailyProduction = await prisma.dailyProductionReport.findMany({
+        where: {
+          date: {
+            gte: new Date(dateFilter.gte),
+            lte: new Date(dateFilter.lte)
+          }
         },
-        type: 'DEBIT',
-        category: 'Daily Expense'
-      },
-      select: {
-        id: true,
-        date: true,
-        amount: true,
-        description: true
+        select: {
+          id: true,
+          date: true,
+          netAmount: true,
+          lineNo: true,
+          styleNo: true
+        }
+      });
+      console.log('Daily production query successful, count:', dailyProduction.length);
+    } catch (error) {
+      console.error('Daily production query failed:', error);
+      dailyProduction = [];
+    }
+
+      // Fetch Daily Salary Records using Prisma ORM
+      let dailySalary: any[] = [];
+      try {
+        dailySalary = await prisma.dailySalary.findMany({
+          where: {
+            date: {
+              gte: new Date(dateFilter.gte),
+              lte: new Date(dateFilter.lte)
+            }
+          },
+          select: {
+            id: true,
+            date: true,
+            section: true,
+            workerCount: true,
+            regularRate: true,
+            overtimeHours: true,
+            overtimeRate: true,
+            regularAmount: true,
+            overtimeAmount: true,
+            totalAmount: true,
+            remarks: true
+          },
+          orderBy: [
+            { date: 'asc' },
+            { section: 'asc' }
+          ]
+        });
+        console.log('Daily salary query successful, count:', dailySalary.length);
+      } catch (error) {
+        console.error('Daily salary query failed:', error);
+        dailySalary = [];
       }
-    });
 
-    console.log('Cash expenses query successful, count:', dailyCashExpenses.length);
+      // Fetch Monthly Expenses for the period
+      let monthlyExpenses: any[] = [];
+      try {
+        monthlyExpenses = await prisma.monthlyExpense.findMany({
+          where: {
+            OR: [
+              {
+                year: parseInt(month.split('-')[0]),
+                month: parseInt(month.split('-')[1])
+              }
+            ]
+          },
+          select: {
+            id: true,
+            month: true,
+            year: true,
+            amount: true,
+            category: true
+          }
+        });
+        console.log('Monthly expenses query successful, count:', monthlyExpenses.length);
+      } catch (error) {
+        console.error('Monthly expenses query failed:', error);
+        monthlyExpenses = [];
+      }
 
-    // Calculate totals
-    const totalEarnings = dailyProduction.reduce((sum, item) => sum + Number(item.netAmount || 0), 0);
-    const totalDailySalary = dailySalary.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0);
-    
-    // Note: Overtime is now included in Daily Salary total (regular + overtime amounts)
-    const totalDailyCashExpenses = dailyCashExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+      // Fetch Daily Cash Expenses from Cashbook - simplified query
+      let dailyCashExpenses: any[] = [];
+      try {
+        dailyCashExpenses = await prisma.cashbookEntry.findMany({
+          where: {
+            date: {
+              gte: new Date(dateFilter.gte),
+              lte: new Date(dateFilter.lte)
+            },
+            type: 'DEBIT',
+            category: 'Daily Expense'
+          },
+          select: {
+            id: true,
+            date: true,
+            amount: true,
+            description: true
+          }
+        });
+        console.log('Cash expenses query successful, count:', dailyCashExpenses.length);
+      } catch (error) {
+        console.error('Cash expenses query failed:', error);
+        dailyCashExpenses = [];
+      }
 
-    // Net Profit = Daily Production (Grand Total) - Daily Salary (Grand Total) - Daily Cashbook Expense
-    const totalExpenses = totalDailySalary + totalDailyCashExpenses;
-    const netProfit = totalEarnings - totalExpenses;
-    const profitMargin = totalEarnings > 0 ? (netProfit / totalEarnings) * 100 : 0;
+      // Calculate totals with default values for missing data
+      const totalEarnings = dailyProduction.length > 0 ? dailyProduction.reduce((sum, item) => sum + Number(item.netAmount || 0), 0) : 0;
+      const totalDailySalary = dailySalary.length > 0 ? dailySalary.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0) : 0;
+      const totalMonthlyExpenses = monthlyExpenses.length > 0 ? monthlyExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+      const totalDailyCashExpenses = dailyCashExpenses.length > 0 ? dailyCashExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+      
+      // Calculate daily equivalent of monthly expenses (Total Monthly Expense / 30)
+      const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 30;
+      
+      // Net Profit = Earnings - Cash Expenses - Daily Equivalent Monthly Expenses - Daily Salary
+      const totalExpenses = totalDailyCashExpenses + dailyEquivalentMonthlyExpenses + totalDailySalary;
+      const netProfit = totalEarnings - totalExpenses;
+      const profitMargin = totalEarnings > 0 ? (netProfit / totalEarnings) * 100 : 0;
 
     // Create a simple response for now
     const response = {
@@ -111,20 +168,21 @@ export async function GET(request: NextRequest) {
           endDate: dateFilter.lte
         },
         summary: {
-          totalEarnings,
-          totalExpenses,
-          netProfit,
-          profitMargin,
+          totalEarnings: Number(totalEarnings) || 0,
+          totalExpenses: Number(totalExpenses) || 0,
+          netProfit: Number(netProfit) || 0,
+          profitMargin: Number(profitMargin) || 0,
           breakdown: {
-            dailySalary: totalDailySalary,
-            dailyOvertime: 0, // Overtime is included in dailySalary total
-            dailyCashExpenses: totalDailyCashExpenses
+            monthlyExpenses: Number(totalMonthlyExpenses) || 0,
+            dailyEquivalentMonthlyExpenses: Number(dailyEquivalentMonthlyExpenses) || 0,
+            dailyCashExpenses: Number(totalDailyCashExpenses) || 0,
+            dailySalary: Number(totalDailySalary) || 0
           }
         },
-        dailyBreakdown: createDailyBreakdown(dailyProduction, dailySalary, dailyCashExpenses),
-        lineBreakdown: createSectionBreakdown(dailyProduction, dailySalary),
-        topPerformingLines: createSectionBreakdown(dailyProduction, dailySalary).slice(0, 5),
-        worstPerformingLines: createSectionBreakdown(dailyProduction, dailySalary).slice(-5).reverse()
+        dailyBreakdown: createDailyBreakdown(dailyProduction, monthlyExpenses, dailyCashExpenses, dailySalary),
+        lineBreakdown: createSectionBreakdown(dailyProduction, monthlyExpenses),
+        topPerformingLines: createSectionBreakdown(dailyProduction, monthlyExpenses).slice(0, 5),
+        worstPerformingLines: createSectionBreakdown(dailyProduction, monthlyExpenses).slice(-5).reverse()
       }
     };
 
@@ -140,126 +198,142 @@ export async function GET(request: NextRequest) {
 }
 
 // Helper function to create daily breakdown
-function createDailyBreakdown(dailyProduction: any[], dailySalary: any[], dailyCashExpenses: any[]) {
+function createDailyBreakdown(dailyProduction: any[], monthlyExpenses: any[], dailyCashExpenses: any[], dailySalary: any[] = []) {
   const dailyBreakdown = new Map();
+  
+  // Calculate total monthly expenses with default value 0 if no data
+  const totalMonthlyExpenses = monthlyExpenses.length > 0 ? monthlyExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+  
+  // Calculate daily equivalent of monthly expenses (Total Monthly Expense / 30)
+  const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 30;
 
   // Add production data
   dailyProduction.forEach(item => {
-    const date = format(item.date, 'yyyy-MM-dd');
-    if (!dailyBreakdown.has(date)) {
-      dailyBreakdown.set(date, {
-        date,
-        earnings: 0,
-        dailySalary: 0,
-        dailyOvertime: 0,
-        dailyCashExpenses: 0,
-        netProfit: 0,
-        productionCount: 0,
-        salaryCount: 0,
-        cashExpenseCount: 0
-      });
+    try {
+      const date = item.date ? format(new Date(item.date), 'yyyy-MM-dd') : 'unknown';
+      if (!dailyBreakdown.has(date)) {
+        dailyBreakdown.set(date, {
+          date,
+          earnings: 0,
+          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
+          dailyCashExpenses: 0,
+          dailySalary: 0,
+          netProfit: 0,
+          productionCount: 0,
+          cashExpenseCount: 0,
+          salaryCount: 0
+        });
+      }
+      const day = dailyBreakdown.get(date);
+      day.earnings += Number(item.netAmount || 0);
+      day.productionCount += 1;
+    } catch (error) {
+      console.error('Error processing production item:', error, item);
     }
-    const day = dailyBreakdown.get(date);
-    day.earnings += Number(item.netAmount || 0);
-    day.productionCount += 1;
-  });
-
-  // Add salary data (includes both regular and overtime amounts)
-  dailySalary.forEach(item => {
-    const date = format(item.date, 'yyyy-MM-dd');
-    if (!dailyBreakdown.has(date)) {
-      dailyBreakdown.set(date, {
-        date,
-        earnings: 0,
-        dailySalary: 0,
-        dailyOvertime: 0,
-        dailyCashExpenses: 0,
-        netProfit: 0,
-        productionCount: 0,
-        salaryCount: 0,
-        cashExpenseCount: 0
-      });
-    }
-    const day = dailyBreakdown.get(date);
-    day.dailySalary += Number(item.totalAmount || 0);
-    day.salaryCount += 1;
   });
 
   // Add cash expense data
   dailyCashExpenses.forEach(item => {
-    const date = format(item.date, 'yyyy-MM-dd');
-    if (!dailyBreakdown.has(date)) {
-      dailyBreakdown.set(date, {
-        date,
-        earnings: 0,
-        dailySalary: 0,
-        dailyOvertime: 0,
-        dailyCashExpenses: 0,
-        netProfit: 0,
-        productionCount: 0,
-        salaryCount: 0,
-        cashExpenseCount: 0
-      });
+    try {
+      const date = item.date ? format(new Date(item.date), 'yyyy-MM-dd') : 'unknown';
+      if (!dailyBreakdown.has(date)) {
+        dailyBreakdown.set(date, {
+          date,
+          earnings: 0,
+          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
+          dailyCashExpenses: 0,
+          dailySalary: 0,
+          netProfit: 0,
+          productionCount: 0,
+          cashExpenseCount: 0,
+          salaryCount: 0
+        });
+      }
+      const day = dailyBreakdown.get(date);
+      day.dailyCashExpenses += Number(item.amount || 0);
+      day.cashExpenseCount += 1;
+    } catch (error) {
+      console.error('Error processing cash expense item:', error, item);
     }
-    const day = dailyBreakdown.get(date);
-    day.dailyCashExpenses += Number(item.amount);
-    day.cashExpenseCount += 1;
   });
 
-  // Calculate daily net profit: Earnings - Daily Salary - Daily Cash Expenses
+  // Add salary data
+  dailySalary.forEach(item => {
+    try {
+      const date = item.date ? format(new Date(item.date), 'yyyy-MM-dd') : 'unknown';
+      if (!dailyBreakdown.has(date)) {
+        dailyBreakdown.set(date, {
+          date,
+          earnings: 0,
+          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
+          dailyCashExpenses: 0,
+          dailySalary: 0,
+          netProfit: 0,
+          productionCount: 0,
+          cashExpenseCount: 0,
+          salaryCount: 0
+        });
+      }
+      const day = dailyBreakdown.get(date);
+      day.dailySalary += Number(item.totalAmount || 0);
+      day.salaryCount += 1;
+    } catch (error) {
+      console.error('Error processing salary item:', error, item);
+    }
+  });
+
+  // Calculate daily net profit: Earnings - Daily Equivalent Monthly Expenses - Daily Cash Expenses - Daily Salary
   return Array.from(dailyBreakdown.values()).map(day => ({
     ...day,
-    netProfit: day.earnings - day.dailySalary - day.dailyCashExpenses
+    earnings: Number(day.earnings) || 0,
+    monthlyExpenses: Number(day.monthlyExpenses) || 0,
+    dailyCashExpenses: Number(day.dailyCashExpenses) || 0,
+    dailySalary: Number(day.dailySalary) || 0,
+    netProfit: Number(day.earnings - day.monthlyExpenses - day.dailyCashExpenses - day.dailySalary) || 0,
+    productionCount: Number(day.productionCount) || 0,
+    cashExpenseCount: Number(day.cashExpenseCount) || 0,
+    salaryCount: Number(day.salaryCount) || 0
   })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 // Helper function to create section breakdown
-function createSectionBreakdown(dailyProduction: any[], dailySalary: any[]) {
+function createSectionBreakdown(dailyProduction: any[], monthlyExpenses: any[]) {
   const sectionBreakdown = new Map();
+  
+  // Calculate total monthly expenses with default value 0 if no data
+  const totalMonthlyExpenses = monthlyExpenses.length > 0 ? monthlyExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+  
+  // Calculate daily equivalent of monthly expenses (Total Monthly Expense / 30)
+  const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 30;
 
   // Add production by section (using line numbers)
   dailyProduction.forEach(item => {
-    const section = item.lineNo || 'General';
-    if (!sectionBreakdown.has(section)) {
-      sectionBreakdown.set(section, {
-        sectionId: section,
-        sectionName: section,
-        earnings: 0,
-        dailySalary: 0,
-        dailyOvertime: 0,
-        netProfit: 0,
-        productionCount: 0,
-        salaryCount: 0
-      });
+    try {
+      const section = item.lineNo || 'General';
+      if (!sectionBreakdown.has(section)) {
+        sectionBreakdown.set(section, {
+          sectionId: section,
+          sectionName: section,
+          earnings: 0,
+          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
+          netProfit: 0,
+          productionCount: 0
+        });
+      }
+      const sectionData = sectionBreakdown.get(section);
+      sectionData.earnings += Number(item.netAmount || 0);
+      sectionData.productionCount += 1;
+    } catch (error) {
+      console.error('Error processing section item:', error, item);
     }
-    const sectionData = sectionBreakdown.get(section);
-    sectionData.earnings += Number(item.netAmount || 0);
-    sectionData.productionCount += 1;
   });
 
-  // Add salary by section (includes both regular and overtime amounts)
-  dailySalary.forEach(item => {
-    const section = item.section;
-    if (!sectionBreakdown.has(section)) {
-      sectionBreakdown.set(section, {
-        sectionId: section,
-        sectionName: section,
-        earnings: 0,
-        dailySalary: 0,
-        dailyOvertime: 0,
-        netProfit: 0,
-        productionCount: 0,
-        salaryCount: 0
-      });
-    }
-    const sectionData = sectionBreakdown.get(section);
-    sectionData.dailySalary += Number(item.totalAmount || 0);
-    sectionData.salaryCount += 1;
-  });
-
-  // Calculate section-wise net profit: Earnings - Daily Salary
+  // Calculate section-wise net profit: Earnings - Daily Equivalent Monthly Expenses
   return Array.from(sectionBreakdown.values()).map(section => ({
     ...section,
-    netProfit: section.earnings - section.dailySalary
+    earnings: Number(section.earnings) || 0,
+    monthlyExpenses: Number(section.monthlyExpenses) || 0,
+    netProfit: Number(section.earnings - section.monthlyExpenses) || 0,
+    productionCount: Number(section.productionCount) || 0
   })).sort((a, b) => b.netProfit - a.netProfit);
 }

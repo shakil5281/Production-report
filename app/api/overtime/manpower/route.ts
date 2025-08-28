@@ -17,75 +17,80 @@ export async function GET(request: NextRequest) {
     const dateString = date;
 
     // Get manpower sections from manpower_summary (only individual sections, not totals)
-    const manpowerSections = await prisma.$queryRaw`
-      SELECT 
-        section,
-        SUM(present)::integer as present_workers,
-        SUM(total)::integer as total_workers
-      FROM manpower_summary
-      WHERE date::date = ${dateString}::date
-        AND "itemType" = 'SECTION'
-        AND section NOT LIKE '%Total%'
-        AND section != 'Grand Total'
-      GROUP BY section
-      ORDER BY 
-        CASE section
-          WHEN 'Cutting' THEN 1
-          WHEN 'Finishing' THEN 2
-          WHEN 'Quality' THEN 3
-          WHEN 'Inputman' THEN 4
-          WHEN 'Ironman' THEN 5
-          WHEN 'Loader' THEN 6
-          WHEN 'Cleaner' THEN 7
-          WHEN 'Security' THEN 8
-          WHEN 'Others' THEN 9
-          WHEN 'Office Staff' THEN 10
-          WHEN 'Mechanical Staff' THEN 11
-          WHEN 'Macanical - Staff' THEN 11
-          WHEN 'Production Staff' THEN 12
-          ELSE 13
-        END,
-        section ASC
-    ` as any[];
+    const startOfDay = new Date(dateString + 'T00:00:00Z');
+    const endOfDay = new Date(dateString + 'T23:59:59Z');
+    
+    const manpowerSections = await prisma.manpowerSummary.groupBy({
+      by: ['section'],
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        },
+        itemType: 'SECTION',
+        section: {
+          not: {
+            contains: 'Total'
+          }
+        }
+      },
+      _sum: {
+        present: true,
+        total: true
+      },
+      orderBy: {
+        section: 'asc'
+      }
+    });
 
     // Get line data for Helper and Operator sections
-    const lineData = await prisma.$queryRaw`
-      SELECT 
-        section,
-        subsection,
-        COUNT(*)::integer as line_count,
-        SUM(present)::integer as present_workers,
-        SUM(total)::integer as total_workers
-      FROM manpower_summary
-      WHERE date::date = ${dateString}::date
-        AND "itemType" = 'LINE'
-        AND (section = 'Sewing Helper' OR section = 'Operator Lines')
-      GROUP BY section, subsection
-      ORDER BY section ASC, subsection ASC
-    ` as any[];
+    const lineData = await prisma.manpowerSummary.groupBy({
+      by: ['section', 'subsection'],
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        },
+        itemType: 'LINE',
+        section: {
+          in: ['Sewing Helper', 'Operator Lines']
+        }
+      },
+      _count: {
+        id: true
+      },
+      _sum: {
+        present: true,
+        total: true
+      },
+      orderBy: [
+        { section: 'asc' },
+        { subsection: 'asc' }
+      ]
+    });
 
     // Organize the data for overtime management
     const overtimeSections = [];
 
     // Add individual sections
-    manpowerSections.forEach((section: any) => {
+    manpowerSections.forEach((section) => {
       overtimeSections.push({
         section: section.section,
         type: 'section',
-        presentWorkers: Number(section.present_workers),
-        totalWorkers: Number(section.total_workers),
-        suggestedWorkers: Number(section.present_workers), // Default to present workers
-        manpowerDisplay: `${section.present_workers}/${section.total_workers}` // Display like "22/28"
+        presentWorkers: Number(section._sum.present || 0),
+        totalWorkers: Number(section._sum.total || 0),
+        suggestedWorkers: Number(section._sum.present || 0), // Default to present workers
+        manpowerDisplay: `${section._sum.present || 0}/${section._sum.total || 0}` // Display like "22/28"
       });
     });
 
     // Add line data grouped by type
-    const helperLines = lineData.filter((line: any) => line.section === 'Sewing Helper');
-    const operatorLines = lineData.filter((line: any) => line.section === 'Operator Lines');
+    const helperLines = lineData.filter((line) => line.section === 'Sewing Helper');
+    const operatorLines = lineData.filter((line) => line.section === 'Operator Lines');
 
     if (helperLines.length > 0) {
-      const totalHelperWorkers = helperLines.reduce((sum, line) => sum + Number(line.present_workers), 0);
-      const totalHelperWorkersTotal = helperLines.reduce((sum, line) => sum + Number(line.total_workers), 0);
+      const totalHelperWorkers = helperLines.reduce((sum, line) => sum + Number(line._sum.present || 0), 0);
+      const totalHelperWorkersTotal = helperLines.reduce((sum, line) => sum + Number(line._sum.total || 0), 0);
       overtimeSections.push({
         section: 'Helper',
         type: 'line_group',
@@ -98,8 +103,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (operatorLines.length > 0) {
-      const totalOperatorWorkers = operatorLines.reduce((sum, line) => sum + Number(line.present_workers), 0);
-      const totalOperatorWorkersTotal = operatorLines.reduce((sum, line) => sum + Number(line.total_workers), 0);
+      const totalOperatorWorkers = operatorLines.reduce((sum, line) => sum + Number(line._sum.present || 0), 0);
+      const totalOperatorWorkersTotal = operatorLines.reduce((sum, line) => sum + Number(line._sum.total || 0), 0);
       overtimeSections.push({
         section: 'Operator',
         type: 'line_group',

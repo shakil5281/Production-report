@@ -86,6 +86,12 @@ export default function CashbookSummaryPage() {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('current_month');
 
+  // Safe number formatting with fallback to 0
+  const formatNumber = (value: number | undefined | null): string => {
+    const num = Number(value) || 0;
+    return num.toLocaleString();
+  };
+
   const fetchSummary = useCallback(async () => {
     setLoading(true);
     try {
@@ -314,7 +320,7 @@ export default function CashbookSummaryPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  ৳{summaryData.totals.cashReceived.toLocaleString()}
+                  ৳{formatNumber(summaryData.totals.cashReceived)}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {summaryData.breakdown.cashReceivedCount} transactions
@@ -328,7 +334,7 @@ export default function CashbookSummaryPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  ৳{summaryData.totals.expenses.toLocaleString()}
+                  ৳{formatNumber(summaryData.totals.expenses)}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {summaryData.breakdown.expensesCount} transactions
@@ -342,7 +348,7 @@ export default function CashbookSummaryPage() {
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${getNetAmountColor(summaryData.totals.netAmount)}`}>
-                  ৳{summaryData.totals.netAmount.toLocaleString()}
+                  ৳{formatNumber(summaryData.totals.netAmount)}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {summaryData.insights.profitMargin.toFixed(1)}% margin
@@ -379,19 +385,19 @@ export default function CashbookSummaryPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Avg. Daily Cash Received:</span>
                   <span className="text-green-600 font-bold">
-                    ৳{summaryData.breakdown.averages.dailyReceived.toLocaleString()}
+                    ৳{formatNumber(summaryData.breakdown.averages.dailyReceived)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Avg. Daily Expenses:</span>
                   <span className="text-red-600 font-bold">
-                    ৳{summaryData.breakdown.averages.dailyExpenses.toLocaleString()}
+                    ৳{formatNumber(summaryData.breakdown.averages.dailyExpenses)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Avg. Daily Net:</span>
                   <span className={`font-bold ${getNetAmountColor(summaryData.breakdown.averages.dailyReceived - summaryData.breakdown.averages.dailyExpenses)}`}>
-                    ৳{(summaryData.breakdown.averages.dailyReceived - summaryData.breakdown.averages.dailyExpenses).toLocaleString()}
+                    ৳{formatNumber(summaryData.breakdown.averages.dailyReceived - summaryData.breakdown.averages.dailyExpenses)}
                   </span>
                 </div>
               </CardContent>

@@ -18,19 +18,20 @@ import * as XLSX from 'xlsx';
 interface DailyBreakdown {
   date: string;
   earnings: number;
-  dailySalary: number;
-  dailyOvertime: number;
+  monthlyExpenses: number; // Daily equivalent of monthly expenses
   dailyCashExpenses: number;
   netProfit: number;
+  productionCount: number;
+  cashExpenseCount: number;
 }
 
 interface LineBreakdown {
   sectionId: string;
   sectionName: string;
   earnings: number;
-  dailySalary: number;
-  dailyOvertime: number;
+  monthlyExpenses: number; // Daily equivalent of monthly expenses
   netProfit: number;
+  productionCount: number;
 }
 
 interface ProfitLossData {
@@ -40,7 +41,11 @@ interface ProfitLossData {
     totalExpenses: number;
     netProfit: number;
     profitMargin: number;
-    breakdown: { dailySalary: number; dailyOvertime: number; dailyCashExpenses: number; };
+    breakdown: { 
+      monthlyExpenses: number; 
+      dailyEquivalentMonthlyExpenses: number; 
+      dailyCashExpenses: number; 
+    };
   };
   dailyBreakdown: DailyBreakdown[];
   lineBreakdown: LineBreakdown[];
@@ -52,6 +57,12 @@ interface ExportActionsProps {
 
 export default function ExportActions({ data }: ExportActionsProps) {
   const [exporting, setExporting] = useState(false);
+
+  // Safe number formatting with fallback to 0
+  const formatNumber = (value: number | undefined | null): string => {
+    const num = Number(value) || 0;
+    return num.toLocaleString();
+  };
 
   const exportToPDF = async () => {
     setExporting(true);
@@ -81,26 +92,25 @@ export default function ExportActions({ data }: ExportActionsProps) {
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Total Earnings: ৳${data.summary.totalEarnings.toLocaleString()}`, 14, 75);
-      doc.text(`Total Expenses: ৳${data.summary.totalExpenses.toLocaleString()}`, 14, 85);
-      doc.text(`Net Profit: ৳${data.summary.netProfit.toLocaleString()}`, 14, 95);
-      doc.text(`Profit Margin: ${data.summary.profitMargin.toFixed(2)}%`, 100, 75);
+      doc.text(`Total Earnings: ৳${formatNumber(data.summary.totalEarnings)}`, 14, 75);
+      doc.text(`Total Expenses: ৳${formatNumber(data.summary.totalExpenses)}`, 14, 85);
+      doc.text(`Net Profit: ৳${formatNumber(data.summary.netProfit)}`, 14, 95);
+      doc.text(`Profit Margin: ${Number(data.summary.profitMargin || 0).toFixed(2)}%`, 100, 75);
       
       // Expense Breakdown
-      doc.text(`Daily Salary: ৳${data.summary.breakdown.dailySalary.toLocaleString()}`, 100, 85);
-      doc.text(`Daily Overtime: ৳${data.summary.breakdown.dailyOvertime.toLocaleString()}`, 100, 95);
-      doc.text(`Daily Cash Expenses: ৳${data.summary.breakdown.dailyCashExpenses.toLocaleString()}`, 100, 105);
+      doc.text(`Monthly Expenses: ৳${formatNumber(data.summary.breakdown.monthlyExpenses)}`, 100, 85);
+      doc.text(`Daily Equivalent: ৳${formatNumber(data.summary.breakdown.dailyEquivalentMonthlyExpenses)}`, 100, 95);
+      doc.text(`Daily Cash Expenses: ৳${formatNumber(data.summary.breakdown.dailyCashExpenses)}`, 100, 105);
       
       // Daily Breakdown Table
-      const tableColumns = ['Date', 'Earnings', 'Daily Salary', 'Daily Overtime', 'Cash Expenses', 'Net Profit'];
-      const tableRows = data.dailyBreakdown.map(day => [
-        format(parseISO(day.date), 'dd-MMM-yy'),
-        `৳${day.earnings.toLocaleString()}`,
-        `৳${day.dailySalary.toLocaleString()}`,
-        `৳${day.dailyOvertime.toLocaleString()}`,
-        `৳${day.dailyCashExpenses.toLocaleString()}`,
-        `৳${day.netProfit.toLocaleString()}`
-      ]);
+      const tableColumns = ['Date', 'Earnings', 'Others Expense', 'Cash Expenses', 'Net Profit'];
+      const tableRows = data.dailyBreakdown?.map(day => [
+        day.date && day.date !== 'unknown' ? format(parseISO(day.date), 'dd-MMM-yy') : 'Unknown',
+        `৳${formatNumber(day.earnings)}`,
+        `৳${formatNumber(day.monthlyExpenses)}`,
+        `৳${formatNumber(day.dailyCashExpenses)}`,
+        `৳${formatNumber(day.netProfit)}`
+      ]) || [];
       
       autoTable(doc, {
         head: [tableColumns],
@@ -118,12 +128,11 @@ export default function ExportActions({ data }: ExportActionsProps) {
           halign: 'center'
         },
         columnStyles: {
-          0: { cellWidth: 20, halign: 'center' },  // Date
-          1: { cellWidth: 25, halign: 'right' },   // Earnings
-          2: { cellWidth: 25, halign: 'right' },   // Daily Salary
-          3: { cellWidth: 25, halign: 'right' },   // Daily Overtime
-          4: { cellWidth: 25, halign: 'right' },   // Cash Expenses
-          5: { cellWidth: 25, halign: 'right' }    // Net Profit
+          0: { cellWidth: 25, halign: 'center' },  // Date
+          1: { cellWidth: 30, halign: 'right' },   // Earnings
+          2: { cellWidth: 30, halign: 'right' },   // Others Expense
+          3: { cellWidth: 30, halign: 'right' },   // Cash Expenses
+          4: { cellWidth: 30, halign: 'right' }    // Net Profit
         }
       });
       
@@ -151,40 +160,38 @@ export default function ExportActions({ data }: ExportActionsProps) {
         ['', `For The Month of ${format(parseISO(data.period.startDate), 'MMMM yyyy')}`],
         [''],
         ['Summary:'],
-        ['Total Earnings', data.summary.totalEarnings],
-        ['Total Expenses', data.summary.totalExpenses],
-        ['Net Profit', data.summary.netProfit],
-        ['Profit Margin (%)', data.summary.profitMargin],
+        ['Total Earnings', data.summary.totalEarnings || 0],
+        ['Total Expenses', data.summary.totalExpenses || 0],
+        ['Net Profit', data.summary.netProfit || 0],
+        ['Profit Margin (%)', data.summary.profitMargin || 0],
         [''],
         ['Expense Breakdown:'],
-        ['Daily Salary', data.summary.breakdown.dailySalary],
-        ['Daily Overtime', data.summary.breakdown.dailyOvertime],
-        ['Daily Cash Expenses', data.summary.breakdown.dailyCashExpenses]
+        ['Monthly Expenses', data.summary.breakdown.monthlyExpenses || 0],
+        ['Daily Equivalent', data.summary.breakdown.dailyEquivalentMonthlyExpenses || 0],
+        ['Daily Cash Expenses', data.summary.breakdown.dailyCashExpenses || 0]
       ]);
 
       // Daily Breakdown Sheet
       const dailySheet = XLSX.utils.aoa_to_sheet([
-        ['Date', 'Earnings', 'Daily Salary', 'Daily Overtime', 'Cash Expenses', 'Net Profit'],
-        ...data.dailyBreakdown.map(day => [
-          format(parseISO(day.date), 'dd-MMM-yy'),
-          day.earnings,
-          day.dailySalary,
-          day.dailyOvertime,
-          day.dailyCashExpenses,
-          day.netProfit
-        ])
+        ['Date', 'Earnings', 'Others Expense', 'Cash Expenses', 'Net Profit'],
+        ...(data.dailyBreakdown?.map(day => [
+          day.date && day.date !== 'unknown' ? format(parseISO(day.date), 'dd-MMM-yy') : 'Unknown',
+          day.earnings || 0,
+          day.monthlyExpenses || 0,
+          day.dailyCashExpenses || 0,
+          day.netProfit || 0
+        ]) || [])
       ]);
 
       // Line Breakdown Sheet
       const lineSheet = XLSX.utils.aoa_to_sheet([
-        ['Section', 'Earnings', 'Daily Salary', 'Daily Overtime', 'Net Profit'],
-        ...data.lineBreakdown.map(line => [
+        ['Section', 'Earnings', 'Others Expense', 'Net Profit'],
+        ...(data.lineBreakdown?.map(line => [
           line.sectionName,
-          line.earnings,
-          line.dailySalary,
-          line.dailyOvertime,
-          line.netProfit
-        ])
+          line.earnings || 0,
+          line.monthlyExpenses || 0,
+          line.netProfit || 0
+        ]) || [])
       ]);
 
       XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
@@ -245,12 +252,12 @@ export default function ExportActions({ data }: ExportActionsProps) {
           
           <div class="summary">
             <div class="summary-row">
-              <span>Total Earnings: ৳${data.summary.totalEarnings.toLocaleString()}</span>
-              <span>Total Expenses: ৳${data.summary.totalExpenses.toLocaleString()}</span>
+              <span>Total Earnings: ৳${formatNumber(data.summary.totalEarnings)}</span>
+              <span>Total Expenses: ৳${formatNumber(data.summary.totalExpenses)}</span>
             </div>
             <div class="summary-row">
-              <span>Net Profit: ৳${data.summary.netProfit.toLocaleString()}</span>
-              <span>Profit Margin: ${data.summary.profitMargin.toFixed(2)}%</span>
+              <span>Net Profit: ৳${formatNumber(data.summary.netProfit)}</span>
+              <span>Profit Margin: ${Number(data.summary.profitMargin || 0).toFixed(2)}%</span>
             </div>
           </div>
           
@@ -259,23 +266,21 @@ export default function ExportActions({ data }: ExportActionsProps) {
               <tr>
                 <th>Date</th>
                 <th>Earnings</th>
-                <th>Daily Salary</th>
-                <th>Daily Overtime</th>
+                <th>Others Expense</th>
                 <th>Cash Expenses</th>
                 <th>Net Profit</th>
               </tr>
             </thead>
             <tbody>
-              ${data.dailyBreakdown.map(day => `
+              ${(data.dailyBreakdown?.map(day => `
                 <tr>
-                  <td>${format(parseISO(day.date), 'dd-MMM-yy')}</td>
-                  <td class="amount">৳${day.earnings.toLocaleString()}</td>
-                  <td class="amount">৳${day.dailySalary.toLocaleString()}</td>
-                  <td class="amount">৳${day.dailyOvertime.toLocaleString()}</td>
-                  <td class="amount">৳${day.dailyCashExpenses.toLocaleString()}</td>
-                  <td class="amount ${day.netProfit >= 0 ? 'positive' : 'negative'}">৳${day.netProfit.toLocaleString()}</td>
+                  <td>${day.date && day.date !== 'unknown' ? format(parseISO(day.date), 'dd-MMM-yy') : 'Unknown'}</td>
+                  <td class="amount">৳${formatNumber(day.earnings)}</td>
+                  <td class="amount">৳${formatNumber(day.monthlyExpenses)}</td>
+                  <td class="amount">৳${formatNumber(day.dailyCashExpenses)}</td>
+                  <td class="amount ${(day.netProfit || 0) >= 0 ? 'positive' : 'negative'}">৳${formatNumber(day.netProfit)}</td>
                 </tr>
-              `).join('')}
+              `) || []).join('')}
             </tbody>
           </table>
           
@@ -328,6 +333,7 @@ export default function ExportActions({ data }: ExportActionsProps) {
           <Button
             variant="outline"
             onClick={printReport}
+            disabled={exporting}
             className="flex items-center gap-2"
           >
             <IconPrinter className="h-4 w-4" />
