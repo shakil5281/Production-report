@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button';
 import { IconMail } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { DailyProductionReport, ExportDataRow } from './types';
+import { format } from 'date-fns';
+import { IconBrandWhatsapp } from '@tabler/icons-react';
 
 interface EmailActionsProps {
   reportsByLine: Record<string, DailyProductionReport[]>;
   reportsWithoutLine: DailyProductionReport[];
   selectedDate: Date;
   loading: boolean;
-  emailSending: boolean;
-  setEmailSending: (sending: boolean) => void;
   productionHours: Record<string, number>; // Add production hours prop
 }
 
@@ -20,8 +20,6 @@ export function EmailActions({
   reportsWithoutLine,
   selectedDate,
   loading,
-  emailSending,
-  setEmailSending,
   productionHours
 }: EmailActionsProps) {
   // Generate tabular data for export (matching your image format)
@@ -108,52 +106,119 @@ export function EmailActions({
     return exportData;
   };
 
-  // Handler for sending email
-  const handleSendEmail = async () => {
-    setEmailSending(true);
+  // Handler for opening Gmail with pre-filled subject
+  const handleOpenGmail = () => {
     try {
       const exportData = generateExportData();
       
-      const response = await fetch('/api/daily-production-report/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date: selectedDate.toISOString(),
-          reportData: exportData
-        }),
-      });
+      // Calculate summary for email subject
+      const totalTargetQty = exportData.reduce((sum, row) => sum + (row['DAILY TARGET'] || 0), 0);
+      const totalProductionQty = exportData.reduce((sum, row) => sum + (row['DAILY PRODUCTION'] || 0), 0);
+      const totalLines = new Set(exportData.map(row => row['LINE']).filter(Boolean)).size;
+      
+      // Format date for subject - use "Daily Production Report (date)" format
+      const dateString = format(selectedDate, 'dd/MM/yyyy');
+      
+      // Create email subject with the requested format
+      const subject = `Daily Production Report (${dateString})`;
+      
+      // Create email body with summary
+      const body = `Dear Team,
 
-      const result = await response.json();
+Please find attached the Daily Production Report for ${format(selectedDate, 'EEEE, MMMM dd, yyyy')}.
 
-      if (result.success) {
-        toast.success('📧 Daily production report sent successfully!');
-      } else {
-        toast.error(`Failed to send email: ${result.error}`);
-      }
+📊 Summary:
+• Total Lines: ${totalLines}
+• Total Targets: ${totalTargetQty.toLocaleString()} units
+• Total Production: ${totalProductionQty.toLocaleString()} units
+• Achievement: ${totalTargetQty > 0 ? Math.round((totalProductionQty / totalTargetQty) * 100) : 0}%
+
+Please review and let me know if you need any clarification.
+
+Best regards,
+Production Team`;
+
+      // Encode subject and body for URL
+      const encodedSubject = encodeURIComponent(subject);
+      const encodedBody = encodeURIComponent(body);
+      
+      // Create Gmail compose URL
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=&su=${encodedSubject}&body=${encodedBody}`;
+      
+      // Open Gmail in new tab
+      window.open(gmailUrl, '_blank');
+      
+      toast.success('📧 Gmail opened in new tab with pre-filled subject and body!');
+      
     } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error('Failed to send email. Please try again.');
-    } finally {
-      setEmailSending(false);
+      console.error('Error opening Gmail:', error);
+      toast.error('Failed to open Gmail. Please try again.');
+    }
+  };
+
+  // Handler for opening WhatsApp with pre-filled message
+  const handleOpenWhatsApp = () => {
+    try {
+      const exportData = generateExportData();
+      
+      // Format date for message
+      const dateString = format(selectedDate, 'dd/MM/yyyy');
+      
+      // Create very short WhatsApp message focused on file sharing
+      const message = `📊 Daily Production Report (${dateString})
+
+📎 Sharing the complete production report file.`;
+      
+      // Encode message for WhatsApp URL
+      const encodedMessage = encodeURIComponent(message);
+      
+      // Create WhatsApp share URL
+      const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+      
+      // Open WhatsApp in new tab
+      window.open(whatsappUrl, '_blank');
+      
+      toast.success('📱 WhatsApp opened! Please attach your production report file to share.', {
+        duration: 5000
+      });
+      
+    } catch (error) {
+      console.error('Error opening WhatsApp:', error);
+      toast.error('Failed to open WhatsApp. Please try again.');
     }
   };
 
   return (
-    <Button
-      variant="outline"
-      onClick={handleSendEmail}
-      disabled={loading || emailSending || Object.keys(reportsByLine).length === 0}
-      className="w-full sm:w-auto flex items-center gap-2 h-9 sm:h-10"
-    >
-      <IconMail className={`h-4 w-4 ${emailSending ? 'animate-pulse' : ''}`} />
-      <span className="hidden sm:inline">
-        {emailSending ? 'Sending...' : 'Send Email'}
-      </span>
-      <span className="sm:hidden">
-        {emailSending ? 'Sending...' : 'Email'}
-      </span>
-    </Button>
+    <div className="flex gap-2">
+      <Button
+        variant="outline"
+        onClick={handleOpenGmail}
+        disabled={loading || Object.keys(reportsByLine).length === 0}
+        className="w-full sm:w-auto flex items-center gap-2 h-9 sm:h-10"
+      >
+        <IconMail className="h-4 w-4" />
+        <span className="hidden sm:inline">
+          Gmail
+        </span>
+        <span className="sm:hidden">
+          Gmail
+        </span>
+      </Button>
+
+      <Button
+        variant="outline"
+        onClick={handleOpenWhatsApp}
+        disabled={loading || Object.keys(reportsByLine).length === 0}
+        className="w-full sm:w-auto flex items-center gap-2 h-9 sm:h-10"
+      >
+        <IconBrandWhatsapp className="h-4 w-4" />
+        <span className="hidden sm:inline">
+          WhatsApp
+        </span>
+        <span className="sm:hidden">
+          WhatsApp
+        </span>
+      </Button>
+    </div>
   );
 }

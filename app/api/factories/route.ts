@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has permission to create factories
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    if (!user.role || user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Insufficient permissions - SUPER_ADMIN access required' }, { status: 403 });
     }
 
     const body = await request.json();

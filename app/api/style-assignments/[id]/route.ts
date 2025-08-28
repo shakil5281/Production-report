@@ -38,9 +38,9 @@ export async function PUT(
 		if (!user) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 		}
-		if (!['ADMIN', 'MANAGER'].includes(user.role)) {
-			return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-		}
+		    if (!user.role || user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Insufficient permissions - SUPER_ADMIN access required' }, { status: 403 });
+    }
 
 		const { id } = await params;
 		const body = await request.json();
@@ -105,9 +105,9 @@ export async function DELETE(
 		if (!user) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 		}
-		if (!['ADMIN'].includes(user.role)) {
-			return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-		}
+		    if (!user.role || user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Insufficient permissions - SUPER_ADMIN access required' }, { status: 403 });
+    }
 
 		const { id } = await params;
 		await prisma.styleAssignment.delete({ where: { id } });
