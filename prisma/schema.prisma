@@ -382,19 +382,19 @@ model OvertimeRecord {
 }
 
 model DailySalary {
-  id              String   @id @default(uuid())
-  date            DateTime
-  section         String
-  workerCount     Int      @default(0)
-  regularRate     Decimal  @default(0)
-  overtimeHours   Decimal  @default(0)
-  overtimeRate    Decimal  @default(0)
-  regularAmount   Decimal  @default(0)
-  overtimeAmount  Decimal  @default(0)
-  totalAmount     Decimal  @default(0)
-  remarks         String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(uuid())
+  date           DateTime
+  section        String
+  workerCount    Int      @default(0)
+  regularRate    Decimal  @default(0)
+  overtimeHours  Decimal  @default(0)
+  overtimeRate   Decimal  @default(0)
+  regularAmount  Decimal  @default(0)
+  overtimeAmount Decimal  @default(0)
+  totalAmount    Decimal  @default(0)
+  remarks        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@unique([date, section])
   @@map("daily_salaries")
