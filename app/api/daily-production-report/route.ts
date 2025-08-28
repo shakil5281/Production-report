@@ -6,10 +6,15 @@ import { ProfitLossService } from '@/lib/services/profit-loss-service';
 // GET /api/daily-production-report - Get daily production reports
 export async function GET(request: NextRequest) {
   try {
+    console.log('🚀 Daily Production Report API called');
+    
     const user = await getCurrentUser(request);
     if (!user) {
+      console.log('❌ Unauthorized access attempt - no user found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    console.log('✅ User authenticated:', { id: user.id, email: user.email, role: user.role });
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
@@ -17,12 +22,24 @@ export async function GET(request: NextRequest) {
     const lineNo = searchParams.get('lineNo');
 
     let whereClause: any = {};
+    let selectedDate: Date;
+    let nextDay: Date;
 
     if (date) {
       // Parse date string (YYYY-MM-DD) using local timezone (same as target service)
       const [year, month, day] = date.split('-').map(Number);
-      const selectedDate = new Date(year, month - 1, day, 0, 0, 0, 0);
-      const nextDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+      selectedDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+      nextDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+      
+      whereClause.date = {
+        gte: selectedDate,
+        lte: nextDay
+      };
+    } else {
+      // Default to current date if no date provided
+      const now = new Date();
+      selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       
       whereClause.date = {
         gte: selectedDate,
@@ -39,31 +56,159 @@ export async function GET(request: NextRequest) {
     }
 
     // Get daily production reports for the specified date
-    const reports = await prisma.dailyProductionReport.findMany({
-      where: whereClause,
-      include: {
-        productionList: {
+    console.log('🔍 Fetching daily production reports with where clause:', JSON.stringify(whereClause));
+    
+    let reports;
+    try {
+      reports = await prisma.dailyProductionReport.findMany({
+        where: whereClause,
+        orderBy: [
+          { date: 'desc' },
+          { lineNo: 'asc' },
+          { styleNo: 'asc' }
+        ]
+      });
+      console.log(`📊 Found ${reports.length} daily production reports`);
+    } catch (dbError) {
+      console.error('❌ Database error fetching daily production reports:', dbError);
+      return NextResponse.json(
+        { success: false, error: 'Database error while fetching production reports' },
+        { status: 500 }
+      );
+    }
+
+    // Get target data for the same date to calculate production hours FIRST
+    console.log('🎯 Fetching target data for production hours calculation');
+    
+    let targets: Array<{
+      lineNo: string;
+      styleNo: string;
+      lineTarget: number;
+      inTime: string;
+      outTime: string;
+      hourlyProduction: number;
+    }> = [];
+    try {
+      targets = await prisma.target.findMany({
+        where: {
+          date: {
+            gte: selectedDate,
+            lte: nextDay
+          }
+        },
+        select: {
+          lineNo: true,
+          styleNo: true,
+          lineTarget: true,
+          inTime: true,
+          outTime: true,
+          hourlyProduction: true
+        }
+      });
+      console.log(`🎯 Found ${targets.length} target records`);
+    } catch (dbError) {
+      console.error('❌ Database error fetching target data:', dbError);
+      // Continue with empty targets if there's an error
+      targets = [];
+    }
+
+    // Calculate production hours for each style/line combination
+    const productionHoursMap = new Map<string, number>();
+    targets.forEach(target => {
+      const key = `${target.lineNo}-${target.styleNo}`;
+      
+      // Sum up all hours for the same line-style combination
+      if (productionHoursMap.has(key)) {
+        // If we already have hours for this line-style, add the new hours
+        const existingHours = productionHoursMap.get(key)!;
+        const inHour = parseInt(target.inTime.split(':')[0]);
+        const outHour = parseInt(target.outTime.split(':')[0]);
+        const newHours = Math.max(1, outHour - inHour); // Minimum 1 hour
+        const totalHours = existingHours + newHours;
+        productionHoursMap.set(key, totalHours);
+        console.log(`⏰ Line ${target.lineNo}-Style ${target.styleNo}: ${existingHours}h + ${newHours}h = ${totalHours}h total`);
+      } else {
+        // First time seeing this line-style combination
+        const inHour = parseInt(target.inTime.split(':')[0]);
+        const outHour = parseInt(target.outTime.split(':')[0]);
+        const hours = Math.max(1, outHour - inHour); // Minimum 1 hour
+        productionHoursMap.set(key, hours);
+        console.log(`⏰ Line ${target.lineNo}-Style ${target.styleNo}: ${hours}h (first entry)`);
+      }
+    });
+    
+    console.log('⏰ Final production hours map:', Object.fromEntries(productionHoursMap));
+
+    // Get production list data for the styles in reports
+    console.log('📋 Fetching production list data for styles:', reports.map(r => r.styleNo));
+    
+    let productionListData: Array<{
+      styleNo: string;
+      buyer: string;
+      item: string;
+      price: any; // Handle Prisma Decimal type
+      totalQty: number;
+      percentage: any; // Handle Prisma Decimal type
+    }> = [];
+    
+    try {
+      if (reports.length > 0) {
+        const styleNumbers = [...new Set(reports.map(r => r.styleNo))];
+        productionListData = await prisma.productionList.findMany({
+          where: {
+            styleNo: {
+              in: styleNumbers
+            }
+          },
           select: {
+            styleNo: true,
             buyer: true,
             item: true,
             price: true,
             totalQty: true,
             percentage: true
           }
+        });
+        console.log(`📋 Found ${productionListData.length} production list items`);
+      } else {
+        productionListData = [];
+      }
+    } catch (dbError) {
+      console.error('❌ Database error fetching production list data:', dbError);
+      productionListData = [];
+    }
+
+    // Create a map for quick lookup of production list data
+    const productionListMap = new Map();
+    productionListData.forEach(item => {
+      productionListMap.set(item.styleNo, item);
+    });
+
+    // Combine the data manually - NOW productionHoursMap is defined
+    const reportsWithProductionList = reports.map(report => {
+      const key = `${report.lineNo}-${report.styleNo}`;
+      const hours = productionHoursMap.get(key) || 1;
+      const calculatedTargets = (report.targetQty || 0) * hours;
+      
+      console.log(`🎯 Report ${report.styleNo} on Line ${report.lineNo}: Target Qty ${report.targetQty} × ${hours}h = ${calculatedTargets} targets`);
+      
+      return {
+        ...report,
+        productionList: productionListMap.get(report.styleNo) || {
+          buyer: 'Unknown',
+          item: 'Unknown',
+          price: 0,
+          totalQty: 0,
+          percentage: 0
         }
-      },
-      orderBy: [
-        { date: 'desc' },
-        { lineNo: 'asc' },
-        { styleNo: 'asc' }
-      ]
+      };
     });
 
     // Group reports by line (only lines with actual production data)
     const reportsByLine = new Map<string, typeof reports>();
     const reportsWithoutLine: typeof reports = [];
     
-    reports.forEach(report => {
+    reportsWithProductionList.forEach(report => {
       if (report.lineNo) {
         if (!reportsByLine.has(report.lineNo)) {
           reportsByLine.set(report.lineNo, []);
@@ -117,7 +262,9 @@ export async function GET(request: NextRequest) {
         lineTotalAmount += Number(latestStyleReport.totalAmount || 0);
         lineTotalNetAmount += Number(latestStyleReport.netAmount || 0);
         lineTotalUnitPrice += Number(latestStyleReport.unitPrice || 0);
-        lineTotalPercentage += Number(latestStyleReport.productionList?.percentage || 0);
+                 // Access percentage from the productionList that was added to the report
+         const productionListData = (latestStyleReport as any).productionList;
+         lineTotalPercentage += Number(productionListData?.percentage || 0);
       });
       
       console.log(`   📈 Line ${lineNo} totals: Production=${lineTotalProductionQty}, Target=${lineTotalTargetQty}`);
@@ -147,7 +294,7 @@ export async function GET(request: NextRequest) {
     // Group reports by style number to avoid accumulating production across styles
     const overallStyleGroups = new Map<string, typeof reports>();
     
-    reports.forEach(report => {
+    reportsWithProductionList.forEach(report => {
       if (!overallStyleGroups.has(report.styleNo)) {
         overallStyleGroups.set(report.styleNo, []);
       }
@@ -174,13 +321,15 @@ export async function GET(request: NextRequest) {
       overallTotalAmount += Number(latestStyleReport.totalAmount || 0);
       overallTotalNetAmount += Number(latestStyleReport.netAmount || 0);
       overallTotalUnitPrice += Number(latestStyleReport.unitPrice || 0);
-      overallTotalPercentage += Number(latestStyleReport.productionList?.percentage || 0);
+      // Access percentage from the productionList that was added to the report
+      const productionListData = (latestStyleReport as any).productionList;
+      overallTotalPercentage += Number(productionListData?.percentage || 0);
     });
     
     console.log(`🌍 Overall totals: Production=${overallTotalProductionQty}, Target=${overallTotalTargetQty}`);
     
     const overallSummary = {
-      totalReports: reports.length,
+      totalReports: reportsWithProductionList.length,
       totalTargetQty: overallTotalTargetQty,
       totalProductionQty: overallTotalProductionQty,
       totalAmount: overallTotalAmount,
@@ -208,7 +357,8 @@ export async function GET(request: NextRequest) {
       reportsWithoutLine,
       lineSummaries: Object.fromEntries(lineSummaries),
       overallSummary,
-      allReports: reports // Keep original flat structure for compatibility
+      allReports: reportsWithProductionList, // Keep original flat structure for compatibility
+      productionHours: Object.fromEntries(productionHoursMap) // Add production hours data
     };
 
     return NextResponse.json({
@@ -217,9 +367,27 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching daily production reports:', error);
+    console.error('❌ Error fetching daily production reports:', error);
+    
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    
+    // Check for specific database errors
+    if (error && typeof error === 'object' && 'code' in error) {
+      console.error('Database error code:', (error as any).code);
+      console.error('Database error detail:', (error as any).detail);
+    }
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch daily production reports' },
+      { 
+        success: false, 
+        error: 'Failed to fetch daily production reports',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
+      },
       { status: 500 }
     );
   }

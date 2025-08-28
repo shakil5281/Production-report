@@ -12,6 +12,7 @@ interface EmailActionsProps {
   loading: boolean;
   emailSending: boolean;
   setEmailSending: (sending: boolean) => void;
+  productionHours: Record<string, number>; // Add production hours prop
 }
 
 export function EmailActions({
@@ -20,7 +21,8 @@ export function EmailActions({
   selectedDate,
   loading,
   emailSending,
-  setEmailSending
+  setEmailSending,
+  productionHours
 }: EmailActionsProps) {
   // Generate tabular data for export (matching your image format)
   const generateExportData = (): ExportDataRow[] => {
@@ -29,14 +31,19 @@ export function EmailActions({
     // Process reports by line
     Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
       lineReports.forEach(report => {
+        // Calculate targets using production hours: Target Qty × Hours
+        const key = `${report.lineNo}-${report.styleNo}`;
+        const hours = productionHours[key] || 1;
+        const calculatedTargets = (report.targetQty || 0) * hours;
+        
         exportData.push({
           'LINE': lineNo,
           'P/COD': report.styleNo,
           'BUYER': report.productionList.buyer,
           'ART/NO': report.styleNo,
-          'OR/QTY': report.targetQty,
+          'OR/QTY': calculatedTargets, // Use calculated targets
           'ITEM': report.productionList.item,
-          'DAILY TARGET': report.targetQty,
+          'DAILY TARGET': calculatedTargets, // Use calculated targets
           'DAILY PRODUCTION': report.productionQty,
           'UNIT PRICE': Number(report.unitPrice).toFixed(2),
           'TOTAL PRICE': Number(report.totalAmount).toFixed(2),
@@ -50,14 +57,19 @@ export function EmailActions({
 
     // Process unassigned reports
     reportsWithoutLine.forEach(report => {
+      // Calculate targets for unassigned reports
+      const key = `${report.lineNo || 'unassigned'}-${report.styleNo}`;
+      const hours = productionHours[key] || 1;
+      const calculatedTargets = (report.targetQty || 0) * hours;
+      
       exportData.push({
         'LINE': '',
         'P/COD': report.styleNo,
         'BUYER': report.productionList.buyer,
         'ART/NO': report.styleNo,
-        'OR/QTY': report.targetQty,
+        'OR/QTY': calculatedTargets, // Use calculated targets
         'ITEM': report.productionList.item,
-        'DAILY TARGET': report.targetQty,
+        'DAILY TARGET': calculatedTargets, // Use calculated targets
         'DAILY PRODUCTION': report.productionQty,
         'UNIT PRICE': Number(report.unitPrice).toFixed(2),
         'TOTAL PRICE': Number(report.totalAmount).toFixed(2),

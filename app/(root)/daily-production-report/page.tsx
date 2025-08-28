@@ -12,13 +12,11 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import {
-  Filters,
   ProductionReportViewSheet,
   ExportActions,
   EmailActions,
   DataTable,
-  NotesSection,
-  SummaryCards
+  NotesSection
 } from '@/components/daily-production-report';
 import { DailyProductionReport, ProductionSummary, LineSummary } from '@/components/daily-production-report/types';
 
@@ -30,12 +28,10 @@ export default function DailyProductionReportPage() {
   const [summary, setSummary] = useState<ProductionSummary | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [lineFilter, setLineFilter] = useState<string>('all');
-  const [styleFilter, setStyleFilter] = useState<string>('');
   const [viewingReport, setViewingReport] = useState<DailyProductionReport | null>(null);
   const [viewingLineNo, setViewingLineNo] = useState<string>('');
   const [emailSending, setEmailSending] = useState(false);
+  const [productionHours, setProductionHours] = useState<Record<string, number>>({});
   const isMobile = useIsMobile();
 
   // Handler for viewing report details
@@ -84,6 +80,7 @@ export default function DailyProductionReportPage() {
         setReportsWithoutLine(data.data.reportsWithoutLine || []);
         setLineSummaries(data.data.lineSummaries || {});
         setSummary(data.data.overallSummary || null);
+        setProductionHours(data.data.productionHours || {});
         
         console.log('📊 Reports loaded successfully:', {
           totalReports: data.data.allReports?.length || 0,
@@ -106,13 +103,6 @@ export default function DailyProductionReportPage() {
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
-
-  // Get unique lines for filter dropdown
-  const uniqueLines = Array.from(new Set(
-    reports
-      .map(report => report.lineNo)
-      .filter(Boolean) as string[]
-  )).sort();
 
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6">
@@ -163,6 +153,7 @@ export default function DailyProductionReportPage() {
             loading={loading}
             emailSending={emailSending}
             setEmailSending={setEmailSending}
+            productionHours={productionHours}
           />
 
           <ExportActions
@@ -170,24 +161,12 @@ export default function DailyProductionReportPage() {
             reportsWithoutLine={reportsWithoutLine}
             selectedDate={selectedDate}
             loading={loading}
+            productionHours={productionHours}
           />
         </div>
       </div>
 
-      {/* Filters */}
-      <Filters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        lineFilter={lineFilter}
-        setLineFilter={setLineFilter}
-        styleFilter={styleFilter}
-        setStyleFilter={setStyleFilter}
-        uniqueLines={uniqueLines}
-        isMobile={isMobile}
-      />
 
-      {/* Summary Cards */}
-      <SummaryCards summary={summary} />
 
       {/* Production Reports Data Table */}
       {loading ? (
@@ -215,10 +194,9 @@ export default function DailyProductionReportPage() {
               reportsWithoutLine={reportsWithoutLine}
               lineSummaries={lineSummaries}
               selectedDate={selectedDate}
-              searchTerm={searchTerm}
-              lineFilter={lineFilter}
               isMobile={isMobile}
               onViewReport={handleViewReport}
+              productionHours={productionHours}
             />
           )}
         </>
