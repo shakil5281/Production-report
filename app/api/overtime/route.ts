@@ -220,15 +220,19 @@ export async function DELETE(request: NextRequest) {
     const dateString = date;
 
     // Get count before deletion
-    const countResult = await prisma.$queryRaw`
-      SELECT COUNT(*)::integer as count
-      FROM overtime_records
-      WHERE date::date = ${dateString}::date
-    ` as any[];
+    const startOfDay = new Date(dateString + 'T00:00:00Z');
+    const endOfDay = new Date(dateString + 'T23:59:59Z');
+    
+    const countResult = await prisma.overtimeRecord.count({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
 
-    const recordCount = Number(countResult[0]?.count || 0);
-
-    if (recordCount === 0) {
+    if (countResult === 0) {
       return NextResponse.json(
         { success: false, error: 'No overtime records found for the specified date' },
         { status: 404 }
@@ -236,18 +240,22 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete records
-    await prisma.$executeRaw`
-      DELETE FROM overtime_records 
-      WHERE date::date = ${dateString}::date
-    `;
+    await prisma.overtimeRecord.deleteMany({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
 
     return NextResponse.json({
       success: true,
       data: {
         date: dateString,
-        deletedRecords: recordCount
+        deletedRecords: countResult
       },
-      message: `Successfully deleted ${recordCount} overtime records for ${dateString}`
+      message: `Successfully deleted ${countResult} overtime records for ${dateString}`
     });
 
   } catch (error) {

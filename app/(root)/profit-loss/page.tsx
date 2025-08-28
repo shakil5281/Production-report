@@ -10,8 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   IconTrendingUp, IconTrendingDown, IconCurrencyTaka, IconReceiptTax,
-  IconChartBar, IconCalendarStats, IconRefresh, IconDownload,
-  IconFileText, IconFileSpreadsheet, IconPrinter, IconEqual
+  IconCalendarStats, IconRefresh, IconEqual,
+  IconUsers
 } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import ExportActions from '@/components/profit-loss/export-actions';
@@ -19,19 +19,22 @@ import ExportActions from '@/components/profit-loss/export-actions';
 interface DailyBreakdown {
   date: string;
   earnings: number;
-  dailySalary: number;
-  dailyOvertime: number;
-  dailyCashExpenses: number;
+  dailySalary: number; // Daily salary expenses
+  dailyCashExpenses: number; // Cashbook expenses
+  monthlyExpenses: number; // Daily equivalent of monthly expenses (Others)
   netProfit: number;
+  productionCount: number;
+  cashExpenseCount: number;
+  salaryCount: number;
 }
 
 interface LineBreakdown {
   sectionId: string;
   sectionName: string;
   earnings: number;
-  dailySalary: number;
-  dailyOvertime: number;
+  monthlyExpenses: number; // Daily equivalent of monthly expenses
   netProfit: number;
+  productionCount: number;
 }
 
 interface ProfitLossData {
@@ -41,7 +44,12 @@ interface ProfitLossData {
     totalExpenses: number;
     netProfit: number;
     profitMargin: number;
-            breakdown: { dailySalary: number; dailyOvertime: number; dailyCashExpenses: number; };
+         breakdown: { 
+       monthlyExpenses: number; 
+       dailyEquivalentMonthlyExpenses: number; 
+       dailyCashExpenses: number; 
+       dailySalary: number;
+     };
   };
   dailyBreakdown: DailyBreakdown[];
   lineBreakdown: LineBreakdown[];
@@ -91,6 +99,12 @@ export default function ProfitLossPage() {
     return <IconEqual className="h-4 w-4" />;
   };
 
+  // Safe number formatting with fallback to 0
+  const formatNumber = (value: number | undefined | null): string => {
+    const num = Number(value) || 0;
+    return num.toLocaleString();
+  };
+
   if (loading) {
     return <div className="text-center py-8"><div className="text-muted-foreground">Loading...</div></div>;
   }
@@ -135,11 +149,56 @@ export default function ProfitLossPage() {
         </div>
       </div>
 
+      {/* Expense Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Expense Breakdown</CardTitle>
+          <CardDescription>Detailed breakdown of all expense categories</CardDescription>
+        </CardHeader>
+                 <CardContent>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div className="space-y-3">
+               <div className="flex items-center justify-between">
+                 <span className="text-sm font-medium">Daily Salary Expenses</span>
+                 <span className="text-lg font-bold text-purple-600">
+                   ৳{formatNumber(data.summary.breakdown.dailySalary)}
+                 </span>
+               </div>
+               <div className="text-xs text-muted-foreground">
+                 From Daily Salary Management
+               </div>
+             </div>
+             <div className="space-y-3">
+               <div className="flex items-center justify-between">
+                 <span className="text-sm font-medium">Cashbook Expenses</span>
+                 <span className="text-lg font-bold text-red-600">
+                   ৳{formatNumber(data.summary.breakdown.dailyCashExpenses)}
+                 </span>
+               </div>
+               <div className="text-xs text-muted-foreground">
+                 Daily operational expenses
+               </div>
+             </div>
+             <div className="space-y-3">
+               <div className="flex items-center justify-between">
+                 <span className="text-sm font-medium">Others Expense</span>
+                 <span className="text-lg font-bold text-orange-600">
+                   ৳{formatNumber(data.summary.breakdown.monthlyExpenses)}
+                 </span>
+               </div>
+               <div className="text-xs text-muted-foreground">
+                 Fixed monthly costs (rent, utilities, etc.)
+               </div>
+             </div>
+           </div>
+         </CardContent>
+      </Card>
+
       {/* Export Actions */}
       <ExportActions data={data} />
 
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
@@ -147,7 +206,7 @@ export default function ProfitLossPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              ৳{data.summary.totalEarnings.toLocaleString()}
+              ৳{formatNumber(data.summary.totalEarnings)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">From Daily Production</p>
           </CardContent>
@@ -159,9 +218,9 @@ export default function ProfitLossPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              ৳{data.summary.totalExpenses.toLocaleString()}
+              ৳{formatNumber(data.summary.totalExpenses)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Salary + Cash Expenses</p>
+            <p className="text-xs text-muted-foreground mt-1">Monthly + Cash Expenses</p>
           </CardContent>
         </Card>
         <Card>
@@ -171,10 +230,10 @@ export default function ProfitLossPage() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${getNetProfitColor(data.summary.netProfit)}`}>
-              ৳{data.summary.netProfit.toLocaleString()}
+              ৳{formatNumber(data.summary.netProfit)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {data.summary.profitMargin.toFixed(2)}% margin
+              {Number(data.summary.profitMargin || 0).toFixed(2)}% margin
             </p>
           </CardContent>
         </Card>
@@ -185,9 +244,21 @@ export default function ProfitLossPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {data.dailyBreakdown.length}
+              {data.dailyBreakdown?.length || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Days with transactions</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Salary Expenses</CardTitle>
+            <IconUsers className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              ৳{formatNumber(data.summary.breakdown.dailySalary)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Daily Salary Management</p>
           </CardContent>
         </Card>
       </div>
@@ -208,37 +279,71 @@ export default function ProfitLossPage() {
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Earnings</TableHead>
-                    <TableHead className="text-right">Daily Salary</TableHead>
-                    <TableHead className="text-right">Cash Expenses</TableHead>
-                    <TableHead className="text-right">Net Profit</TableHead>
-                  </TableRow>
-                </TableHeader>
+                                 <TableHeader>
+                   <TableRow>
+                     <TableHead>Date</TableHead>
+                     <TableHead className="text-right">Earnings</TableHead>
+                     <TableHead className="text-right">Salary Expenses</TableHead>
+                     <TableHead className="text-right">Cashbook Expenses</TableHead>
+                     <TableHead className="text-right">Others Expense</TableHead>
+                     <TableHead className="text-right">Net Profit</TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
-                  {data.dailyBreakdown.map((day) => (
-                    <TableRow key={day.date}>
-                      <TableCell className="font-medium">
-                        {format(parseISO(day.date), 'MMM dd, yyyy')}
-                      </TableCell>
-                      <TableCell className="text-right text-green-600 font-medium">
-                        ৳{day.earnings.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-red-600">
-                        ৳{day.dailySalary.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-red-600">
-                        ৳{day.dailyCashExpenses.toLocaleString()}
-                      </TableCell>
-                      <TableCell className={`text-right font-bold ${getNetProfitColor(day.netProfit)}`}>
-                        ৳{day.netProfit.toLocaleString()}
-                      </TableCell>
-                    </TableRow>
+                  {data.dailyBreakdown?.map((day) => (
+                                         <TableRow key={day.date}>
+                       <TableCell className="font-medium">
+                         {day.date && day.date !== 'unknown' ? format(parseISO(day.date), 'MMM dd, yyyy') : 'Unknown Date'}
+                       </TableCell>
+                       <TableCell className="text-right text-green-600 font-medium">
+                         ৳{formatNumber(day.earnings)}
+                       </TableCell>
+                       <TableCell className="text-right text-purple-600">
+                         ৳{formatNumber(day.dailySalary)}
+                       </TableCell>
+                       <TableCell className="text-right text-red-600">
+                         ৳{formatNumber(day.dailyCashExpenses)}
+                       </TableCell>
+                       <TableCell className="text-right text-orange-600">
+                         ৳{formatNumber(day.monthlyExpenses)}
+                       </TableCell>
+                       <TableCell className={`text-right font-bold ${getNetProfitColor(day.netProfit)}`}>
+                         ৳{formatNumber(day.netProfit)}
+                       </TableCell>
+                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              
+                             {/* Summary Row */}
+               <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                 <div className="grid grid-cols-6 gap-4 text-center">
+                   <div>
+                     <div className="text-sm font-medium text-muted-foreground">Total Earnings</div>
+                     <div className="text-lg font-bold text-green-600">৳{formatNumber(data.summary.totalEarnings)}</div>
+                   </div>
+                   <div>
+                     <div className="text-sm font-medium text-muted-foreground">Total Salary</div>
+                     <div className="text-lg font-bold text-purple-600">৳{formatNumber(data.summary.breakdown.dailySalary)}</div>
+                   </div>
+                   <div>
+                     <div className="text-sm font-medium text-muted-foreground">Total Cashbook</div>
+                     <div className="text-lg font-bold text-red-600">৳{formatNumber(data.summary.breakdown.dailyCashExpenses)}</div>
+                   </div>
+                   <div>
+                     <div className="text-sm font-medium text-muted-foreground">Total Others</div>
+                     <div className="text-lg font-bold text-orange-600">৳{formatNumber(data.summary.breakdown.monthlyExpenses)}</div>
+                   </div>
+                   <div>
+                     <div className="text-sm font-medium text-muted-foreground">Total Expenses</div>
+                     <div className="text-lg font-bold text-red-600">৳{formatNumber(data.summary.totalExpenses)}</div>
+                   </div>
+                   <div>
+                     <div className="text-sm font-medium text-muted-foreground">Net Profit</div>
+                     <div className={`text-lg font-bold ${getNetProfitColor(data.summary.netProfit)}`}>৳{formatNumber(data.summary.netProfit)}</div>
+                   </div>
+                 </div>
+               </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -255,22 +360,22 @@ export default function ProfitLossPage() {
                   <TableRow>
                     <TableHead>Section</TableHead>
                     <TableHead className="text-right">Earnings</TableHead>
-                    <TableHead className="text-right">Daily Salary</TableHead>
+                    <TableHead className="text-right">Others Expense</TableHead>
                     <TableHead className="text-right">Net Profit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.lineBreakdown.map((line) => (
+                  {data.lineBreakdown?.map((line) => (
                     <TableRow key={line.sectionId}>
                       <TableCell className="font-medium">{line.sectionName}</TableCell>
                       <TableCell className="text-right text-green-600 font-medium">
-                        ৳{line.earnings.toLocaleString()}
+                        ৳{formatNumber(line.earnings)}
                       </TableCell>
-                      <TableCell className="text-right text-red-600">
-                        ৳{line.dailySalary.toLocaleString()}
+                      <TableCell className="text-right text-orange-600">
+                        ৳{formatNumber(line.monthlyExpenses)}
                       </TableCell>
                       <TableCell className={`text-right font-bold ${getNetProfitColor(line.netProfit)}`}>
-                        ৳{line.netProfit.toLocaleString()}
+                        ৳{formatNumber(line.netProfit)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -291,18 +396,18 @@ export default function ProfitLossPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {data.topPerformingLines.map((line, index) => (
+                  {data.topPerformingLines?.map((line, index) => (
                     <div key={line.sectionId} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">
                           {index + 1}. {line.sectionName}
                         </span>
                         <span className="text-sm font-bold text-green-600">
-                          ৳{line.netProfit.toLocaleString()}
+                          ৳{formatNumber(line.netProfit)}
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Earnings: ৳{line.earnings.toLocaleString()}
+                        Earnings: ৳{formatNumber(line.earnings)}
                       </div>
                     </div>
                   ))}
@@ -319,18 +424,18 @@ export default function ProfitLossPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {data.worstPerformingLines.map((line, index) => (
+                  {data.worstPerformingLines?.map((line, index) => (
                     <div key={line.sectionId} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">
                           {index + 1}. {line.sectionName}
                         </span>
                         <span className={`text-sm font-bold ${getNetProfitColor(line.netProfit)}`}>
-                          ৳{line.netProfit.toLocaleString()}
+                          ৳{formatNumber(line.netProfit)}
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Earnings: ৳{line.earnings.toLocaleString()}
+                        Earnings: ৳{formatNumber(line.earnings)}
                       </div>
                     </div>
                   ))}

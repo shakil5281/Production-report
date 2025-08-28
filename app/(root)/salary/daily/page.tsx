@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, DollarSign, Users, Calculator, Save, RefreshCw, AlertTriangle, Settings, Clock } from 'lucide-react';
+import { DollarSign, Users, Calculator, Save, RefreshCw, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -12,9 +12,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
 import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 
 interface SalaryRecord {
@@ -26,6 +23,19 @@ interface SalaryRecord {
   regularAmount: number;
   overtimeAmount: number;
   totalAmount: number;
+}
+
+interface ManpowerSection {
+  section: string;
+  presentWorkers: number;
+  totalWorkers: number;
+  lineCount: number;
+}
+
+interface OvertimeRecord {
+  section: string;
+  overtimeHours: number;
+  overtimeRate: number;
 }
 
 
@@ -69,7 +79,7 @@ export default function DailySalaryPage() {
   const [hasManpowerData, setHasManpowerData] = useState(false);
   const [loadingManpower, setLoadingManpower] = useState(false);
 
-  const [availableManpowerSections, setAvailableManpowerSections] = useState<any[]>([]);
+  const [availableManpowerSections, setAvailableManpowerSections] = useState<string[]>([]);
 
   // Default sections with new structure
   const defaultSections = [
@@ -79,9 +89,14 @@ export default function DailySalaryPage() {
 
   useEffect(() => {
     const loadData = async () => {
-      await fetchSalaryData();
-      await fetchManpowerData();
-      await fetchOvertimeData(); // Fetch overtime data last to update records
+      try {
+        await fetchSalaryData();
+        await fetchManpowerData();
+        await fetchOvertimeData(); // Fetch overtime data last to update records
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Failed to load data. Please try again.');
+      }
     };
     loadData();
   }, [selectedDate]);
@@ -117,24 +132,17 @@ export default function DailySalaryPage() {
   const fetchOvertimeData = async () => {
     try {
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      console.log('Fetching overtime data for date:', formattedDate);
       const response = await fetch(`/api/overtime?date=${formattedDate}`);
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Overtime API response:', result);
         
         if (result.success && result.data && result.data.records && result.data.records.length > 0) {
-          console.log('Found overtime records:', result.data.records);
-          
           // Update salary records with overtime hours from overtime management
           setSalaryData(current => {
-            console.log('Current salary records before overtime update:', current);
-            
             const updated = current.map(record => {
-              const overtimeRecord = result.data.records.find((ot: any) => ot.section === record.section);
+              const overtimeRecord = result.data.records.find((ot: OvertimeRecord) => ot.section === record.section);
               if (overtimeRecord && overtimeRecord.totalOtHours > 0) {
-                console.log(`Updating ${record.section} with ${overtimeRecord.totalOtHours} OT hours`);
                 const updatedRecord = {
                   ...record,
                   overtimeHours: Number(overtimeRecord.totalOtHours) || 0
@@ -147,7 +155,6 @@ export default function DailySalaryPage() {
               return record;
             });
             
-            console.log('Updated salary records with overtime hours:', updated);
             return updated;
           });
           
@@ -160,6 +167,7 @@ export default function DailySalaryPage() {
       }
     } catch (err) {
       console.error('Error fetching overtime data:', err);
+      toast.error('Failed to load overtime data');
     }
   };
 
@@ -177,8 +185,8 @@ export default function DailySalaryPage() {
           
           // Transform overtime manpower data to salary format
           const salaryManpowerSummary = {
-            totalPresentWorkers: result.data.sections.reduce((sum: number, section: any) => sum + (section.presentWorkers || 0), 0),
-            totalWorkers: result.data.sections.reduce((sum: number, section: any) => sum + (section.totalWorkers || 0), 0),
+                    totalPresentWorkers: result.data.sections.reduce((sum: number, section: ManpowerSection) => sum + (section.presentWorkers || 0), 0),
+        totalWorkers: result.data.sections.reduce((sum: number, section: ManpowerSection) => sum + (section.totalWorkers || 0), 0),
             attendanceRate: 0
           };
           
@@ -214,7 +222,7 @@ export default function DailySalaryPage() {
     }
   };
 
-  const syncWithManpowerData = async (manpowerSections?: any[]) => {
+  const syncWithManpowerData = async (manpowerSections?: ManpowerSection[]) => {
     try {
       let sectionsData = manpowerSections;
       
@@ -261,7 +269,7 @@ export default function DailySalaryPage() {
       // Aggregate workers by salary section
       const aggregatedWorkers: Record<string, number> = {};
 
-      sectionsData?.forEach((section: any) => {
+              sectionsData?.forEach((section: ManpowerSection) => {
         const salarySection = sectionMapping[section.section as keyof typeof sectionMapping] || section.section;
         
         if (!aggregatedWorkers[salarySection]) {
@@ -286,8 +294,7 @@ export default function DailySalaryPage() {
         })
       );
 
-      const updatedSections = sectionsData?.map((section: any) => section.section) || [];
-      console.log('Synced worker counts for sections:', updatedSections);
+              const updatedSections = sectionsData?.map((section: ManpowerSection) => section.section) || [];
       toast.success('Worker counts updated from manpower data');
     } catch (err) {
       console.error('Error syncing with manpower data:', err);
@@ -314,7 +321,7 @@ export default function DailySalaryPage() {
     setSalaryData(records);
   };
 
-  const initializeFromManpowerData = (manpowerSections: any[]) => {
+  const initializeFromManpowerData = (manpowerSections: ManpowerSection[]) => {
     // Always initialize/update from manpower data to show all sections
 
     // Define section mapping and aggregation rules
@@ -370,8 +377,6 @@ export default function DailySalaryPage() {
     });
     
     setSalaryData(records);
-    console.log('Initialized salary records with aggregated sections:', records);
-    console.log('Section aggregation details:', aggregatedSections);
     
     // Fetch overtime data after initializing records
     setTimeout(() => {
@@ -379,7 +384,7 @@ export default function DailySalaryPage() {
     }, 100);
   };
 
-  const updateSalaryRecord = (section: string, field: keyof SalaryRecord, value: any) => {
+  const updateSalaryRecord = (section: string, field: keyof SalaryRecord, value: string | number) => {
     setSalaryData(records => {
       const updated = records.map(record => {
         if (record.section === section) {
@@ -410,6 +415,24 @@ export default function DailySalaryPage() {
       
       return updated;
     });
+  };
+
+  // Add a function to refresh all data
+  const refreshAllData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        fetchSalaryData(),
+        fetchManpowerData(),
+        fetchOvertimeData()
+      ]);
+      toast.success('All data refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast.error('Failed to refresh data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const saveSalaryData = async () => {
@@ -489,7 +512,7 @@ export default function DailySalaryPage() {
       <Card className="w-full">
         <CardHeader className="pb-2 sm:pb-3">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
             Select Date & Controls
           </CardTitle>
         </CardHeader>
@@ -502,13 +525,12 @@ export default function DailySalaryPage() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal h-10",
-                      !selectedDate && "text-muted-foreground"
-                    )}
+                    className={`w-full justify-start text-left font-normal h-10 ${
+                      !selectedDate ? "text-muted-foreground" : ""
+                    }`}
                     onClick={() => setIsCalendarOpen(true)}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Calendar className="mr-2 h-4 w-4" />
                     <span className="truncate">
                       {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Pick a date"}
                     </span>
@@ -546,7 +568,7 @@ export default function DailySalaryPage() {
               ) : (
                 <div className="p-2 sm:p-3 bg-orange-50 border border-orange-200 rounded-lg min-w-full sm:min-w-48">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
                     <span className="text-xs sm:text-sm font-medium text-orange-800">Not Found</span>
                   </div>
                   <div className="mt-1 text-xs sm:text-sm text-orange-700">
@@ -672,9 +694,53 @@ export default function DailySalaryPage() {
               <span className="text-xs sm:text-sm text-muted-foreground">Grand Total:</span>
               <span className="font-bold text-base sm:text-lg md:text-2xl text-primary">{formatCurrency(summary.grandTotalAmount)}</span>
             </div>
+            <div className="pt-2 border-t border-gray-200">
+              <div className="text-xs text-muted-foreground text-center">
+                💡 This Grand Total is automatically used as an expense in the Profit & Loss Statement
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Profit & Loss Integration Info */}
+      <Card>
+        <CardHeader className="pb-2 sm:pb-3">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Calculator className="h-4 w-4 sm:h-5 sm:w-5" />
+            Profit & Loss Integration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">How Salary Data is Used:</h4>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>• Daily salary amounts are automatically added to monthly expenses</li>
+                <li>• Each day's Grand Total becomes part of the month's total expenses</li>
+                <li>• Affects Net Profit calculation: Earnings - Expenses (including salary)</li>
+                <li>• Updates are triggered automatically when salary data is saved</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Current Month Impact:</h4>
+              <div className="text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span>Today&apos;s Salary:</span>
+                  <span className="font-medium">{formatCurrency(summary.grandTotalAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Date:</span>
+                  <span className="font-medium">{format(selectedDate, "MMM dd, yyyy")}</span>
+                </div>
+                <div className="pt-2 text-muted-foreground">
+                  💡 Save this data to update the Profit & Loss Statement
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Salary Calculation Table */}
       <Card>

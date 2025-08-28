@@ -73,18 +73,13 @@ export const data = {
       ],
     },
     {
-      title: "Expense",
+      title: "Expense Management",
       icon: IconCurrencyDollar,
       roles: ["USER", "SUPER_ADMIN"], // Users with expense permissions
       items: [
         {
-          title: "Daily Salary",
-          url: "/expenses/daily-salary",
-          roles: ["USER", "SUPER_ADMIN"], // READ_EXPENSE permission
-        },
-        {
-          title: "Daily Expense",
-          url: "/expenses/daily-expense",
+          title: "Monthly Expenses",
+          url: "/expenses/monthly-expense",
           roles: ["USER", "SUPER_ADMIN"], // READ_EXPENSE permission
         },
       ],
@@ -198,9 +193,9 @@ export const data = {
           roles: ["USER", "SUPER_ADMIN"], // MANAGE_ATTENDANCE permission
         },
         {
-          title: "💰 Daily Salary",
+          title: "💰 Daily Salary Management",
           url: "/salary/daily",
-          roles: ["USER", "SUPER_ADMIN"], // MANAGE_EXPENSE permission
+          roles: ["USER", "SUPER_ADMIN"], // MANAGE_ATTENDANCE permission
         },
       ],
     },
@@ -229,11 +224,7 @@ export const data = {
           url: "/admin/roles",
           roles: ["SUPER_ADMIN"], // MANAGE_ROLES permission
         },
-        {
-          title: "Salary Rates",
-          url: "/admin/salary-rates",
-          roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
-        },
+
         {
           title: "System Settings",
           url: "/admin/settings",
