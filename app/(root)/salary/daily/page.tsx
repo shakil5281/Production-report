@@ -160,7 +160,7 @@ export default function DailySalaryPage() {
           
           toast.success('Overtime hours loaded successfully');
         } else {
-          console.log('No overtime records found for this date');
+          toast.info('No overtime records found for this date');
         }
       } else {
         console.error('Failed to fetch overtime data, status:', response.status);

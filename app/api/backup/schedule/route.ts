@@ -249,7 +249,6 @@ async function startScheduledBackup(schedule: BackupSchedule): Promise<void> {
     // Create new cron job
     const job = new CronJob(schedule.cronExpression, async () => {
       try {
-        console.log(`🕐 Running scheduled backup: ${schedule.name}`);
         
         // Update last run time
         schedule.lastRun = new Date();
@@ -259,7 +258,6 @@ async function startScheduledBackup(schedule: BackupSchedule): Promise<void> {
         // Execute backup
         await executeScheduledBackup(schedule);
 
-        console.log(`✅ Scheduled backup completed: ${schedule.name}`);
       } catch (error) {
         console.error(`❌ Scheduled backup failed: ${schedule.name}`, error);
       }
@@ -275,7 +273,6 @@ async function startScheduledBackup(schedule: BackupSchedule): Promise<void> {
     schedule.nextRun = job.nextDate().toJSDate();
     await updateSchedule(schedule.id, { nextRun: schedule.nextRun });
 
-    console.log(`🚀 Scheduled backup started: ${schedule.name}, next run: ${schedule.nextRun}`);
   } catch (error) {
     console.error(`Failed to start scheduled backup: ${schedule.name}`, error);
   }
@@ -305,7 +302,6 @@ async function executeScheduledBackup(schedule: BackupSchedule): Promise<void> {
       throw new Error(result.error || 'Backup failed');
     }
 
-    console.log(`✅ Scheduled backup executed successfully: ${schedule.name}`);
   } catch (error) {
     console.error(`❌ Scheduled backup execution failed: ${schedule.name}`, error);
     throw error;
@@ -329,7 +325,6 @@ async function stopScheduledBackup(scheduleId: string): Promise<void> {
       const job = activeJobs.get(scheduleId);
       job?.stop();
       activeJobs.delete(scheduleId);
-      console.log(`🛑 Scheduled backup stopped: ${scheduleId}`);
     }
   } catch (error) {
     console.error(`Failed to stop scheduled backup: ${scheduleId}`, error);
@@ -452,7 +447,6 @@ async function initializeScheduledBackups(): Promise<void> {
       }
     }
     
-    console.log(`🚀 Initialized ${schedules.filter(s => s.enabled).length} scheduled backups`);
   } catch (error) {
     console.error('Failed to initialize scheduled backups:', error);
   }
@@ -463,7 +457,6 @@ function cleanupScheduledBackups(): void {
   try {
     for (const [id, job] of activeJobs) {
       job.stop();
-      console.log(`🛑 Stopped scheduled backup: ${id}`);
     }
     activeJobs.clear();
   } catch (error) {

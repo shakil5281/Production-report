@@ -18,7 +18,6 @@ export class ProfitLossService {
     const { date, type, action, recordId } = data;
     
     try {
-      console.log(`🔄 Processing ${action} for ${type} record ${recordId} on ${date}`);
       
       // Parse the date to get month for profit loss calculation
       const [year, month] = date.split('-').map(Number);
@@ -28,14 +27,12 @@ export class ProfitLossService {
       const startDate = format(monthStart, 'yyyy-MM-dd');
       const endDate = format(monthEnd, 'yyyy-MM-dd');
       
-      console.log(`📅 Updating Profit & Loss for month: ${startDate} to ${endDate}`);
       
       // Fetch updated data for the month
       const updatedData = await this.calculateMonthlyProfitLoss(startDate, endDate);
       
       if (updatedData) {
-        console.log(`✅ Profit & Loss updated successfully for ${type} ${action}`);
-        console.log(`📊 New totals: Earnings=${updatedData.totalEarnings}, Expenses=${updatedData.totalExpenses}, Net Profit=${updatedData.netProfit}`);
+        
       }
       
       return updatedData;
@@ -145,13 +142,6 @@ export class ProfitLossService {
       const totalExpenses = dailyEquivalentMonthlyExpenses + totalDailyCashExpenses + totalDailySalary;
       const netProfit = totalEarnings - totalExpenses;
       const profitMargin = totalEarnings > 0 ? (netProfit / totalEarnings) * 100 : 0;
-
-      // Log salary expense details for debugging
-      console.log(`💰 Salary Expense Calculation:`);
-      console.log(`   - Daily Salary Records: ${dailySalary.length}`);
-      console.log(`   - Total Daily Salary Amount: ${totalDailySalary}`);
-      console.log(`   - Total Expenses: ${totalExpenses} (Monthly: ${dailyEquivalentMonthlyExpenses}, Cash: ${totalDailyCashExpenses}, Salary: ${totalDailySalary})`);
-      console.log(`   - Net Profit: ${netProfit} (Earnings: ${totalEarnings} - Expenses: ${totalExpenses})`);
 
       return {
         totalEarnings: Number(totalEarnings) || 0,

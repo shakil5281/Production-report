@@ -111,7 +111,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching daily expense entries:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -205,7 +204,6 @@ export async function POST(request: NextRequest) {
         recordId: entry.id
       });
     } catch (error) {
-      console.warn('Failed to update Profit & Loss Statement:', error);
       // Continue with expense creation even if P&L update fails
     }
 
@@ -216,7 +214,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Error creating daily expense entry:', error);
     return NextResponse.json(
       { 
         success: false, 

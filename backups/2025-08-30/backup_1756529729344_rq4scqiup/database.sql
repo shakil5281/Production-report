@@ -1,0 +1,1 @@
+-- Database backup not supported for this database type

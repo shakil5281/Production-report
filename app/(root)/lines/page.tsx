@@ -66,7 +66,6 @@ export default function LinesPage() {
 
   const handleViewItem = (item: Line) => {
     // Handle view action - you can implement a view sheet here
-    console.log('View line:', item);
   };
 
   const handleEditItemOpen = (item: Line) => {

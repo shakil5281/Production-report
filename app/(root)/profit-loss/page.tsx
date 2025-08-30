@@ -66,7 +66,19 @@ export default function ProfitLossPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const url = `/api/profit-loss?month=${selectedMonth}`;
+      let monthToFetch = selectedMonth;
+      
+      // Handle period selection
+      if (selectedPeriod === 'current_month') {
+        monthToFetch = format(new Date(), 'yyyy-MM');
+      } else if (selectedPeriod === 'last_month') {
+        const lastMonth = new Date();
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        monthToFetch = format(lastMonth, 'yyyy-MM');
+      }
+      // For custom, use selectedMonth as is
+      
+      const url = `/api/profit-loss?month=${monthToFetch}`;
       const response = await fetch(url);
       
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -78,12 +90,11 @@ export default function ProfitLossPage() {
         throw new Error(result.error || 'Failed to fetch data');
       }
     } catch (error) {
-      console.error('Error fetching profit and loss data:', error);
       toast.error('Failed to fetch profit and loss data');
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth]);
+  }, [selectedPeriod, selectedMonth]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -124,7 +135,16 @@ export default function ProfitLossPage() {
           </p>
         </div>
         <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+          <Select value={selectedPeriod} onValueChange={(value) => {
+            setSelectedPeriod(value);
+            if (value === 'current_month') {
+              setSelectedMonth(format(new Date(), 'yyyy-MM'));
+            } else if (value === 'last_month') {
+              const lastMonth = new Date();
+              lastMonth.setMonth(lastMonth.getMonth() - 1);
+              setSelectedMonth(format(lastMonth, 'yyyy-MM'));
+            }
+          }}>
             <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
@@ -289,29 +309,37 @@ export default function ProfitLossPage() {
                      <TableHead className="text-right">Net Profit</TableHead>
                    </TableRow>
                  </TableHeader>
-                <TableBody>
-                  {data.dailyBreakdown?.map((day) => (
-                                         <TableRow key={day.date}>
-                       <TableCell className="font-medium">
-                         {day.date && day.date !== 'unknown' ? format(parseISO(day.date), 'MMM dd, yyyy') : 'Unknown Date'}
-                       </TableCell>
-                       <TableCell className="text-right text-green-600 font-medium">
-                         ৳{formatNumber(day.earnings)}
-                       </TableCell>
-                       <TableCell className="text-right text-purple-600">
-                         ৳{formatNumber(day.dailySalary)}
-                       </TableCell>
-                       <TableCell className="text-right text-red-600">
-                         ৳{formatNumber(day.dailyCashExpenses)}
-                       </TableCell>
-                       <TableCell className="text-right text-orange-600">
-                         ৳{formatNumber(day.monthlyExpenses)}
-                       </TableCell>
-                       <TableCell className={`text-right font-bold ${getNetProfitColor(day.netProfit)}`}>
-                         ৳{formatNumber(day.netProfit)}
-                       </TableCell>
-                     </TableRow>
-                  ))}
+                                <TableBody>
+                  {data.dailyBreakdown && data.dailyBreakdown.length > 0 ? (
+                    data.dailyBreakdown.map((day) => (
+                      <TableRow key={day.date}>
+                        <TableCell className="font-medium">
+                          {day.date && day.date !== 'unknown' ? format(parseISO(day.date), 'MMM dd, yyyy') : 'Unknown Date'}
+                        </TableCell>
+                        <TableCell className="text-right text-green-600 font-medium">
+                          ৳{formatNumber(day.earnings)}
+                        </TableCell>
+                        <TableCell className="text-right text-purple-600">
+                          ৳{formatNumber(day.dailySalary)}
+                        </TableCell>
+                        <TableCell className="text-right text-red-600">
+                          ৳{formatNumber(day.dailyCashExpenses)}
+                        </TableCell>
+                        <TableCell className="text-right text-orange-600">
+                          ৳{formatNumber(day.monthlyExpenses)}
+                        </TableCell>
+                        <TableCell className={`text-right font-bold ${getNetProfitColor(day.netProfit)}`}>
+                          ৳{formatNumber(day.netProfit)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No daily breakdown data available for the selected period
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
               
@@ -365,20 +393,28 @@ export default function ProfitLossPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.lineBreakdown?.map((line) => (
-                    <TableRow key={line.sectionId}>
-                      <TableCell className="font-medium">{line.sectionName}</TableCell>
-                      <TableCell className="text-right text-green-600 font-medium">
-                        ৳{formatNumber(line.earnings)}
-                      </TableCell>
-                      <TableCell className="text-right text-orange-600">
-                        ৳{formatNumber(line.monthlyExpenses)}
-                      </TableCell>
-                      <TableCell className={`text-right font-bold ${getNetProfitColor(line.netProfit)}`}>
-                        ৳{formatNumber(line.netProfit)}
+                  {data.lineBreakdown && data.lineBreakdown.length > 0 ? (
+                    data.lineBreakdown.map((line) => (
+                      <TableRow key={line.sectionId}>
+                        <TableCell className="font-medium">{line.sectionName}</TableCell>
+                        <TableCell className="text-right text-green-600 font-medium">
+                          ৳{formatNumber(line.earnings)}
+                        </TableCell>
+                        <TableCell className="text-right text-orange-600">
+                          ৳{formatNumber(line.monthlyExpenses)}
+                        </TableCell>
+                        <TableCell className={`text-right font-bold ${getNetProfitColor(line.netProfit)}`}>
+                          ৳{formatNumber(line.netProfit)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        No line breakdown data available for the selected period
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -396,21 +432,27 @@ export default function ProfitLossPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {data.topPerformingLines?.map((line, index) => (
-                    <div key={line.sectionId} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          {index + 1}. {line.sectionName}
-                        </span>
-                        <span className="text-sm font-bold text-green-600">
-                          ৳{formatNumber(line.netProfit)}
-                        </span>
+                  {data.topPerformingLines && data.topPerformingLines.length > 0 ? (
+                    data.topPerformingLines.map((line, index) => (
+                      <div key={line.sectionId} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            {index + 1}. {line.sectionName}
+                          </span>
+                          <span className="text-sm font-bold text-green-600">
+                            ৳{formatNumber(line.netProfit)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Earnings: ৳{formatNumber(line.earnings)}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Earnings: ৳{formatNumber(line.earnings)}
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-muted-foreground py-4">
+                      No top performing lines data available
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -424,21 +466,27 @@ export default function ProfitLossPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {data.worstPerformingLines?.map((line, index) => (
-                    <div key={line.sectionId} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          {index + 1}. {line.sectionName}
-                        </span>
-                        <span className={`text-sm font-bold ${getNetProfitColor(line.netProfit)}`}>
-                          ৳{formatNumber(line.netProfit)}
-                        </span>
+                  {data.worstPerformingLines && data.worstPerformingLines.length > 0 ? (
+                    data.worstPerformingLines.map((line, index) => (
+                      <div key={line.sectionId} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            {index + 1}. {line.sectionName}
+                          </span>
+                          <span className={`text-sm font-bold ${getNetProfitColor(line.netProfit)}`}>
+                            ৳{formatNumber(line.netProfit)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Earnings: ৳{formatNumber(line.earnings)}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Earnings: ৳{formatNumber(line.earnings)}
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-muted-foreground py-4">
+                      No worst performing lines data available
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

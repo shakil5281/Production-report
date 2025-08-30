@@ -20,10 +20,8 @@ export class DailyProductionService {
     const { targetId, styleNo, lineNo, dateString, hourlyProduction, lineTarget, action } = data;
     
     try {
-      console.log(`🔄 Processing ${action} for target ${targetId}: Style ${styleNo}, Line ${lineNo}, Hourly ${hourlyProduction}`);
       
       // Use the date string directly to avoid double timezone conversion
-      console.log(`📅 Using date string: ${dateString}`);
       const [year, month, day] = dateString.split('-').map(Number);
       const reportDate = new Date(year, month - 1, day, 0, 0, 0, 0);
 
@@ -50,18 +48,12 @@ export class DailyProductionService {
         }
       });
 
-      console.log(`📊 Existing report for ${styleNo} on ${dateString}: ${existingReport ? 'Found' : 'Not found'}`);
-      if (existingReport) {
-        console.log(`   Current: Production=${existingReport.productionQty}, Target=${existingReport.targetQty}`);
-      }
-
       let newProductionQty: number;
       let newTargetQty: number;
 
       // Handle different actions with clear logic
       switch (action) {
         case 'CREATE':
-          console.log(`   ➕ CREATE: Adding hourly production ${hourlyProduction}`);
           if (existingReport) {
             // Add to existing production
             newProductionQty = existingReport.productionQty + hourlyProduction;
@@ -74,7 +66,6 @@ export class DailyProductionService {
           break;
 
         case 'UPDATE':
-          console.log(`   🔄 UPDATE: Need to calculate difference for updated target`);
           // For updates, we need to handle the change in hourly production
           // This is complex because the target is already updated by the time we get here
           // We'll use a simpler approach: get all targets for this SPECIFIC style+line+date and sum their hourly production
@@ -92,19 +83,15 @@ export class DailyProductionService {
           const totalHourlyProduction = allTargets.reduce((sum, target) => sum + target.hourlyProduction, 0);
           const maxLineTarget = allTargets.length > 0 ? Math.max(...allTargets.map(target => target.lineTarget)) : lineTarget;
           
-          console.log(`   📊 Found ${allTargets.length} targets for Line ${lineNo}, total hourly: ${totalHourlyProduction}, max target: ${maxLineTarget}`);
-          
           newProductionQty = totalHourlyProduction;
           newTargetQty = maxLineTarget;
           break;
 
         case 'DELETE':
-          console.log(`   🗑️ DELETE: Removing hourly production ${hourlyProduction}`);
           if (existingReport) {
             newProductionQty = Math.max(0, existingReport.productionQty - hourlyProduction);
             newTargetQty = existingReport.targetQty;
           } else {
-            console.log(`   ⏭️ No existing report to delete from, skipping`);
             return null;
           }
           break;
@@ -113,21 +100,16 @@ export class DailyProductionService {
           throw new Error(`Unknown action: ${action}`);
       }
 
-      console.log(`   📈 New values: Production=${newProductionQty}, Target=${newTargetQty}`);
-
       // 🗑️ AUTO-DELETE: If production quantity becomes 0, delete the report
       if (newProductionQty <= 0 && existingReport) {
-        console.log(`   🗑️ AUTO-DELETE: Production quantity is 0, deleting report`);
         await prisma.dailyProductionReport.delete({
           where: { id: existingReport.id }
         });
-        console.log(`   ✅ Deleted report for Production Qty = 0`);
         return null; // Return null to indicate deletion
       }
 
       // Skip creating new reports with 0 production
       if (newProductionQty <= 0 && !existingReport) {
-        console.log(`   ⏭️ Skipping creation of report with 0 production quantity`);
         return null;
       }
 
@@ -154,19 +136,16 @@ export class DailyProductionService {
           where: { id: existingReport.id },
           data: reportData
         });
-        console.log(`   ✅ Updated existing report`);
       } else {
         // Create new report
         report = await prisma.dailyProductionReport.create({
           data: reportData
         });
-        console.log(`   ✅ Created new report`);
       }
 
       return report;
 
     } catch (error) {
-      console.error('Error handling target production tracking:', error);
       throw error;
     }
   }

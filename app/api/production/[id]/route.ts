@@ -112,19 +112,6 @@ export async function PUT(
     const totalQty = quantities.reduce((total: number, item: any) => total + Number(item.qty), 0);
 
     // Update the item
-    console.log('Updating production item with data:', {
-      id,
-      programCode,
-      styleNo,
-      buyer,
-      quantities,
-      totalQty,
-      item,
-      price: Number(price),
-      percentage: Number(percentage) || 0,
-      status
-    });
-    
     const updatedItem = await productionService.update(id, {
       programCode,
       styleNo,

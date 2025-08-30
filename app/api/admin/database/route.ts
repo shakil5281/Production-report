@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
           const userPermTable = tables.find(t => t.name === 'user_permissions');
           if (userPermTable) userPermTable.rows = userPermissionCount;
         } catch (error) {
-          console.log('Could not get actual table counts:', error);
+
         }
 
         return NextResponse.json({ tables });

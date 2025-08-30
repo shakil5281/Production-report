@@ -26,8 +26,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`🗑️ Bulk delete request for ${targetIds.length} targets:`, targetIds);
-
     // Get all targets before deletion to handle daily production reports
     const targetsToDelete = await prisma.target.findMany({
       where: {
@@ -44,13 +42,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📊 Found ${targetsToDelete.length} targets to delete`);
-
     // Delete targets one by one and update daily production reports using the SAME logic as single delete
     const updatePromises = targetsToDelete.map(async (target) => {
       try {
-        console.log(`🔄 Processing DELETE for target ${target.id} (Line ${target.lineNo}, Style ${target.styleNo})`);
-        
         // Use the same date reconstruction logic as single delete
         const storedDate = new Date(target.date);
         const year = storedDate.getFullYear();
@@ -69,7 +63,6 @@ export async function POST(request: NextRequest) {
           action: 'DELETE'
         });
         
-        console.log(`✅ Updated daily production for target ${target.id}`);
       } catch (error) {
         console.error(`❌ Error updating daily production for target ${target.id}:`, error);
         // Continue with deletion even if daily production update fails
@@ -78,7 +71,6 @@ export async function POST(request: NextRequest) {
 
     // Wait for all daily production updates to complete
     await Promise.all(updatePromises);
-    console.log(`📈 Completed daily production updates for ${targetsToDelete.length} targets`);
 
     // Delete all targets
     const deleteResult = await prisma.target.deleteMany({
@@ -88,8 +80,6 @@ export async function POST(request: NextRequest) {
         }
       }
     });
-
-    console.log(`🎉 Successfully deleted ${deleteResult.count} targets`);
 
     const response = NextResponse.json({
       success: true,

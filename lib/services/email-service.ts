@@ -62,7 +62,6 @@ export class EmailService {
   async verifyConfig(): Promise<boolean> {
     try {
       await this.transporter.verify();
-      console.log('✅ Email configuration verified successfully');
       return true;
     } catch (error) {
       console.error('❌ Email configuration verification failed:', error);
@@ -98,8 +97,6 @@ export class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      
-      console.log('✅ Email sent successfully:', result.messageId);
       
       return {
         success: true,

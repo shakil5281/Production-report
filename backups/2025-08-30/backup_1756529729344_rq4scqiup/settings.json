@@ -1,0 +1,8 @@
+{
+  "environment": "development",
+  "databaseUrl": "***HIDDEN***",
+  "backupRetention": 30,
+  "maxBackupSize": 1000,
+  "compressionEnabled": false,
+  "encryptionEnabled": false
+}

@@ -88,9 +88,6 @@ export async function POST(request: NextRequest) {
       location: backupPath
     };
 
-    console.log(`🚀 Starting backup process for ID: ${backupId}`);
-    console.log(`📁 Backup path: ${backupPath}`);
-    
     // Start backup process
     const backupResult = await performBackup(backupMetadata, config);
 
@@ -167,7 +164,6 @@ async function performBackup(metadata: BackupMetadata, config: BackupConfig): Pr
       await mkdir(backupPath, { recursive: true });
     }
     
-    console.log(`📂 Backup directory created/verified: ${backupPath}`);
     const backupFiles: string[] = [];
 
     // 1. Database Backup

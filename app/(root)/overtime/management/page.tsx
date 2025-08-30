@@ -77,7 +77,6 @@ export default function OvertimeManagementPage() {
     try {
       setLoading(true);
       const formattedDate = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format, consistent with timezone
-      console.log('Fetching manpower data, received overtimeRecords length:', currentOvertimeRecords.length);
       const response = await fetch(`/api/overtime/manpower?date=${formattedDate}`);
       
       if (!response.ok) {
@@ -90,8 +89,6 @@ export default function OvertimeManagementPage() {
         setManpowerData(result.data.sections);
         setHasManpowerData(result.data.hasManpowerData);
         
-        console.log('Before manpower merge - current overtime records:', currentOvertimeRecords);
-        
         // Always update manpower data, but preserve overtime details if they exist
         if (currentOvertimeRecords.length === 0) {
           // No existing records, create new ones with empty overtime details
@@ -102,7 +99,6 @@ export default function OvertimeManagementPage() {
             overtimeDetails: [],
             totalOtHours: 0
           }));
-          console.log('Setting initial records:', initialRecords);
           setOvertimeRecords(initialRecords);
         } else {
           // Update manpower data for existing records, preserve overtime details
@@ -110,7 +106,6 @@ export default function OvertimeManagementPage() {
             const existingRecord = currentOvertimeRecords.find(r => r.section === manpowerSection.section);
             if (existingRecord) {
               // Keep existing overtime details, update manpower data
-              console.log(`Preserving overtime data for ${manpowerSection.section}: ${existingRecord.overtimeDetails?.length || 0} details`);
               return {
                 ...existingRecord,
                 presentWorkers: manpowerSection.presentWorkers,
@@ -128,7 +123,6 @@ export default function OvertimeManagementPage() {
             }
           });
           
-          console.log('Setting updated records with preserved overtime:', updatedRecords);
           setOvertimeRecords(updatedRecords);
         }
       } else {
@@ -149,7 +143,6 @@ export default function OvertimeManagementPage() {
     try {
       setLoading(true);
       const formattedDate = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format, consistent with timezone
-      console.log('Fetching manpower data, current overtimeRecords length:', overtimeRecords.length);
       const response = await fetch(`/api/overtime/manpower?date=${formattedDate}`);
       
       if (!response.ok) {
@@ -161,8 +154,6 @@ export default function OvertimeManagementPage() {
       if (result.success) {
         setManpowerData(result.data.sections);
         setHasManpowerData(result.data.hasManpowerData);
-        
-        console.log('Before manpower merge - overtimeRecords:', overtimeRecords);
         
         // Always update manpower data, but preserve overtime details if they exist
         if (overtimeRecords.length === 0) {
@@ -249,7 +240,7 @@ export default function OvertimeManagementPage() {
             totalOtHours: record.totalOtHours
           }));
           
-          // console.log('Setting overtime records with mappedRecords:', mappedRecords);
+          
           setOvertimeRecords(mappedRecords);
           setSummary(result.data.summary);
           
@@ -279,13 +270,12 @@ export default function OvertimeManagementPage() {
           }));
           
                       // Always prioritize database data for overtime details, but merge with manpower data
-            console.log('Setting overtime records with mappedRecords:', mappedRecords);
             setOvertimeRecords(mappedRecords);
             setSummary(result.data.summary);
             
             // Verify the state was set
             setTimeout(() => {
-              console.log('Overtime records after setState (with timeout):', overtimeRecords);
+
             }, 100);
         } else {
           // No overtime data found, but keep existing records if they have manpower data

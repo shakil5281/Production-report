@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-    console.log('Raw Manpower Excel data (first 10 rows):', jsonData.slice(0, 10));
+
 
     const processedRecords = [];
     const errors = [];
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     try {
       await prisma.$executeRaw`DELETE FROM manpower_summary WHERE date::date = ${dateString}::date`;
     } catch (error) {
-      console.log('Error clearing existing data:', error);
+
     }
 
     // Define the sections and their groupings based on your requirements
@@ -421,13 +421,13 @@ export async function POST(request: NextRequest) {
         `;
         insertSuccessCount++;
       } catch (error) {
-        console.error('Error inserting record:', record.section, error);
+
         errors.push(`Failed to insert: ${record.section}`);
         errorDetails.push(`DB Error for ${record.section}: ${error}`);
       }
     }
 
-    console.log(`✅ Successfully inserted ${insertSuccessCount} out of ${allRecords.length} records`);
+
 
     // Get summary for response
     const sectionSummary = await prisma.$queryRaw`
@@ -469,7 +469,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error importing manpower data:', error);
+
     return NextResponse.json(
       { success: false, error: `Import failed: ${error}` },
       { status: 500 }
