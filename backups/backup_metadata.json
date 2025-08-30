@@ -1,0 +1,21 @@
+[
+  {
+    "id": "backup_1756529729344_rq4scqiup",
+    "timestamp": "2025-08-30T04:55:29.344Z",
+    "type": "full",
+    "size": 78710,
+    "status": "success",
+    "config": {
+      "database": true,
+      "files": true,
+      "productionData": true,
+      "userData": true,
+      "settings": true,
+      "compression": true,
+      "encryption": false,
+      "retention": 30
+    },
+    "checksum": "1347aa6b",
+    "location": "E:\\Production-report\\backups\\2025-08-30\\backup_1756529729344_rq4scqiup"
+  }
+]

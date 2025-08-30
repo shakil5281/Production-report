@@ -38,7 +38,6 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error fetching daily expense entry:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -146,17 +145,16 @@ export async function PUT(
       message: 'Daily expense entry updated successfully'
     });
 
-  } catch (error) {
-    console.error('Error updating daily expense entry:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to update daily expense entry',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
-  }
+      } catch (error) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Failed to update daily expense entry',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
+        { status: 500 }
+      );
+    }
 }
 
 // DELETE /api/cashbook/daily-expense/[id] - Delete daily expense entry
@@ -199,7 +197,6 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Error deleting daily expense entry:', error);
     return NextResponse.json(
       { 
         success: false, 

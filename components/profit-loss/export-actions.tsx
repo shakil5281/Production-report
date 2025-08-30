@@ -140,7 +140,6 @@ export default function ExportActions({ data }: ExportActionsProps) {
       doc.save(fileName);
       toast.success('PDF exported successfully');
     } catch (error) {
-      console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF');
     } finally {
       setExporting(false);
@@ -202,7 +201,6 @@ export default function ExportActions({ data }: ExportActionsProps) {
       XLSX.writeFile(workbook, fileName);
       toast.success('Excel file exported successfully');
     } catch (error) {
-      console.error('Error exporting Excel:', error);
       toast.error('Failed to export Excel file');
     } finally {
       setExporting(false);
@@ -295,7 +293,6 @@ export default function ExportActions({ data }: ExportActionsProps) {
       printWindow.document.write(printContent);
       printWindow.document.close();
     } catch (error) {
-      console.error('Error printing report:', error);
       toast.error('Failed to print report');
     }
   };

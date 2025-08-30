@@ -51,9 +51,6 @@ export default function DailyProductionReportPage() {
       const dateString = `${year}-${month}-${day}`;
       params.set('date', dateString);
       
-      // Debug log to verify correct date formatting
-      console.log(`📅 Fetching reports for date: ${dateString} (Selected: ${selectedDate.toDateString()})`);
-      
       const response = await fetch(`/api/daily-production-report?${params.toString()}`);
       
       if (!response.ok) {
@@ -62,36 +59,17 @@ export default function DailyProductionReportPage() {
       
       const data = await response.json();
       
-      console.log('🔍 Raw API response:', data);
-      
       if (data.success) {
-        console.log('🔍 API data structure:', {
-          hasData: !!data.data,
-          dataKeys: data.data ? Object.keys(data.data) : [],
-          reportsByLine: data.data?.reportsByLine,
-          reportsWithoutLine: data.data?.reportsWithoutLine,
-          lineSummaries: data.data?.lineSummaries,
-          overallSummary: data.data?.overallSummary
-        });
-        
         setReports(data.data.allReports || []);
         setReportsByLine(data.data.reportsByLine || {});
         setReportsWithoutLine(data.data.reportsWithoutLine || []);
         setLineSummaries(data.data.lineSummaries || {});
         setSummary(data.data.overallSummary || null);
         setProductionHours(data.data.productionHours || {});
-        
-        console.log('📊 Reports loaded successfully:', {
-          totalReports: data.data.allReports?.length || 0,
-          reportsByLine: Object.keys(data.data.reportsByLine || {}).length,
-          reportsWithoutLine: data.data.reportsWithoutLine?.length || 0
-        });
       } else {
-        console.error('❌ API returned error:', data.error);
         toast.error(data.error || 'Failed to fetch reports');
       }
     } catch (error) {
-      console.error('❌ Error fetching reports:', error);
       toast.error('Failed to fetch reports. Please try again.');
     } finally {
       setLoading(false);

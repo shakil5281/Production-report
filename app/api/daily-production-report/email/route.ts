@@ -142,10 +142,6 @@ function generateEmailHTML(reportData: ExportDataRow[], date: string): string {
 async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
   // For now, we'll use a simple console log to simulate email sending
   // In production, you would integrate with your email service (Gmail, SendGrid, etc.)
-  console.log('📧 Email would be sent:');
-  console.log('To:', to);
-  console.log('Subject:', subject);
-  console.log('HTML Content Length:', html.length);
   
   // TODO: Integrate with actual email service
   // Example with Gmail:

@@ -156,9 +156,6 @@ export default function TargetPage() {
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
       
-      // Debug log to verify correct date formatting
-      console.log(`📅 Fetching targets for date: ${formattedDate} (Selected: ${selectedDate.toDateString()}) - Page: ${page}, Size: ${size}`);
-      
       const response = await fetch(`/api/target?date=${formattedDate}&page=${page}&limit=${size}`);
       const data = await response.json();
       if (data.success) {
@@ -169,7 +166,6 @@ export default function TargetPage() {
         setCurrentPage(page);
       }
     } catch (error) {
-      console.error('Error fetching targets:', error);
       toast.error('Failed to fetch targets');
     } finally {
       setLoading(false);
@@ -185,7 +181,6 @@ export default function TargetPage() {
         setProductionItems(data.data.productionItems || []);
       }
     } catch (error) {
-      console.error('Error fetching line assignments:', error);
       toast.error('Failed to fetch line assignments');
     }
   };
@@ -223,7 +218,6 @@ export default function TargetPage() {
         toast.error(result.error || 'Failed to save target');
       }
     } catch (error) {
-      console.error('Error saving target:', error);
       toast.error('Network error occurred');
     } finally {
       setLoading(false);
@@ -260,7 +254,6 @@ export default function TargetPage() {
         toast.error('Failed to delete target');
       }
     } catch (error) {
-      console.error('Error deleting target:', error);
       toast.error('Network error occurred');
     }
   };
@@ -284,7 +277,6 @@ export default function TargetPage() {
         toast.error(result.error || 'Failed to delete targets');
       }
     } catch (error) {
-      console.error('Error deleting targets:', error);
       toast.error('Network error occurred');
     }
   };
@@ -292,7 +284,6 @@ export default function TargetPage() {
   const handleView = (target: Target) => {
     // For now, just show target details in console
     // You can implement a view modal later if needed
-    console.log('Viewing target:', target);
     toast.info(`Viewing target: Line ${target.lineNo} - Style ${target.styleNo}`);
   };
 

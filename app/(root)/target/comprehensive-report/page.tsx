@@ -59,9 +59,6 @@ export default function ComprehensiveTargetReportPage() {
       const day = String(date.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
       
-      // Debug log to verify correct date formatting
-      console.log(`📅 Fetching comprehensive report for date: ${formattedDate} (Selected: ${date.toDateString()})`);
-      
       const response = await fetch(`/api/target/comprehensive-report?date=${formattedDate}`);
       
       if (!response.ok) {
@@ -69,21 +66,17 @@ export default function ComprehensiveTargetReportPage() {
       }
       
       const data: ComprehensiveReportResponse = await response.json();
-      // console.log('Comprehensive report API response:', data);
       
       if (data.success) {
         setReportData(data.data);
         setSummary(data.summary);
         setTimeSlotHeaders(data.timeSlotHeaders || []);
         setTimeSlotTotals(data.timeSlotTotals || {});
-        console.log('Set comprehensive report data:', data.data);
-        console.log('Time slot headers:', data.timeSlotHeaders);
       } else {
         throw new Error(data.error || 'Failed to fetch report data');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      console.error('Error fetching comprehensive report:', err);
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

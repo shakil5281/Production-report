@@ -1,0 +1,42 @@
+{
+  "id": "backup_1756529729344_rq4scqiup",
+  "timestamp": "2025-08-30T04:55:29.344Z",
+  "type": "full",
+  "config": {
+    "database": true,
+    "files": true,
+    "productionData": true,
+    "userData": true,
+    "settings": true,
+    "compression": true,
+    "encryption": false,
+    "retention": 30
+  },
+  "files": [
+    {
+      "path": "E:\\Production-report\\backups\\2025-08-30\\backup_1756529729344_rq4scqiup\\database.sql",
+      "size": 0,
+      "checksum": ""
+    },
+    {
+      "path": "E:\\Production-report\\backups\\2025-08-30\\backup_1756529729344_rq4scqiup\\production_data.json",
+      "size": 0,
+      "checksum": ""
+    },
+    {
+      "path": "E:\\Production-report\\backups\\2025-08-30\\backup_1756529729344_rq4scqiup\\user_data.json",
+      "size": 0,
+      "checksum": ""
+    },
+    {
+      "path": "E:\\Production-report\\backups\\2025-08-30\\backup_1756529729344_rq4scqiup\\settings.json",
+      "size": 0,
+      "checksum": ""
+    },
+    {
+      "path": "E:\\Production-report\\backups\\2025-08-30\\backup_1756529729344_rq4scqiup\\files_backup.zip",
+      "size": 0,
+      "checksum": ""
+    }
+  ]
+}

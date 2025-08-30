@@ -4,196 +4,151 @@ import { startOfMonth, endOfMonth, format, parseISO } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
+    // Test database connection
+    const testQuery = await prisma.dailyProductionReport.count();
+    
+    if (testQuery === undefined) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Database connection failed' 
+      }, { status: 500 });
+    }
+
+    // Get month parameter from query string
     const { searchParams } = new URL(request.url);
-    const month = searchParams.get('month') || format(new Date(), 'yyyy-MM');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-
-    let dateFilter: { gte: string; lte: string };
-
-    if (startDate && endDate) {
-      dateFilter = {
-        gte: startDate,
-        lte: endDate
-      };
+    const monthParam = searchParams.get('month');
+    
+    let targetDate: Date;
+    if (monthParam) {
+      // Parse the month parameter (format: yyyy-MM)
+      const [year, month] = monthParam.split('-').map(Number);
+      targetDate = new Date(year, month - 1, 1); // month is 0-indexed in Date constructor
     } else {
-      const monthStart = startOfMonth(parseISO(`${month}-01`));
-      const monthEnd = endOfMonth(monthStart);
-      dateFilter = {
-        gte: format(monthStart, 'yyyy-MM-dd'),
-        lte: format(monthEnd, 'yyyy-MM-dd')
-      };
+      targetDate = new Date();
     }
+    
+    const targetMonth = targetDate.getMonth();
+    const targetYear = targetDate.getFullYear();
 
-    // Test basic database connection first
-    let testQuery = 0;
-    try {
-      testQuery = await prisma.dailyProductionReport.count();
-      console.log('Database connection test successful, count:', testQuery);
-    } catch (error) {
-      console.error('Database connection test failed:', error);
-      testQuery = 0;
-    }
+    // Get start and end of target month
+    const startOfMonthDate = new Date(targetYear, targetMonth, 1);
+    const endOfMonthDate = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59, 999);
 
-    // Fetch Daily Production Reports (Earnings) - simplified query
-    let dailyProduction: any[] = [];
-    try {
-      dailyProduction = await prisma.dailyProductionReport.findMany({
-        where: {
-          date: {
-            gte: new Date(dateFilter.gte),
-            lte: new Date(dateFilter.lte)
-          }
-        },
-        select: {
-          id: true,
-          date: true,
-          netAmount: true,
-          lineNo: true,
-          styleNo: true
+    // Fetch daily production data for current month
+    const dailyProduction = await prisma.dailyProductionReport.findMany({
+      where: {
+        date: {
+          gte: startOfMonthDate,
+          lte: endOfMonthDate
         }
-      });
-      console.log('Daily production query successful, count:', dailyProduction.length);
-    } catch (error) {
-      console.error('Daily production query failed:', error);
-      dailyProduction = [];
-    }
-
-      // Fetch Daily Salary Records using Prisma ORM
-      let dailySalary: any[] = [];
-      try {
-        dailySalary = await prisma.dailySalary.findMany({
-          where: {
-            date: {
-              gte: new Date(dateFilter.gte),
-              lte: new Date(dateFilter.lte)
-            }
-          },
-          select: {
-            id: true,
-            date: true,
-            section: true,
-            workerCount: true,
-            regularRate: true,
-            overtimeHours: true,
-            overtimeRate: true,
-            regularAmount: true,
-            overtimeAmount: true,
-            totalAmount: true,
-            remarks: true
-          },
-          orderBy: [
-            { date: 'asc' },
-            { section: 'asc' }
-          ]
-        });
-        console.log('Daily salary query successful, count:', dailySalary.length);
-      } catch (error) {
-        console.error('Daily salary query failed:', error);
-        dailySalary = [];
+      },
+      select: {
+        productionQty: true,
+        date: true,
+        netAmount: true,
+        lineNo: true
       }
+    });
 
-      // Fetch Monthly Expenses for the period
-      let monthlyExpenses: any[] = [];
-      try {
-        monthlyExpenses = await prisma.monthlyExpense.findMany({
-          where: {
-            OR: [
-              {
-                year: parseInt(month.split('-')[0]),
-                month: parseInt(month.split('-')[1])
-              }
-            ]
-          },
-          select: {
-            id: true,
-            month: true,
-            year: true,
-            amount: true,
-            category: true
-          }
-        });
-        console.log('Monthly expenses query successful, count:', monthlyExpenses.length);
-      } catch (error) {
-        console.error('Monthly expenses query failed:', error);
-        monthlyExpenses = [];
+    // Fetch daily salary data for current month
+    const dailySalary = await prisma.dailySalary.findMany({
+      where: {
+        date: {
+          gte: startOfMonthDate,
+          lte: endOfMonthDate
+        }
+      },
+      select: {
+        totalAmount: true,
+        date: true
       }
+    });
 
-      // Fetch Daily Cash Expenses from Cashbook - simplified query
-      let dailyCashExpenses: any[] = [];
-      try {
-        dailyCashExpenses = await prisma.cashbookEntry.findMany({
-          where: {
-            date: {
-              gte: new Date(dateFilter.gte),
-              lte: new Date(dateFilter.lte)
-            },
-            type: 'DEBIT',
-            category: 'Daily Expense'
-          },
-          select: {
-            id: true,
-            date: true,
-            amount: true,
-            description: true
-          }
-        });
-        console.log('Cash expenses query successful, count:', dailyCashExpenses.length);
-      } catch (error) {
-        console.error('Cash expenses query failed:', error);
-        dailyCashExpenses = [];
+    // Fetch monthly expenses for target month
+    const monthlyExpenses = await prisma.monthlyExpense.findMany({
+      where: {
+        month: targetMonth + 1,
+        year: targetYear
+      },
+      select: {
+        amount: true,
+        category: true
       }
+    });
 
-      // Calculate totals with default values for missing data
-      const totalEarnings = dailyProduction.length > 0 ? dailyProduction.reduce((sum, item) => sum + Number(item.netAmount || 0), 0) : 0;
-      const totalDailySalary = dailySalary.length > 0 ? dailySalary.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0) : 0;
-      const totalMonthlyExpenses = monthlyExpenses.length > 0 ? monthlyExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
-      const totalDailyCashExpenses = dailyCashExpenses.length > 0 ? dailyCashExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
-      
-      // Calculate daily equivalent of monthly expenses (Total Monthly Expense / 30)
-      const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 30;
-      
-      // Net Profit = Earnings - Cash Expenses - Daily Equivalent Monthly Expenses - Daily Salary
-      const totalExpenses = totalDailyCashExpenses + dailyEquivalentMonthlyExpenses + totalDailySalary;
-      const netProfit = totalEarnings - totalExpenses;
-      const profitMargin = totalEarnings > 0 ? (netProfit / totalEarnings) * 100 : 0;
+    // Fetch daily cash expenses for current month
+    const dailyCashExpenses = await prisma.expense.findMany({
+      where: {
+        date: {
+          gte: startOfMonthDate,
+          lte: endOfMonthDate
+        }
+      },
+      select: {
+        amount: true,
+        date: true
+      }
+    });
 
-    // Create a simple response for now
-    const response = {
+    // Calculate totals
+    const totalProduction = dailyProduction.reduce((sum, record) => sum + record.productionQty, 0);
+    const totalSalary = dailySalary.reduce((sum, record) => sum + Number(record.totalAmount), 0);
+    const totalMonthlyExpenses = monthlyExpenses.reduce((sum, record) => sum + Number(record.amount), 0);
+    const totalDailyCashExpenses = dailyCashExpenses.reduce((sum, record) => sum + Number(record.amount), 0);
+    const totalExpenses = totalSalary + totalMonthlyExpenses + totalDailyCashExpenses;
+
+    // Calculate earnings from production (using netAmount if available, otherwise estimate)
+    const totalEarnings = dailyProduction.reduce((sum, record) => {
+      return sum + Number(record.netAmount || 0);
+    }, 0);
+
+    // Calculate net profit
+    const netProfit = totalEarnings - totalExpenses;
+    const profitMargin = totalEarnings > 0 ? (netProfit / totalEarnings) * 100 : 0;
+
+    // Create daily breakdown
+    const dailyBreakdown = createDailyBreakdown(dailyProduction, monthlyExpenses, dailyCashExpenses, dailySalary);
+    
+    // Create line breakdown
+    const lineBreakdown = createSectionBreakdown(dailyProduction, monthlyExpenses);
+    
+    // Sort lines by performance
+    const sortedLines = [...lineBreakdown].sort((a, b) => b.netProfit - a.netProfit);
+    const topPerformingLines = sortedLines.slice(0, 5);
+    const worstPerformingLines = sortedLines.slice(-5).reverse();
+
+    return NextResponse.json({
       success: true,
       data: {
         period: {
-          month: month,
-          startDate: dateFilter.gte,
-          endDate: dateFilter.lte
+          month: format(targetDate, 'MMMM yyyy'),
+          startDate: format(startOfMonthDate, 'yyyy-MM-dd'),
+          endDate: format(endOfMonthDate, 'yyyy-MM-dd')
         },
         summary: {
-          totalEarnings: Number(totalEarnings) || 0,
-          totalExpenses: Number(totalExpenses) || 0,
-          netProfit: Number(netProfit) || 0,
-          profitMargin: Number(profitMargin) || 0,
+          totalEarnings: totalEarnings,
+          totalExpenses: totalExpenses,
+          netProfit: netProfit,
+          profitMargin: profitMargin,
           breakdown: {
-            monthlyExpenses: Number(totalMonthlyExpenses) || 0,
-            dailyEquivalentMonthlyExpenses: Number(dailyEquivalentMonthlyExpenses) || 0,
-            dailyCashExpenses: Number(totalDailyCashExpenses) || 0,
-            dailySalary: Number(totalDailySalary) || 0
+            monthlyExpenses: totalMonthlyExpenses,
+            dailyEquivalentMonthlyExpenses: totalMonthlyExpenses / 30,
+            dailyCashExpenses: totalDailyCashExpenses,
+            dailySalary: totalSalary
           }
         },
-        dailyBreakdown: createDailyBreakdown(dailyProduction, monthlyExpenses, dailyCashExpenses, dailySalary),
-        lineBreakdown: createSectionBreakdown(dailyProduction, monthlyExpenses),
-        topPerformingLines: createSectionBreakdown(dailyProduction, monthlyExpenses).slice(0, 5),
-        worstPerformingLines: createSectionBreakdown(dailyProduction, monthlyExpenses).slice(-5).reverse()
+        dailyBreakdown: dailyBreakdown,
+        lineBreakdown: lineBreakdown,
+        topPerformingLines: topPerformingLines,
+        worstPerformingLines: worstPerformingLines
       }
-    };
+    });
 
-    return NextResponse.json(response);
   } catch (error) {
-    console.error('Error fetching profit and loss data:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch profit and loss data', details: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Internal server error' 
+    }, { status: 500 });
   }
 }
 
@@ -215,7 +170,7 @@ function createDailyBreakdown(dailyProduction: any[], monthlyExpenses: any[], da
         dailyBreakdown.set(date, {
           date,
           earnings: 0,
-          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
+          monthlyExpenses: dailyEquivalentMonthlyExpenses,
           dailyCashExpenses: 0,
           dailySalary: 0,
           netProfit: 0,
@@ -228,7 +183,7 @@ function createDailyBreakdown(dailyProduction: any[], monthlyExpenses: any[], da
       day.earnings += Number(item.netAmount || 0);
       day.productionCount += 1;
     } catch (error) {
-      console.error('Error processing production item:', error, item);
+      // Silently handle errors
     }
   });
 
@@ -240,7 +195,7 @@ function createDailyBreakdown(dailyProduction: any[], monthlyExpenses: any[], da
         dailyBreakdown.set(date, {
           date,
           earnings: 0,
-          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
+          monthlyExpenses: dailyEquivalentMonthlyExpenses,
           dailyCashExpenses: 0,
           dailySalary: 0,
           netProfit: 0,
@@ -253,7 +208,7 @@ function createDailyBreakdown(dailyProduction: any[], monthlyExpenses: any[], da
       day.dailyCashExpenses += Number(item.amount || 0);
       day.cashExpenseCount += 1;
     } catch (error) {
-      console.error('Error processing cash expense item:', error, item);
+      // Silently handle errors
     }
   });
 
@@ -265,7 +220,7 @@ function createDailyBreakdown(dailyProduction: any[], monthlyExpenses: any[], da
         dailyBreakdown.set(date, {
           date,
           earnings: 0,
-          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
+          monthlyExpenses: dailyEquivalentMonthlyExpenses,
           dailyCashExpenses: 0,
           dailySalary: 0,
           netProfit: 0,
@@ -278,7 +233,7 @@ function createDailyBreakdown(dailyProduction: any[], monthlyExpenses: any[], da
       day.dailySalary += Number(item.totalAmount || 0);
       day.salaryCount += 1;
     } catch (error) {
-      console.error('Error processing salary item:', error, item);
+      // Silently handle errors
     }
   });
 
@@ -315,7 +270,7 @@ function createSectionBreakdown(dailyProduction: any[], monthlyExpenses: any[]) 
           sectionId: section,
           sectionName: section,
           earnings: 0,
-          monthlyExpenses: dailyEquivalentMonthlyExpenses, // Show daily equivalent in Others expense column
+          monthlyExpenses: dailyEquivalentMonthlyExpenses,
           netProfit: 0,
           productionCount: 0
         });
@@ -324,7 +279,7 @@ function createSectionBreakdown(dailyProduction: any[], monthlyExpenses: any[]) 
       sectionData.earnings += Number(item.netAmount || 0);
       sectionData.productionCount += 1;
     } catch (error) {
-      console.error('Error processing section item:', error, item);
+      // Silently handle errors
     }
   });
 

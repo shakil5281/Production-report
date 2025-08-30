@@ -146,12 +146,13 @@ export async function PUT(request: NextRequest) {
     // 2. Apply certain settings immediately (like maintenance mode)
     // 3. Log the settings change for audit purposes
     
-    console.log('System settings updated by:', user.email, settings);
-
+    // In a real implementation, you would save settings to database
+    // For now, just return success response
+    
     return NextResponse.json({
       success: true,
       message: 'System settings updated successfully',
-      settings
+      data: settings
     });
 
   } catch (error) {

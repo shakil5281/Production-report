@@ -177,35 +177,25 @@ export default function AttendanceSummaryPage() {
     }
   };
 
-  const fetchDetailedData = async () => {
+  const fetchDetailedData = async (date: Date) => {
+    const formattedDate = date.toISOString().split('T')[0];
+    
     try {
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      console.log('🔍 Fetching detailed data for date:', formattedDate);
-      
       const response = await fetch(`/api/attendance/manpower-details?date=${formattedDate}`);
-      console.log('📡 API Response status:', response.status);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ API Error:', errorText);
-        throw new Error(`Failed to fetch detailed data: ${response.status} - ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+      
       const result = await response.json();
-      console.log('📊 API Result:', result);
       
       if (result.success) {
-        console.log('✅ Setting detailed data:', result.data);
         setDetailedData(result.data);
-        setShowDetails(true);
-        toast.success('Detailed data loaded successfully!');
       } else {
-        console.error('❌ API returned error:', result.error);
-        throw new Error(result.error || 'Failed to fetch detailed data');
+        setError(result.message || 'Failed to fetch detailed data');
       }
-    } catch (err) {
-      console.error('💥 Error fetching detailed data:', err);
-      toast.error(`Failed to fetch detailed data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to fetch detailed data');
     }
   };
 
@@ -342,7 +332,7 @@ export default function AttendanceSummaryPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <Button 
-              onClick={fetchDetailedData} 
+              onClick={() => fetchDetailedData(selectedDate)} 
               disabled={loading || !hasDataForSelectedDate}
               className="w-full"
             >

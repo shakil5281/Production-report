@@ -3,221 +3,238 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seeding...');
-
   // Create expense categories
-  console.log('Creating expense categories...');
-  const expenseCategories = [
-    { name: 'SALARY', isSalaryFlag: true },
-    { name: 'CASH_EXPENSE', isSalaryFlag: false },
-    { name: 'UTILITIES', isSalaryFlag: false },
-    { name: 'MAINTENANCE', isSalaryFlag: false },
-    { name: 'RAW_MATERIALS', isSalaryFlag: false },
-    { name: 'PACKAGING', isSalaryFlag: false },
-    { name: 'TRANSPORTATION', isSalaryFlag: false },
-    { name: 'OTHER', isSalaryFlag: false }
-  ];
-
-  for (const category of expenseCategories) {
-    await prisma.expenseCategory.upsert({
-      where: { name: category.name },
+  const expenseCategories = await Promise.all([
+    prisma.expenseCategory.upsert({
+      where: { name: 'Raw Materials' },
       update: {},
-      create: category
-    });
-  }
+      create: { name: 'Raw Materials' }
+    }),
+    prisma.expenseCategory.upsert({
+      where: { name: 'Labor' },
+      update: {},
+      create: { name: 'Labor' }
+    }),
+    prisma.expenseCategory.upsert({
+      where: { name: 'Overhead' },
+      update: {},
+      create: { name: 'Overhead' }
+    }),
+    prisma.expenseCategory.upsert({
+      where: { name: 'Utilities' },
+      update: {},
+      create: { name: 'Utilities' }
+    }),
+    prisma.expenseCategory.upsert({
+      where: { name: 'Maintenance' },
+      update: {},
+      create: { name: 'Maintenance' }
+    })
+  ]);
 
   // Create factories
-  console.log('Creating factories...');
-  let factory1 = await prisma.factory.findFirst({ where: { name: 'Main Factory' } });
-  if (!factory1) {
-    factory1 = await prisma.factory.create({ data: { name: 'Main Factory' } });
-  }
-
-  let factory2 = await prisma.factory.findFirst({ where: { name: 'Secondary Factory' } });
-  if (!factory2) {
-    factory2 = await prisma.factory.create({ data: { name: 'Secondary Factory' } });
-  }
+  const factories = await Promise.all([
+    prisma.factory.create({
+      data: { 
+        name: 'Main Factory', 
+        isActive: true
+      }
+    }),
+    prisma.factory.create({
+      data: { 
+        name: 'Secondary Factory', 
+        isActive: true
+      }
+    })
+  ]);
 
   // Create production lines
-  console.log('Creating production lines...');
-  const lines = [
-    { factoryId: factory1.id, name: 'Line A', code: 'A' },
-    { factoryId: factory1.id, name: 'Line B', code: 'B' },
-    { factoryId: factory1.id, name: 'Line C', code: 'C' },
-    { factoryId: factory2.id, name: 'Line X', code: 'X' },
-    { factoryId: factory2.id, name: 'Line Y', code: 'Y' },
-    { factoryId: factory2.id, name: 'Line Z', code: 'Z' }
-  ];
-
-  for (const line of lines) {
-    const existingLine = await prisma.line.findUnique({ where: { code: line.code } });
-    if (!existingLine) {
-      await prisma.line.create({ data: line });
-    }
-  }
+  const lines = await Promise.all([
+    prisma.line.upsert({
+      where: { code: 'A' },
+      update: {},
+      create: { 
+        code: 'A', 
+        name: 'Line A', 
+        isActive: true
+      }
+    }),
+    prisma.line.upsert({
+      where: { code: 'B' },
+      update: {},
+      create: { 
+        code: 'B', 
+        name: 'Line B', 
+        isActive: true
+      }
+    }),
+    prisma.line.upsert({
+      where: { code: 'C' },
+      update: {},
+      create: { 
+        code: 'C', 
+        name: 'Line C', 
+        isActive: true
+      }
+    })
+  ]);
 
   // Create sample styles
-  console.log('Creating sample styles...');
-  const styles = [
-    {
-      styleNumber: 'ST001',
-      buyer: 'Fashion Retailer A',
-      poNumber: 'PO-2024-001',
-      orderQty: 1000,
-      unitPrice: 25.50,
-      plannedStart: new Date('2024-01-01'),
-      plannedEnd: new Date('2024-01-31')
-    },
-    {
-      styleNumber: 'ST002',
-      buyer: 'Fashion Retailer B',
-      poNumber: 'PO-2024-002',
-      orderQty: 800,
-      unitPrice: 30.00,
-      plannedStart: new Date('2024-01-15'),
-      plannedEnd: new Date('2024-02-15')
-    },
-    {
-      styleNumber: 'ST003',
-      buyer: 'Fashion Retailer C',
-      poNumber: 'PO-2024-003',
-      orderQty: 1200,
-      unitPrice: 22.75,
-      plannedStart: new Date('2024-02-01'),
-      plannedEnd: new Date('2024-02-28')
-    }
-  ];
-
-  for (const style of styles) {
-    const existingStyle = await prisma.style.findUnique({ where: { styleNumber: style.styleNumber } });
-    if (!existingStyle) {
-      await prisma.style.create({ data: style });
-    }
-  }
-
-  // Create sample style assignments
-  console.log('Creating style assignments...');
-  const allLines = await prisma.line.findMany();
-  const allStyles = await prisma.style.findMany();
-
-  if (allLines.length > 0 && allStyles.length > 0) {
-    // Assign first style to first line
-    const existingAssignment = await prisma.styleAssignment.findFirst({
-      where: {
-        lineId: allLines[0].id,
-        styleId: allStyles[0].id
+  const styles = await Promise.all([
+    prisma.style.upsert({
+      where: { styleNumber: 'ST001' },
+      update: {},
+      create: { 
+        styleNumber: 'ST001', 
+        buyer: 'Fashion Brand A',
+        poNumber: 'PO001',
+        orderQty: 1000,
+        unitPrice: 25.50,
+        plannedStart: new Date('2025-01-01'),
+        plannedEnd: new Date('2025-03-31')
       }
-    });
-    if (!existingAssignment) {
-      await prisma.styleAssignment.create({
-        data: {
-          lineId: allLines[0].id,
-          styleId: allStyles[0].id,
-          startDate: new Date('2024-01-01'),
-          targetPerHour: 50
-        }
-      });
-    }
-
-    // Assign second style to second line
-    if (allLines.length > 1 && allStyles.length > 1) {
-      const existingAssignment2 = await prisma.styleAssignment.findFirst({
-        where: {
-          lineId: allLines[1].id,
-          styleId: allStyles[1].id
-        }
-      });
-      if (!existingAssignment2) {
-        await prisma.styleAssignment.create({
-          data: {
-            lineId: allLines[1].id,
-            styleId: allStyles[1].id,
-            startDate: new Date('2024-01-15'),
-            targetPerHour: 45
-          }
-        });
+    }),
+    prisma.style.upsert({
+      where: { styleNumber: 'ST002' },
+      update: {},
+      create: { 
+        styleNumber: 'ST002', 
+        buyer: 'Fashion Brand B',
+        poNumber: 'PO002',
+        orderQty: 800,
+        unitPrice: 35.00,
+        plannedStart: new Date('2025-02-01'),
+        plannedEnd: new Date('2025-04-30')
       }
-    }
-  }
-
-  // Create sample production entries for today
-  console.log('Creating sample production entries...');
-  const today = new Date();
-  const todayString = today.toISOString().split('T')[0];
-
-  if (allLines.length > 0 && allStyles.length > 0) {
-    // Create sample production entries for the first line and style
-    const stages = ['CUTTING', 'SEWING', 'FINISHING'];
-    
-    for (let hour = 8; hour < 18; hour++) { // 8 AM to 6 PM
-      for (const stage of stages) {
-        const existingEntry = await prisma.productionEntry.findFirst({
-          where: {
-            date: new Date(todayString),
-            hourIndex: hour,
-            lineId: allLines[0].id,
-            styleId: allStyles[0].id,
-            stage: stage as any
-          }
-        });
-        if (!existingEntry) {
-          await prisma.productionEntry.create({
-            data: {
-              date: new Date(todayString),
-              hourIndex: hour,
-              lineId: allLines[0].id,
-              styleId: allStyles[0].id,
-              stage: stage as any,
-              inputQty: Math.floor(Math.random() * 20) + 30,
-              outputQty: Math.floor(Math.random() * 15) + 25,
-              defectQty: Math.floor(Math.random() * 3),
-              reworkQty: Math.floor(Math.random() * 2)
-            }
-          });
-        }
+    }),
+    prisma.style.upsert({
+      where: { styleNumber: 'ST003' },
+      update: {},
+      create: { 
+        styleNumber: 'ST003', 
+        buyer: 'Fashion Brand C',
+        poNumber: 'PO003',
+        orderQty: 600,
+        unitPrice: 45.00,
+        plannedStart: new Date('2025-03-01'),
+        plannedEnd: new Date('2025-05-31')
       }
-    }
-  }
+    })
+  ]);
+
+  // Create style assignments
+  const styleAssignments = await Promise.all([
+    prisma.styleAssignment.create({
+      data: {
+        lineId: lines[0].id,
+        styleId: styles[0].id,
+        startDate: new Date('2025-01-01'),
+        endDate: new Date('2025-12-31'),
+        targetPerHour: 50
+      }
+    }),
+    prisma.styleAssignment.create({
+      data: {
+        lineId: lines[1].id,
+        styleId: styles[1].id,
+        startDate: new Date('2025-01-01'),
+        endDate: new Date('2025-12-31'),
+        targetPerHour: 60
+      }
+    })
+  ]);
+
+  // Create sample production entries
+  const productionEntries = await Promise.all([
+    prisma.productionEntry.create({
+      data: {
+        lineId: lines[0].id,
+        styleId: styles[0].id,
+        date: new Date('2025-08-14'),
+        hourIndex: 8,
+        stage: 'CUTTING',
+        inputQty: 50,
+        outputQty: 45,
+        defectQty: 2,
+        reworkQty: 1
+      }
+    }),
+    prisma.productionEntry.create({
+      data: {
+        lineId: lines[0].id,
+        styleId: styles[0].id,
+        date: new Date('2025-08-14'),
+        hourIndex: 9,
+        stage: 'SEWING',
+        inputQty: 50,
+        outputQty: 48,
+        defectQty: 1,
+        reworkQty: 0
+      }
+    }),
+    prisma.productionEntry.create({
+      data: {
+        lineId: lines[1].id,
+        styleId: styles[1].id,
+        date: new Date('2025-08-14'),
+        hourIndex: 8,
+        stage: 'FINISHING',
+        inputQty: 60,
+        outputQty: 55,
+        defectQty: 3,
+        reworkQty: 1
+      }
+    })
+  ]);
 
   // Create sample expenses
-  console.log('Creating sample expenses...');
-  const salaryCategory = await prisma.expenseCategory.findUnique({
-    where: { name: 'SALARY' }
-  });
-
-  if (salaryCategory && allLines.length > 0) {
-    await prisma.expense.create({
+  const expenses = await Promise.all([
+    prisma.expense.create({
       data: {
-        date: new Date(todayString),
-        lineId: allLines[0].id,
-        categoryId: salaryCategory.id,
-        amount: 5000.00,
-        description: 'Daily salary for Line A workers',
+        date: new Date('2025-08-14'),
+        categoryId: expenseCategories[0].id, // Raw Materials
+        amount: 1500,
+        description: 'Fabric purchase',
+        paymentMethod: 'CASH'
+      }
+    }),
+    prisma.expense.create({
+      data: {
+        date: new Date('2025-08-14'),
+        categoryId: expenseCategories[1].id, // Labor
+        amount: 800,
+        description: 'Overtime pay',
         paymentMethod: 'BANK'
       }
-    });
-  }
+    })
+  ]);
 
   // Create sample cashbook entries
-  console.log('Creating sample cashbook entries...');
-  await prisma.cashbookEntry.create({
-    data: {
-      date: new Date(todayString),
-      type: 'DEBIT',
-      amount: 5000.00,
-      category: 'SALARY',
-      referenceType: 'EXPENSE',
-      lineId: allLines.length > 0 ? allLines[0].id : null,
-      description: 'Salary payment for Line A workers'
-    }
-  });
-
-  console.log('✅ Database seeding completed successfully!');
+  const cashbookEntries = await Promise.all([
+    prisma.cashbookEntry.create({
+      data: {
+        date: new Date('2025-08-14'),
+        amount: 5000,
+        type: 'CREDIT',
+        category: 'Sales',
+        description: 'Daily sales revenue'
+      }
+    }),
+    prisma.cashbookEntry.create({
+      data: {
+        date: new Date('2025-08-14'),
+        amount: 2300,
+        type: 'DEBIT',
+        category: 'Daily Expense',
+        description: 'Daily operational expenses'
+      }
+    })
+  ]);
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error during seeding:', e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

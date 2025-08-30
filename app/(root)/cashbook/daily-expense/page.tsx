@@ -171,7 +171,7 @@ export default function DailyExpensePage() {
       if (data.success) {
         setEntries(data.data);
         // Calculate enhanced summary
-        const amounts = data.data.map((entry: DailyExpenseEntry) => entry.amount);
+        const amounts = data.data.map((entry: DailyExpenseEntry) => Number(entry.amount));
         const totalAmount = amounts.reduce((sum: number, amount: number) => sum + amount, 0);
         const averageAmount = amounts.length > 0 ? totalAmount / amounts.length : 0;
         const highestAmount = amounts.length > 0 ? Math.max(...amounts) : 0;
@@ -188,7 +188,6 @@ export default function DailyExpensePage() {
         throw new Error(data.error || 'Failed to fetch entries');
       }
     } catch (error) {
-      console.error('Error fetching daily expense entries:', error);
       toast.error('Failed to fetch daily expense entries');
     } finally {
       setLoading(false);
@@ -243,7 +242,6 @@ export default function DailyExpensePage() {
         throw new Error(data.error || 'Failed to create entry');
       }
     } catch (error) {
-      console.error('Error creating daily expense entry:', error);
       toast.error('Failed to create daily expense entry');
     } finally {
       setCreating(false);
@@ -295,7 +293,6 @@ export default function DailyExpensePage() {
         throw new Error(data.error || 'Failed to update entry');
       }
     } catch (error) {
-      console.error('Error updating daily expense entry:', error);
       toast.error('Failed to update daily expense entry');
     } finally {
       setUpdating(false);
@@ -322,7 +319,6 @@ export default function DailyExpensePage() {
         throw new Error(data.error || 'Failed to delete entry');
       }
     } catch (error) {
-      console.error('Error deleting daily expense entry:', error);
       toast.error('Failed to delete daily expense entry');
     } finally {
       setDeleting(null);
@@ -387,7 +383,6 @@ export default function DailyExpensePage() {
       doc.save(`daily-expense-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       toast.success('PDF exported successfully');
     } catch (error) {
-      console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF');
     } finally {
       setExporting(false);
@@ -439,7 +434,6 @@ export default function DailyExpensePage() {
       XLSX.writeFile(workbook, `daily-expense-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
       toast.success('Excel file exported successfully');
     } catch (error) {
-      console.error('Error exporting Excel:', error);
       toast.error('Failed to export Excel file');
     } finally {
       setExporting(false);

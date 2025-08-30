@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "id": "f23a0818-68a7-443d-ab5b-2c79c8b0d45b",
+      "email": "shakilhossen307@gmail.com",
+      "name": "shakil",
+      "role": "SUPER_ADMIN",
+      "createdAt": "2025-08-27T12:59:45.967Z",
+      "updatedAt": "2025-08-29T14:34:50.060Z"
+    }
+  ],
+  "userPermissions": [],
+  "roles": []
+}
