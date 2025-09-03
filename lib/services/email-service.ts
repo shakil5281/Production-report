@@ -429,7 +429,7 @@ export class EmailService {
                       ${timeSlotHeaders.map(timeSlot => 
                         `<td class="time-slot-cell">${(row.hourlyProduction[timeSlot] || 0).toLocaleString()}</td>`
                       ).join('')}
-                      <td class="production-cell">${row.totalProduction.toLocaleString()}</td>
+                      <td class="production-cell">${(row.totalProduction || 0).toLocaleString()}</td>
                       <td class="efficiency-cell">${row.averageProductionPerHour.toFixed(1)}</td>
                     </tr>
                   `).join('')}
@@ -441,7 +441,7 @@ export class EmailService {
                     ${timeSlotHeaders.map(timeSlot => 
                       `<td><strong>${(timeSlotTotals[timeSlot] || 0).toLocaleString()}</strong></td>`
                     ).join('')}
-                    <td><strong>${reportData.reduce((sum, row) => sum + row.totalProduction, 0).toLocaleString()}</strong></td>
+                    <td><strong>${reportData.reduce((sum, row) => sum + (row.totalProduction || 0), 0).toLocaleString()}</strong></td>
                     <td><strong>${(reportData.reduce((sum, row) => sum + row.averageProductionPerHour, 0) / reportData.length).toFixed(1)}</strong></td>
                   </tr>
                 </tbody>

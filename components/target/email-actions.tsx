@@ -222,7 +222,7 @@ Production Management System`
                 </div>
                 <div>
                   <span className="text-gray-500">Production:</span>
-                  <Badge variant="secondary" className="ml-2">{summary.totalProduction.toLocaleString()}</Badge>
+                  <Badge variant="secondary" className="ml-2">{(summary?.totalProduction || 0).toLocaleString()}</Badge>
                 </div>
                 <div>
                   <span className="text-gray-500">Avg/HR:</span>

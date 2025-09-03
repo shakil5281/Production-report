@@ -11,6 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 
 import { 
   IconTarget, 
@@ -324,11 +328,30 @@ export function TargetForm({
                     <FormItem>
                       <FormLabel>Target Date *</FormLabel>
                       <FormControl>
-                        <Input
-                          type="date"
-                          {...field}
-                          disabled={isLoading || submitting}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                              disabled={isLoading || submitting}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value ? format(new Date(field.value + 'T00:00:00'), 'PPP') : 'Pick a date'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value ? new Date(field.value + 'T00:00:00') : undefined}
+                              onSelect={(date) => {
+                                if (date) {
+                                  field.onChange(date.toLocaleDateString('en-CA'));
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

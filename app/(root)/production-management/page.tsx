@@ -13,6 +13,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { 
   IconPlus, 
   IconSearch, 
@@ -20,7 +22,7 @@ import {
   IconEdit, 
   IconTrash, 
   IconEye, 
-
+  IconCalendar,
   IconRefresh,
   IconChevronLeft,
   IconChevronRight,
@@ -29,6 +31,7 @@ import {
   IconPackage,
   IconCurrencyDollar
 } from '@tabler/icons-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 interface ProductionItem {
@@ -365,22 +368,56 @@ export default function ProductionManagementPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="dateFrom">Date From</Label>
-                <Input
-                  id="dateFrom"
-                  type="date"
-                  value={filters.dateFrom}
-                  onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <IconCalendar className="mr-2 h-4 w-4" />
+                      {filters.dateFrom ? format(new Date(filters.dateFrom + 'T00:00:00'), 'PPP') : 'Pick start date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateFrom ? new Date(filters.dateFrom + 'T00:00:00') : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          handleFilterChange('dateFrom', date.toLocaleDateString('en-CA'));
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dateTo">Date To</Label>
-                <Input
-                  id="dateTo"
-                  type="date"
-                  value={filters.dateTo}
-                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <IconCalendar className="mr-2 h-4 w-4" />
+                      {filters.dateTo ? format(new Date(filters.dateTo + 'T00:00:00'), 'PPP') : 'Pick end date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateTo ? new Date(filters.dateTo + 'T00:00:00') : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          handleFilterChange('dateTo', date.toLocaleDateString('en-CA'));
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="flex items-end space-x-2">

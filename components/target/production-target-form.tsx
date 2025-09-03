@@ -7,7 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { IconClock, IconTarget, IconUsers, IconX, IconPlus } from '@tabler/icons-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { IconClock, IconTarget, IconUsers, IconX, IconPlus, IconCalendar } from '@tabler/icons-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 interface LineAssignment {
@@ -187,14 +190,29 @@ export function ProductionTargetForm({ onSubmit, onCancel, loading }: Production
       {/* Date Selection */}
       <div className="space-y-3">
         <Label htmlFor="date" className="text-base font-semibold text-gray-700">Target Date *</Label>
-        <Input
-          id="date"
-          type="date"
-          value={formData.date}
-          onChange={(e) => handleInputChange('date', e.target.value)}
-          className="border-2 hover:border-blue-300 transition-all duration-200 h-12"
-          required
-        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-left font-normal h-12 border-2 hover:border-blue-300 transition-all duration-200"
+            >
+              <IconCalendar className="mr-2 h-4 w-4" />
+              {formData.date ? format(new Date(formData.date + 'T00:00:00'), 'PPP') : 'Pick a date'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={formData.date ? new Date(formData.date + 'T00:00:00') : undefined}
+              onSelect={(date) => {
+                if (date) {
+                  handleInputChange('date', date.toLocaleDateString('en-CA'));
+                }
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Active Lines Section */}

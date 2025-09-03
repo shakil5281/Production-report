@@ -99,7 +99,7 @@ export function ComprehensiveReportTable({
               
               {/* Totals */}
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-green-700 bg-green-50">
-                {row.totalProduction.toLocaleString()}
+                {(row.totalProduction || 0).toLocaleString()}
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-semibold text-green-700 bg-green-50">
                 {row.averageProductionPerHour.toFixed(0)}
@@ -134,7 +134,7 @@ export function ComprehensiveReportTable({
               
               {/* Total Totals */}
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-green-800 bg-green-200">
-                {data.reduce((sum, row) => sum + row.totalProduction, 0).toLocaleString()}
+                {data.reduce((sum, row) => sum + (row.totalProduction || 0), 0).toLocaleString()}
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-green-800 bg-green-200">
                 {data.length > 0 

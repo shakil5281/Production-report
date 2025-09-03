@@ -57,27 +57,49 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Calculate summary statistics
+    const totalProduction = dailyProductionReports.reduce((sum, report) => sum + report.productionQty, 0);
+    const totalTarget = dailyProductionReports.reduce((sum, report) => sum + report.targetQty, 0);
+    const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+    const totalCashbook = cashbookEntries.reduce((sum, entry) => sum + Number(entry.amount), 0);
+    const totalTargets = targets.reduce((sum, target) => sum + target.lineTarget, 0);
+
     const summary = {
       date: dateParam,
       production: {
-        total: dailyProductionReports.reduce((sum, report) => sum + report.productionQty, 0),
-        target: dailyProductionReports.reduce((sum, report) => sum + report.targetQty, 0),
-        efficiency: dailyProductionReports.length > 0 
-          ? (dailyProductionReports.reduce((sum, report) => sum + report.productionQty, 0) / 
-             dailyProductionReports.reduce((sum, report) => sum + report.targetQty, 0) * 100).toFixed(2)
-          : 0
+        total: totalProduction,
+        target: totalTarget,
+        efficiency: totalTarget > 0 ? Number(((totalProduction / totalTarget) * 100).toFixed(2)) : 0,
+        byStage: {
+          cutting: { input: 0, output: 0, wip: 0 },
+          sewing: { input: 0, output: 0, wip: 0 },
+          finishing: { input: 0, output: 0, wip: 0 }
+        }
       },
-      targets: {
+      target: {
         total: targets.length,
-        totalTarget: targets.reduce((sum, target) => sum + target.lineTarget, 0)
-      },
-      expenses: {
-        total: expenses.reduce((sum, expense) => sum + Number(expense.amount), 0),
-        count: expenses.length
+        totalTarget: totalTargets,
+        efficiency: totalTargets > 0 ? Number(((totalProduction / totalTargets) * 100).toFixed(2)) : 0,
+        topPerformingLines: targets.map(target => ({
+          lineNo: target.lineNo,
+          efficiency: totalTargets > 0 ? Number(((totalProduction / totalTargets) * 100).toFixed(2)) : 0,
+          totalProduction: totalProduction
+        }))
       },
       cashbook: {
-        total: cashbookEntries.reduce((sum, entry) => sum + Number(entry.amount), 0),
-        count: cashbookEntries.length
+        total: totalCashbook,
+        count: cashbookEntries.length,
+        netCashFlow: totalCashbook - totalExpenses
+      },
+      cutting: {
+        efficiency: 0,
+        totalOutput: 0
+      },
+      overview: {
+        totalProduction: totalProduction,
+        totalTarget: totalTargets,
+        targetAchievement: totalTargets > 0 ? Number(((totalProduction / totalTargets) * 100).toFixed(2)) : 0,
+        netCashFlow: totalCashbook - totalExpenses,
+        cuttingEfficiency: 0
       }
     };
 

@@ -20,11 +20,12 @@ interface DetailedSummariesProps {
     target: any;
     cashbook: any;
     cutting: any;
+    overview: any;
   };
 }
 
 export function DetailedSummaries({ data }: DetailedSummariesProps) {
-  const { production, target, cashbook, cutting } = data;
+  const { production, target, cashbook, cutting, overview } = data;
 
   const getEfficiencyColor = (efficiency: number) => {
     if (efficiency >= 90) return 'text-green-600';
@@ -158,13 +159,13 @@ export function DetailedSummaries({ data }: DetailedSummariesProps) {
               <h4 className="font-medium text-sm">Top Performing Lines</h4>
               {target?.topPerformingLines?.map((line: any, index: number) => (
                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-                  <span className="font-medium">Line {line.lineNo}</span>
+                  <span className="font-medium">Line {line.lineNo || 'N/A'}</span>
                   <div className="text-right">
-                    <div className={`font-semibold ${getEfficiencyColor(line.efficiency)}`}>
-                      {line.efficiency}%
+                    <div className={`font-semibold ${getEfficiencyColor(line.efficiency || 0)}`}>
+                      {line.efficiency || 0}%
                     </div>
                     <div className="text-xs text-gray-500">
-                      {line.totalProduction} units
+                      {line.totalProduction || 0} units
                     </div>
                   </div>
                 </div>

@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, AlertCircle, DollarSign, Calendar, Filter } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Plus, Edit, Trash2, AlertCircle, DollarSign, Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 interface Expense {
@@ -283,13 +286,29 @@ export default function ExpensesPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.date ? format(new Date(formData.date + 'T00:00:00'), 'PPP') : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.date ? new Date(formData.date + 'T00:00:00') : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setFormData({ ...formData, date: date.toLocaleDateString('en-CA') });
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>
@@ -428,12 +447,29 @@ export default function ExpensesPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label htmlFor="filterDate">Date</Label>
-              <Input
-                id="filterDate"
-                type="date"
-                value={filters.date}
-                onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {filters.date ? format(new Date(filters.date + 'T00:00:00'), 'PPP') : 'Pick a date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={filters.date ? new Date(filters.date + 'T00:00:00') : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setFilters({ ...filters, date: date.toLocaleDateString('en-CA') });
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label htmlFor="filterLineId">Production Line</Label>

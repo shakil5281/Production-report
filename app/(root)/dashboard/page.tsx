@@ -4,11 +4,14 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, TrendingDown, Package, DollarSign, AlertCircle, RefreshCw, Target, Scissors, FileText, BarChart3, Calculator } from 'lucide-react';
+import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Package, DollarSign, AlertCircle, RefreshCw, Target, Scissors, FileText, BarChart3, Calculator } from 'lucide-react';
 import { format } from 'date-fns';
 import { LoadingSection } from '@/components/ui/loading';
 import { SummaryCards } from '@/components/dashboard/summary-cards';
 import { DetailedSummaries } from '@/components/dashboard/detailed-summaries';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 import Link from 'next/link';
 
 interface DashboardSummary {
@@ -31,13 +34,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
   
   // Format current date as YYYY-MM-DD in local timezone to avoid timezone issues
   const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  const [selectedDate, setSelectedDate] = useState(`${year}-${month}-${day}`);
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
 
   useEffect(() => {
     fetchDashboardData();
@@ -47,12 +48,17 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/dashboard/summary?date=${selectedDate}`);
+      const dateString = format(selectedDate, 'yyyy-MM-dd');
+      const response = await fetch(`/api/dashboard/summary?date=${dateString}`);
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
       }
-      const data = await response.json();
-      setDashboardData(data);
+      const responseData = await response.json();
+      if (responseData.success && responseData.data) {
+        setDashboardData(responseData.data);
+      } else {
+        throw new Error(responseData.error || 'Invalid response format');
+      }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -122,13 +128,32 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="border rounded px-2 sm:px-3 py-2 text-sm sm:text-base w-full sm:w-auto"
-          />
+          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto justify-start text-left font-normal"
+                onClick={() => setIsCalendarOpen(true)}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                    setIsCalendarOpen(false);
+                  }
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
