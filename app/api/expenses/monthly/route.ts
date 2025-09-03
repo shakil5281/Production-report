@@ -59,10 +59,28 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingExpense) {
-      return NextResponse.json(
-        { success: false, error: 'Expense already exists for this category in the selected month and year' },
-        { status: 400 }
-      );
+      // If expense exists, update it instead of creating a new one
+      const updatedExpense = await prisma.monthlyExpense.update({
+        where: {
+          id: existingExpense.id
+        },
+        data: {
+          amount,
+          description,
+          paymentDate: paymentDate ? new Date(paymentDate) : null,
+          paymentStatus: paymentStatus || 'PENDING',
+          remarks
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...updatedExpense,
+          amount: Number(updatedExpense.amount)
+        },
+        message: 'Expense updated successfully'
+      });
     }
 
     const expense = await prisma.monthlyExpense.create({

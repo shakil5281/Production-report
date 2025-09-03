@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, PlusIcon, EditIcon, TrashIcon, DollarSignIcon, CalendarIcon as CalendarIcon2 } from 'lucide-react';
+import { CalendarIcon, PlusIcon, EditIcon, TrashIcon, DollarSignIcon, CalendarIcon as CalendarIcon2, Settings, X } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -52,17 +52,19 @@ interface MonthlyExpenseEntry {
   updatedAt: string;
 }
 
-const expenseCategories = [
-  'Electric Bill',
-  'Rent Building',
+// Default categories - will be replaced by dynamic categories from API
+const defaultExpenseCategories = [
   'Insurance',
-  'Water Bill',
-  'Internet & Phone',
-  'Maintenance',
-  'Security',
-  'Cleaning',
-  'Office Supplies',
-  'Legal & Professional',
+  'License',
+  'Transport',
+  'Generator Fuel',
+  'Electric bill',
+  'Rent Building',
+  'Others',
+  'Salary Administration',
+  'Profit bank Term loan',
+  'Celling and Distribution',
+  'Dericiation',
   'Miscellaneous'
 ];
 
@@ -86,11 +88,14 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
 export default function MonthlyExpensePage() {
   const [expenseData, setExpenseData] = useState<MonthlyExpenseEntry[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<string[]>(defaultExpenseCategories);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<MonthlyExpenseEntry | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
 
   // Safe number formatting with fallback to 0
   const formatNumber = (value: number | undefined | null): string => {
@@ -112,6 +117,7 @@ export default function MonthlyExpensePage() {
 
   useEffect(() => {
     fetchExpenses();
+    fetchCategories();
   }, [selectedMonth, selectedYear]);
 
   const fetchExpenses = async () => {
@@ -129,6 +135,73 @@ export default function MonthlyExpensePage() {
       toast.error('Failed to fetch expenses');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/expense-categories/monthly');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setExpenseCategories(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      // Keep default categories if API fails
+    }
+  };
+
+  const handleAddCategory = async (categoryName: string, overwrite: boolean = false) => {
+    try {
+      const response = await fetch('/api/expense-categories/monthly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: categoryName, overwrite })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          toast.success(data.message);
+          fetchCategories(); // Refresh categories
+          setNewCategory('');
+          setIsCategoryDialogOpen(false);
+        } else {
+          toast.error(data.error);
+        }
+      } else {
+        toast.error('Failed to add category');
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error('Failed to add category');
+    }
+  };
+
+  const handleDeleteCategory = async (categoryName: string) => {
+    if (!confirm(`Are you sure you want to delete the category "${categoryName}"?`)) return;
+
+    try {
+      const response = await fetch(`/api/expense-categories/monthly?category=${encodeURIComponent(categoryName)}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          toast.success(data.message);
+          fetchCategories(); // Refresh categories
+        } else {
+          toast.error(data.error);
+        }
+      } else {
+        toast.error('Failed to delete category');
+      }
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error('Failed to delete category');
     }
   };
 
@@ -270,23 +343,105 @@ export default function MonthlyExpensePage() {
             Manage monthly operational expenses like Electric Bill, Rent, Insurance, etc.
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openDialog} className="w-full sm:w-auto">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Add Monthly Expense</span>
-              <span className="sm:hidden">Add Expense</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="mx-4 sm:mx-0 sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingExpense ? 'Edit Monthly Expense' : 'Add Monthly Expense'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingExpense ? 'Update the monthly expense details' : 'Add a new monthly expense entry'}
-              </DialogDescription>
-            </DialogHeader>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openDialog} className="w-full sm:w-auto">
+                <PlusIcon className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Add Monthly Expense</span>
+                <span className="sm:hidden">Add Expense</span>
+              </Button>
+            </DialogTrigger>
+          </Dialog>
+          
+          <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                <Settings className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Manage Categories</span>
+                <span className="sm:hidden">Categories</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="mx-4 sm:mx-0 sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Manage Expense Categories</DialogTitle>
+                <DialogDescription>
+                  Add new categories or manage existing ones. Categories with existing expenses cannot be deleted.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                {/* Add new category */}
+                <div className="space-y-2">
+                  <Label htmlFor="newCategory">Add New Category</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="newCategory"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      placeholder="Enter category name"
+                    />
+                    <Button 
+                      onClick={() => {
+                        if (newCategory.trim()) {
+                          const categoryExists = expenseCategories.includes(newCategory.trim());
+                          if (categoryExists) {
+                            if (confirm(`Category "${newCategory.trim()}" already exists. Do you want to overwrite it?`)) {
+                              handleAddCategory(newCategory.trim(), true);
+                            }
+                          } else {
+                            handleAddCategory(newCategory.trim(), false);
+                          }
+                        }
+                      }}
+                      disabled={!newCategory.trim()}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Category list */}
+                <div className="space-y-2">
+                  <Label>Existing Categories</Label>
+                  <div className="max-h-60 overflow-y-auto border rounded-lg p-2 space-y-1">
+                    {expenseCategories.map((category) => (
+                      <div key={category} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
+                        <span className="font-medium">{category}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCategory(category)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCategoryDialogOpen(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="mx-4 sm:mx-0 sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingExpense ? 'Edit Monthly Expense' : 'Add Monthly Expense'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingExpense ? 'Update the monthly expense details' : 'Add a new monthly expense entry'}
+            </DialogDescription>
+          </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -436,7 +591,6 @@ export default function MonthlyExpensePage() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
 
       {/* Month/Year Selection */}
       <Card>
