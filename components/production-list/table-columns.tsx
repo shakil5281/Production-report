@@ -59,35 +59,18 @@ export const columns: ColumnDef<ProductionItem>[] = [
   },
   {
     accessorKey: 'quantities',
-    header: ({ table }) => {
-      const isMobileView = !table.getColumn('programCode')?.getIsVisible();
-      return isMobileView ? 'Total Qty' : 'Quantities';
-    },
-    cell: ({ row, table }) => {
-      const quantities = row.getValue('quantities') as any[];
+    header: 'Total Quantity',
+    cell: ({ row }) => {
       const totalQty = row.original.totalQty || 0;
       
-      // Check if we're on mobile by looking at column visibility
-      const isMobileView = !table.getColumn('programCode')?.getIsVisible();
-      
-      if (isMobileView) {
-        // Mobile view: show only total quantity
-        return (
-          <div className="font-medium text-left">
-            {totalQty?.toLocaleString() || 0}
-          </div>
-        );
-      }
-      
-      // Desktop view: show full quantity cell
+      // Desktop design: show only total quantity
       return (
-        <QuantityCell 
-          quantities={quantities || []} 
-          totalQty={totalQty} 
-        />
+        <div className="font-medium text-center">
+          {totalQty?.toLocaleString() || 0}
+        </div>
       );
     },
-    size: 300,
+    size: 120,
   },
   {
     accessorKey: 'price',

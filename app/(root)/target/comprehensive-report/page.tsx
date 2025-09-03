@@ -59,6 +59,9 @@ export default function ComprehensiveTargetReportPage() {
       const day = String(date.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
       
+      // Debug log to verify correct date formatting
+      console.log(`📅 Fetching comprehensive report for date: ${formattedDate} (Selected: ${date.toDateString()})`);
+      
       const response = await fetch(`/api/target/comprehensive-report?date=${formattedDate}`);
       
       if (!response.ok) {
@@ -66,17 +69,21 @@ export default function ComprehensiveTargetReportPage() {
       }
       
       const data: ComprehensiveReportResponse = await response.json();
+      // console.log('Comprehensive report API response:', data);
       
       if (data.success) {
         setReportData(data.data);
         setSummary(data.summary);
         setTimeSlotHeaders(data.timeSlotHeaders || []);
         setTimeSlotTotals(data.timeSlotTotals || {});
+        console.log('Set comprehensive report data:', data.data);
+        console.log('Time slot headers:', data.timeSlotHeaders);
       } else {
         throw new Error(data.error || 'Failed to fetch report data');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      console.error('Error fetching comprehensive report:', err);
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -117,7 +124,7 @@ export default function ComprehensiveTargetReportPage() {
         row.buyer,
         row.item,
         row.baseTarget,
-        row.hours,
+        row.totalHours,
         row.totalTargets,
         row.targetEntries,
         ...timeSlotHeaders.map(timeSlot => row.hourlyProduction[timeSlot] || 0),
@@ -255,7 +262,7 @@ export default function ComprehensiveTargetReportPage() {
                   <td>${row.buyer}</td>
                   <td>${row.item}</td>
                   <td>${(row.baseTarget || 0).toLocaleString()}</td>
-                  <td>${row.hours}h</td>
+                  <td>${row.totalHours}h</td>
                   <td>${(row.totalTargets || 0).toLocaleString()}</td>
                   <td>${row.targetEntries || 0}</td>
                   ${timeSlotHeaders.map(slot => `<td>${(row.hourlyProduction[slot] || 0).toLocaleString()}</td>`).join('')}
@@ -266,7 +273,7 @@ export default function ComprehensiveTargetReportPage() {
               <tr class="totals-row">
                 <td colspan="4">TOTALS</td>
                 <td>${(reportData.reduce((sum, row) => sum + (row.baseTarget || 0), 0)).toLocaleString()}</td>
-                <td>${reportData.reduce((sum, row) => sum + (row.hours || 0), 0)}h</td>
+                <td>${reportData.reduce((sum, row) => sum + (row.totalHours || 0), 0)}h</td>
                 <td>${(reportData.reduce((sum, row) => sum + (row.totalTargets || 0), 0)).toLocaleString()}</td>
                 <td>${reportData.reduce((sum, row) => sum + (row.targetEntries || 0), 0)}</td>
                 ${timeSlotHeaders.map(slot => `<td>${(timeSlotTotals[slot] || 0).toLocaleString()}</td>`).join('')}

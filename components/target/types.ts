@@ -7,7 +7,7 @@ export interface ComprehensiveTargetData {
   buyer: string;
   item: string;
   baseTarget: number; // Base target per hour
-  hours: number; // Total working hours
+  totalHours: number; // Total working hours
   totalTargets: number; // Base target * total hours
   hourlyProduction: Record<string, number>;
   totalProduction: number;

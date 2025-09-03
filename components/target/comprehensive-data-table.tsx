@@ -72,9 +72,9 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
         enableHiding: false,
       },
       {
-        accessorKey: 'hours',
+        accessorKey: 'totalHours',
         header: () => <div className="text-center">Hours</div>,
-        cell: ({ row }) => <div className="text-center">{row.original.hours}h</div>,
+        cell: ({ row }) => <div className="text-center">{(row.original.totalHours || 0)}h</div>,
         enableHiding: false,
       },
       {
@@ -144,13 +144,13 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
   });
 
   const totals = useMemo(() => {
-    const sumBaseTarget = data.reduce((sum, row) => sum + row.baseTarget, 0);
-    const sumHours = data.reduce((sum, row) => sum + row.hours, 0);
-    const sumTotalTargets = data.reduce((sum, row) => sum + row.totalTargets, 0);
-    const sumTotalProduction = data.reduce((sum, row) => sum + row.totalProduction, 0);
-    const sumTargetEntries = data.reduce((sum, row) => sum + row.targetEntries, 0);
+    const sumBaseTarget = data.reduce((sum, row) => sum + (row.baseTarget || 0), 0);
+    const sumHours = data.reduce((sum, row) => sum + (row.totalHours || 0), 0);
+    const sumTotalTargets = data.reduce((sum, row) => sum + (row.totalTargets || 0), 0);
+    const sumTotalProduction = data.reduce((sum, row) => sum + (row.totalProduction || 0), 0);
+    const sumTargetEntries = data.reduce((sum, row) => sum + (row.targetEntries || 0), 0);
     const avgAvg = data.length > 0
-      ? data.reduce((sum, row) => sum + row.averageProductionPerHour, 0) / data.length
+      ? data.reduce((sum, row) => sum + (row.averageProductionPerHour || 0), 0) / data.length
       : 0;
     return { sumBaseTarget, sumHours, sumTotalTargets, sumTotalProduction, sumTargetEntries, avgAvg };
   }, [data]);
@@ -215,13 +215,14 @@ export function ComprehensiveDataTable({ data, timeSlotHeaders, timeSlotTotals }
                   <TableCell className="text-center text-blue-800">{(totals.sumBaseTarget || 0).toLocaleString()}</TableCell>
                   <TableCell className="text-center text-blue-800">{totals.sumHours || 0}h</TableCell>
                   <TableCell className="text-center text-blue-800">{(totals.sumTotalTargets || 0).toLocaleString()}</TableCell>
-                  <TableCell className="text-center text-blue-800">{(totals.sumTargetEntries || 0).toLocaleString()}</TableCell>
+                  {/* <TableCell className="text-center text-blue-800">{(totals.sumTargetEntries || 0).toLocaleString()}</TableCell> */}
                   {timeSlotHeaders.map((slot) => (
                     <TableCell key={slot} className="text-center text-blue-800">
                       {(timeSlotTotals[slot] ?? 0).toLocaleString()}
                     </TableCell>
                   ))}
                   <TableCell className="text-center text-green-800">{(totals.sumTotalProduction || 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-center text-green-800">{(totals.avgAvg || 0).toFixed(0)}</TableCell>
                 </TableRow>
               </>
             ) : (

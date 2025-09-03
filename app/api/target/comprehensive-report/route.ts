@@ -10,8 +10,12 @@ interface ConsolidatedTarget {
   item: string;
   baseTarget: number;
   targets: any[];
-  hourlyProduction: Record<number, number>;
+  hourlyProduction: Record<string, number>;
   totalProduction: number;
+  averageProductionPerHour: number;
+  totalHours: number;
+  totalTargets: number;
+  targetEntries: number;
 }
 
 // GET comprehensive target report with all target details
@@ -33,13 +37,16 @@ export async function GET(request: NextRequest) {
     const endOfDay = new Date(formattedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Fetch targets for the specified date
+    // Fetch targets for the specified date with production list details
     const targets = await prisma.target.findMany({
       where: {
         date: {
           gte: startOfDay,
           lte: endOfDay
         }
+      },
+      include: {
+        productionList: true
       },
       orderBy: [
         { lineNo: 'asc' },
@@ -74,31 +81,38 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Get unique time slots from production entries
-    const timeSlots = new Set<number>();
-    productionEntries.forEach(entry => {
-      timeSlots.add(entry.hourIndex);
+    // Get unique time slots from targets in "inTime-outTime" format
+    const timeSlots = new Set<string>();
+    targets.forEach(target => {
+      if (target.inTime && target.outTime) {
+        timeSlots.add(`${target.inTime}-${target.outTime}`);
+      }
     });
 
-    const timeSlotHeaders = Array.from(timeSlots).sort((a, b) => a - b);
+    const timeSlotHeaders = Array.from(timeSlots).sort();
 
     // Group targets by line and style
     const targetGroups = new Map<string, ConsolidatedTarget>();
 
     targets.forEach(target => {
-      const groupKey = `${target.lineNo}-${target.styleNo}`;
+      // Group by Line + Style + baseTarget (not by time slot)
+      const groupKey = `${target.lineNo}-${target.styleNo}-${target.lineTarget}`;
       
       if (!targetGroups.has(groupKey)) {
         targetGroups.set(groupKey, {
           lineNo: target.lineNo,
           lineName: target.lineNo, // Use lineNo as lineName since we don't have line relation
           styleNo: target.styleNo,
-          buyer: '', // We don't have buyer info from Target model
-          item: '', // We don't have item info from Target model
+          buyer: target.productionList?.buyer || '',
+          item: target.productionList?.item || '',
           baseTarget: target.lineTarget,
           targets: [],
           hourlyProduction: {},
-          totalProduction: 0
+          totalProduction: 0,
+          averageProductionPerHour: 0,
+          totalHours: 0,
+          totalTargets: 0,
+          targetEntries: 0
         });
       }
 
@@ -111,44 +125,68 @@ export async function GET(request: NextRequest) {
     
     for (const [groupKey, group] of targetGroups) {
       // Calculate hourly production for this consolidated group
-      const hourlyProduction: Record<number, number> = {};
+      const hourlyProduction: Record<string, number> = {};
       let totalProduction = 0;
 
       // Sum production from all targets in this group
       group.targets.forEach(target => {
-        // Find production entries by matching line and style codes
-        const targetProductionEntries = productionEntries.filter(entry => {
-          const line = entry.line;
-          const style = entry.style;
-          return line && style && 
-                 line.code === target.lineNo && 
-                 style.styleNumber === target.styleNo;
-        });
-
-        targetProductionEntries.forEach(entry => {
-          const hour = entry.hourIndex;
-          hourlyProduction[hour] = (hourlyProduction[hour] || 0) + entry.outputQty;
-          totalProduction += entry.outputQty;
-        });
+        // Use the hourlyProduction directly from the target
+        if (target.hourlyProduction) {
+          totalProduction += target.hourlyProduction;
+        }
+        
+        // Use time slot format for hourly production - each time slot gets its own column
+        if (target.inTime && target.outTime) {
+          const timeSlot = `${target.inTime}-${target.outTime}`;
+          hourlyProduction[timeSlot] = (hourlyProduction[timeSlot] || 0) + (target.hourlyProduction || 0);
+        }
       });
+
+      // Calculate total hours as the number of unique time slots
+      const uniqueTimeSlots = new Set<string>();
+      group.targets.forEach(target => {
+        if (target.inTime && target.outTime) {
+          const timeSlot = `${target.inTime}-${target.outTime}`;
+          uniqueTimeSlots.add(timeSlot);
+        }
+      });
+      const totalHours = uniqueTimeSlots.size;
+      
+      // Calculate average production per hour
+      const averageProductionPerHour = totalHours > 0 ? totalProduction / totalHours : 0;
+
+      // Calculate total targets as baseTarget * totalHours
+      const totalTargets = group.baseTarget * totalHours;
 
       group.hourlyProduction = hourlyProduction;
       group.totalProduction = totalProduction;
+      group.averageProductionPerHour = averageProductionPerHour;
+      group.totalHours = totalHours;
+      group.totalTargets = totalTargets;
+      group.targetEntries = group.targets.length;
       reportData.push(group);
     }
 
     // Calculate summary
+    const totalProduction = reportData.reduce((sum, item) => sum + item.totalProduction, 0);
+    const totalHours = reportData.reduce((sum, item) => sum + item.totalHours, 0);
+    const averageProductionPerHour = totalHours > 0 ? totalProduction / totalHours : 0;
+    
     const summary = {
       totalLines: new Set(reportData.map(item => item.lineNo)).size,
       totalTarget: reportData.reduce((sum, item) => sum + item.baseTarget, 0),
-      totalProduction: reportData.reduce((sum, item) => sum + item.totalProduction, 0)
+      totalProduction,
+      averageProductionPerHour,
+      totalConsolidatedEntries: reportData.length,
+      totalOriginalEntries: reportData.reduce((sum, item) => sum + item.targetEntries, 0),
+      date: formattedDate
     };
 
     // Calculate time slot totals
-    const timeSlotTotals: Record<number, number> = {};
-    timeSlotHeaders.forEach(hour => {
-      timeSlotTotals[hour] = reportData.reduce((sum, item) => 
-        sum + (item.hourlyProduction[hour] || 0), 0
+    const timeSlotTotals: Record<string, number> = {};
+    timeSlotHeaders.forEach(timeSlot => {
+      timeSlotTotals[timeSlot] = reportData.reduce((sum, item) => 
+        sum + (item.hourlyProduction[timeSlot] || 0), 0
       );
     });
 

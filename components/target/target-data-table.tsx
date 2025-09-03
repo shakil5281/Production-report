@@ -12,6 +12,7 @@ import {
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { IconChevronLeft, IconChevronRight, IconCalendar, IconTrash } from '@tabler/icons-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -70,9 +71,25 @@ export function TargetDataTable({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+  
+  // Filter states
+  const [lineFilter, setLineFilter] = useState<string>('');
+  const [inTimeFilter, setInTimeFilter] = useState<string>('');
+  const [outTimeFilter, setOutTimeFilter] = useState<string>('');
+
+  // Filter data based on filters
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      const matchesLine = !lineFilter || item.lineNo.toLowerCase().includes(lineFilter.toLowerCase());
+      const matchesInTime = !inTimeFilter || item.inTime.includes(inTimeFilter);
+      const matchesOutTime = !outTimeFilter || item.outTime.includes(outTimeFilter);
+      
+      return matchesLine && matchesInTime && matchesOutTime;
+    });
+  }, [data, lineFilter, inTimeFilter, outTimeFilter]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
@@ -142,6 +159,54 @@ export function TargetDataTable({
             </PopoverContent>
           </Popover>
         </div>
+        
+        {/* Line No Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Line No:</span>
+          <Input
+            placeholder="Filter by line..."
+            value={lineFilter}
+            onChange={(e) => setLineFilter(e.target.value)}
+            className="w-[120px]"
+          />
+        </div>
+        
+        {/* In Time Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">In Time:</span>
+          <Input
+            placeholder="Filter by in time..."
+            value={inTimeFilter}
+            onChange={(e) => setInTimeFilter(e.target.value)}
+            className="w-[120px]"
+          />
+        </div>
+        
+        {/* Out Time Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Out Time:</span>
+          <Input
+            placeholder="Filter by out time..."
+            value={outTimeFilter}
+            onChange={(e) => setOutTimeFilter(e.target.value)}
+            className="w-[120px]"
+          />
+        </div>
+        
+        {/* Clear Filters Button */}
+        {(lineFilter || inTimeFilter || outTimeFilter) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setLineFilter('');
+              setInTimeFilter('');
+              setOutTimeFilter('');
+            }}
+          >
+            Clear Filters
+          </Button>
+        )}
         
         {/* Bulk Delete Button */}
         {table.getFilteredSelectedRowModel().rows.length > 0 && (

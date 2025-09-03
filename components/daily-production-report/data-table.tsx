@@ -428,16 +428,25 @@ export function DataTable({
                 <div className="text-2xl font-bold text-purple-600">
                   ${(() => {
                     let total = 0;
+                    let count = 0;
                     // Add totals from line reports
                     Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
-                      total += lineReports.reduce((sum, report) => sum + Number(report.unitPrice || 0), 0);
+                      lineReports.forEach(report => {
+                        const unitPrice = typeof report.unitPrice === 'string' ? parseFloat(report.unitPrice) : (report.unitPrice || 0);
+                        total += unitPrice;
+                        count++;
+                      });
                     });
                     // Add totals from unassigned reports
-                    total += reportsWithoutLine.reduce((sum, report) => sum + Number(report.unitPrice || 0), 0);
-                    return total.toLocaleString();
+                    reportsWithoutLine.forEach(report => {
+                      const unitPrice = typeof report.unitPrice === 'string' ? parseFloat(report.unitPrice) : (report.unitPrice || 0);
+                      total += unitPrice;
+                      count++;
+                    });
+                    return count > 0 ? (total / count).toFixed(2) : '0.00';
                   })()}
                 </div>
-                <div className="text-sm font-medium text-purple-700">Total UNIT PRICE</div>
+                <div className="text-sm font-medium text-purple-700">Average UNIT PRICE</div>
               </div>
               
               <div className="space-y-2">
@@ -446,10 +455,16 @@ export function DataTable({
                     let total = 0;
                     // Add totals from line reports
                     Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
-                      total += lineReports.reduce((sum, report) => sum + Number(report.totalAmount || 0), 0);
+                      lineReports.forEach(report => {
+                        const totalAmount = typeof report.totalAmount === 'string' ? parseFloat(report.totalAmount) : (report.totalAmount || 0);
+                        total += totalAmount;
+                      });
                     });
                     // Add totals from unassigned reports
-                    total += reportsWithoutLine.reduce((sum, report) => sum + Number(report.totalAmount || 0), 0);
+                    reportsWithoutLine.forEach(report => {
+                      const totalAmount = typeof report.totalAmount === 'string' ? parseFloat(report.totalAmount) : (report.totalAmount || 0);
+                      total += totalAmount;
+                    });
                     return total.toLocaleString();
                   })()}
                 </div>
@@ -463,12 +478,18 @@ export function DataTable({
                     let count = 0;
                     // Add totals from line reports
                     Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
-                      total += lineReports.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0);
-                      count += lineReports.length;
+                      lineReports.forEach(report => {
+                        const percentage = typeof report.productionList?.percentage === 'string' ? parseFloat(report.productionList.percentage) : (report.productionList?.percentage || 0);
+                        total += percentage;
+                        count++;
+                      });
                     });
                     // Add totals from unassigned reports
-                    total += reportsWithoutLine.reduce((sum, report) => sum + Number(report.productionList?.percentage || 0), 0);
-                    count += reportsWithoutLine.length;
+                    reportsWithoutLine.forEach(report => {
+                      const percentage = typeof report.productionList?.percentage === 'string' ? parseFloat(report.productionList.percentage) : (report.productionList?.percentage || 0);
+                      total += percentage;
+                      count++;
+                    });
                     return count > 0 ? (total / count).toFixed(2) : '0.00';
                   })()}%
                 </div>
@@ -481,10 +502,16 @@ export function DataTable({
                     let total = 0;
                     // Add totals from line reports
                     Object.entries(reportsByLine).forEach(([lineNo, lineReports]) => {
-                      total += lineReports.reduce((sum, report) => sum + Number(report.netAmount || 0), 0);
+                      lineReports.forEach(report => {
+                        const netAmount = typeof report.netAmount === 'string' ? parseFloat(report.netAmount) : (report.netAmount || 0);
+                        total += netAmount;
+                      });
                     });
                     // Add totals from unassigned reports
-                    total += reportsWithoutLine.reduce((sum, report) => sum + Number(report.netAmount || 0), 0);
+                    reportsWithoutLine.forEach(report => {
+                      const netAmount = typeof report.netAmount === 'string' ? parseFloat(report.netAmount) : (report.netAmount || 0);
+                      total += netAmount;
+                    });
                     return total.toLocaleString();
                   })()}
                 </div>

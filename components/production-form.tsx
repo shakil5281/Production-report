@@ -106,7 +106,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
           {mode === 'create' ? (
             <>
               <IconPlus className="h-5 w-5" />
-              Add New Production Item
+              Create Production List
             </>
           ) : (
             <>
@@ -117,7 +117,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
         </CardTitle>
         <CardDescription>
           {mode === 'create' 
-            ? 'Create a new production item with all required details'
+            ? ''
             : 'Update the production item information'
           }
         </CardDescription>

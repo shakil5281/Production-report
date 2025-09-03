@@ -76,13 +76,15 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Fetch daily cash expenses for current month
-    const dailyCashExpenses = await prisma.expense.findMany({
+    // Fetch daily cash expenses for current month from cashbook entries
+    const dailyCashExpenses = await prisma.cashbookEntry.findMany({
       where: {
         date: {
           gte: startOfMonthDate,
           lte: endOfMonthDate
-        }
+        },
+        type: 'DEBIT',
+        category: 'Daily Expense'
       },
       select: {
         amount: true,

@@ -117,7 +117,7 @@ export default function ProductionListPage() {
           </p>
         </div>
 
-        {/* Add Item Button */}
+        {/* Create Production List Button */}
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetTrigger asChild>
             <Button className="flex items-center gap-2 w-full sm:w-auto">
@@ -126,11 +126,8 @@ export default function ProductionListPage() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-full sm:w-[600px] max-w-full overflow-x-scroll">
-            <SheetHeader>
-              <SheetTitle>Add New Production Item</SheetTitle>
-              <SheetDescription>
-                Create a new production item with all required details
-              </SheetDescription>
+            <SheetHeader className='hidden'>
+              <SheetTitle>Create Production List</SheetTitle>
             </SheetHeader>
               <div className="mt-6">
                 <ProductionForm
