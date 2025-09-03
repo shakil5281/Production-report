@@ -97,7 +97,8 @@ export async function GET(request: NextRequest) {
       select: {
         styleNo: true,
         buyer: true,
-        item: true
+        item: true,
+        percentage: true
       }
     });
 

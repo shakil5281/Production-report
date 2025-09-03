@@ -250,6 +250,11 @@ export const data = {
           url: "/admin/backup",
           roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
         },
+        {
+          title: "Database Import/Export",
+          url: "/admin/database-import-export",
+          roles: ["SUPER_ADMIN"], // MANAGE_SYSTEM permission
+        },
       ],
     },
   ],

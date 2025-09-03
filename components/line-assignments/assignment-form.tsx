@@ -88,18 +88,15 @@ export function AssignmentForm({ lines, productionItems, onSubmit, onCancel, loa
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <form onSubmit={handleSubmit} className="space-y-6 pb-24 sm:pb-6">
           {/* Line Selection Card */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">Production Line Selection</CardTitle>
-              <CardDescription className="text-sm">
-                Choose which production line to assign the style to
-              </CardDescription>
+          <Card className="border-none shadow-none p-0">
+            <CardHeader className="pb-3 hidden">
+
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="line" className="text-sm font-medium">Production Line *</Label>
                 <Select value={formData.lineId} onValueChange={(value) => handleInputChange('lineId', value)}>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-10 w-full">
                     <SelectValue placeholder="Select a production line" />
                   </SelectTrigger>
                   <SelectContent>
@@ -126,18 +123,15 @@ export function AssignmentForm({ lines, productionItems, onSubmit, onCancel, loa
           </Card>
 
           {/* Style Selection Card */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">Production Style Selection</CardTitle>
-              <CardDescription className="text-sm">
-                Choose from running production styles available for assignment
-              </CardDescription>
+          <Card className="border-none shadow-none p-0">
+            <CardHeader className="pb-3 hidden">
+
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="style" className="text-sm font-medium">Running Production Style *</Label>
                 <Select value={formData.styleNo} onValueChange={handleStyleSelect}>
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-10 w-full">
                     <SelectValue placeholder="Select a running production style" />
                   </SelectTrigger>
                   <SelectContent>
@@ -158,7 +152,7 @@ export function AssignmentForm({ lines, productionItems, onSubmit, onCancel, loa
 
           {/* Selected Production Item Details */}
           {selectedProductionItem && (
-            <Card className="shadow-sm border-primary/20 bg-primary/5">
+            <Card className="border-none shadow-none p-0 border-primary/20 bg-primary/5 hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold text-primary">Selected Style Details</CardTitle>
                 <CardDescription className="text-sm">
@@ -235,12 +229,9 @@ export function AssignmentForm({ lines, productionItems, onSubmit, onCancel, loa
           )}
 
           {/* Target Configuration Card */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">Target Configuration</CardTitle>
-              <CardDescription className="text-sm">
-                Set production targets for this line assignment (optional)
-              </CardDescription>
+          <Card className="border-none shadow-none p-0">
+            <CardHeader className="pb-3 hidden">
+
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">

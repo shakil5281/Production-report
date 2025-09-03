@@ -1,510 +1,506 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Database,
-  Activity,
-  BarChart3,
-  RefreshCw,
-  Download,
-  Upload,
-  Trash2,
-  Settings,
-  AlertTriangle,
-  CheckCircle,
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Database, 
+  Activity, 
+  Trash2, 
+  RefreshCw, 
+  AlertCircle, 
+  CheckCircle, 
   Clock,
   HardDrive,
-  Server,
-  Zap,
-  Play,
-  Square,
-  PieChart,
+  Users,
+  Building,
+  TrendingUp,
+  FileText,
+  DollarSign,
+  Calendar
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 
-interface DatabaseStats {
-  status: 'connected' | 'disconnected' | 'error';
-  type: string;
-  version: string;
-  size: string;
-  connections: {
-    active: number;
-    max: number;
+interface DatabaseStatus {
+  status: {
+    connected: boolean;
+    message: string;
   };
-  performance: {
-    queriesPerSecond: number;
-    avgResponseTime: number;
-    cacheHitRatio: number;
+  statistics: {
+    users: number;
+    factories: number;
+    lines: number;
+    styles: number;
+    productionList: number;
+    targets: number;
+    dailyProductionReports: number;
+    productionEntries: number;
+    expenseCategories: number;
+    expenses: number;
+    salaryEntries: number;
+    cashbookEntries: number;
+    dailySalaries: number;
+    monthlyExpenses: number;
+    monthlyAttendanceReports: number;
+    overtimeRecords: number;
+    userPermissions: number;
+    totalRecords: number;
   };
-  storage: {
-    used: number;
-    available: number;
-    total: number;
+  timestamp: string;
+}
+
+interface CleanupResult {
+  success: boolean;
+  message: string;
+  results: {
+    cleaned: number;
+    errors: number;
+    details: Record<string, any>;
   };
 }
 
-interface TableInfo {
-  name: string;
-  rows: number;
-  size: string;
-  lastUpdated: string;
-  status: 'healthy' | 'warning' | 'error';
-}
+export default function DatabaseManagementPage() {
+  const [status, setStatus] = useState<DatabaseStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
+  const [cleanupOptions, setCleanupOptions] = useState({
+    type: 'all',
+    olderThanDays: 365,
+    dryRun: true
+  });
 
-const mockDatabaseStats: DatabaseStats = {
-  status: 'connected',
-  type: 'PostgreSQL',
-  version: '15.3',
-  size: '15.2 MB',
-  connections: {
-    active: 12,
-    max: 100,
-  },
-  performance: {
-    queriesPerSecond: 45,
-    avgResponseTime: 23,
-    cacheHitRatio: 94.5,
-  },
-  storage: {
-    used: 15.2,
-    available: 484.8,
-    total: 500,
-  },
-};
+  useEffect(() => {
+    fetchDatabaseStatus();
+  }, []);
 
-const mockTables: TableInfo[] = [
-  { name: 'users', rows: 8, size: '2.1 MB', lastUpdated: '2 hours ago', status: 'healthy' },
-  { name: 'permissions', rows: 39, size: '1.8 MB', lastUpdated: '1 day ago', status: 'healthy' },
-  { name: 'user_permissions', rows: 116, size: '3.2 MB', lastUpdated: '2 hours ago', status: 'healthy' },
-  { name: 'production_entries', rows: 234, size: '4.5 MB', lastUpdated: '5 minutes ago', status: 'healthy' },
-  { name: 'cashbook_entries', rows: 156, size: '2.8 MB', lastUpdated: '30 minutes ago', status: 'healthy' },
-  { name: 'targets', rows: 89, size: '1.2 MB', lastUpdated: '1 hour ago', status: 'healthy' },
-  { name: 'lines', rows: 12, size: '0.5 MB', lastUpdated: '3 hours ago', status: 'healthy' },
-  { name: 'expenses', rows: 98, size: '1.1 MB', lastUpdated: '45 minutes ago', status: 'healthy' },
-];
-
-export default function DatabaseManagerPage() {
-  const [stats, setStats] = useState<DatabaseStats>(mockDatabaseStats);
-  const [tables, setTables] = useState<TableInfo[]>(mockTables);
-  const [loading, setLoading] = useState(false);
-  const [optimizing, setOptimizing] = useState(false);
-
-  const refreshStats = async () => {
-    setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setLoading(false);
-    toast.success('Database stats refreshed');
-  };
-
-  const optimizeDatabase = async () => {
-    setOptimizing(true);
-    // Simulate optimization
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setOptimizing(false);
-    toast.success('Database optimization completed');
-  };
-
-  const testConnection = async () => {
+  const fetchDatabaseStatus = async () => {
     try {
-      const response = await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ action: 'test_database' }),
-      });
-
+      setIsRefreshing(true);
+      const response = await fetch('/api/database/status');
       if (response.ok) {
         const data = await response.json();
-        toast.success(`Database connection successful (${data.connectionTime || '45ms'})`);
+        if (data.success) {
+          setStatus(data.data);
+        }
       } else {
-        throw new Error('Connection test failed');
+        toast.error('Failed to fetch database status');
       }
     } catch (error) {
-      toast.error('Database connection test failed');
+      console.error('Error fetching database status:', error);
+      toast.error('Failed to fetch database status');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'connected':
-      case 'healthy':
-        return 'text-green-600';
-      case 'warning':
-        return 'text-yellow-600';
-      case 'error':
-      case 'disconnected':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
+  const handleCleanup = async () => {
+    try {
+      setIsCleaning(true);
+      setCleanupResult(null);
+
+      const response = await fetch('/api/database/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanupOptions)
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Cleanup failed');
+      }
+
+      setCleanupResult(result);
+      
+      if (result.success) {
+        toast.success(result.message);
+        // Refresh status after cleanup
+        fetchDatabaseStatus();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error);
+      toast.error(error instanceof Error ? error.message : 'Cleanup failed');
+    } finally {
+      setIsCleaning(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'connected':
-      case 'healthy':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'warning':
-        return <AlertTriangle className="w-4 h-4" />;
-      case 'error':
-      case 'disconnected':
-        return <AlertTriangle className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
+  const getStatusIcon = (connected: boolean) => {
+    return connected ? (
+      <CheckCircle className="h-5 w-5 text-green-600" />
+    ) : (
+      <AlertCircle className="h-5 w-5 text-red-600" />
+    );
   };
+
+  const getStatusColor = (connected: boolean) => {
+    return connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Database Manager</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Monitor database performance, manage tables, and maintain data integrity
+          <h1 className="text-3xl font-bold tracking-tight">Database Management</h1>
+          <p className="text-muted-foreground">
+            Monitor database health, statistics, and perform maintenance operations
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={testConnection}>
-            <Activity className="w-4 h-4 mr-2" />
-            Test Connection
-          </Button>
-          <Button variant="outline" onClick={refreshStats} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <Button
+            variant="outline"
+            onClick={fetchDatabaseStatus}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
             Refresh
           </Button>
+          <Database className="h-8 w-8 text-primary" />
         </div>
       </div>
 
-      {/* Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Database Status */}
+      {status && (
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${stats.status === 'connected' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                <Database className={`w-5 h-5 ${getStatusColor(stats.status)}`} />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Database Status
+            </CardTitle>
+            <CardDescription>
+              Last updated: {new Date(status.timestamp).toLocaleString()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {getStatusIcon(status.status.connected)}
+                <span className="font-medium">Connection Status</span>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <div className="flex items-center gap-1">
-                  {getStatusIcon(stats.status)}
-                  <span className={`font-semibold capitalize ${getStatusColor(stats.status)}`}>
-                    {stats.status}
-                  </span>
+              <Badge className={getStatusColor(status.status.connected)}>
+                {status.status.connected ? 'Connected' : 'Disconnected'}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              {status.status.message}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Database Statistics */}
+      {status && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Records</CardTitle>
+              <HardDrive className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{status.statistics.totalRecords.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                Across all tables
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{status.statistics.users}</div>
+              <p className="text-xs text-muted-foreground">
+                Active user accounts
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Production Data</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {(status.statistics.dailyProductionReports + status.statistics.productionEntries).toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Production records
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Financial Data</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {(status.statistics.expenses + status.statistics.cashbookEntries + status.statistics.monthlyExpenses).toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Financial records
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Detailed Statistics */}
+      {status && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Detailed Statistics</CardTitle>
+            <CardDescription>
+              Record counts by table
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Users</span>
+                  <Badge variant="secondary">{status.statistics.users}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Factories</span>
+                  <Badge variant="secondary">{status.statistics.factories}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Lines</span>
+                  <Badge variant="secondary">{status.statistics.lines}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Styles</span>
+                  <Badge variant="secondary">{status.statistics.styles}</Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Production List</span>
+                  <Badge variant="secondary">{status.statistics.productionList}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Targets</span>
+                  <Badge variant="secondary">{status.statistics.targets}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Daily Reports</span>
+                  <Badge variant="secondary">{status.statistics.dailyProductionReports}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Production Entries</span>
+                  <Badge variant="secondary">{status.statistics.productionEntries}</Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Expenses</span>
+                  <Badge variant="secondary">{status.statistics.expenses}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Cashbook Entries</span>
+                  <Badge variant="secondary">{status.statistics.cashbookEntries}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Monthly Expenses</span>
+                  <Badge variant="secondary">{status.statistics.monthlyExpenses}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Daily Salaries</span>
+                  <Badge variant="secondary">{status.statistics.dailySalaries}</Badge>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
+      )}
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <HardDrive className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Database Size</p>
-                <p className="text-xl font-bold">{stats.size}</p>
-                <p className="text-xs text-muted-foreground">{stats.type} {stats.version}</p>
-              </div>
+      {/* Database Cleanup */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Database Cleanup
+          </CardTitle>
+          <CardDescription>
+            Remove old data, duplicates, and orphaned records to optimize database performance
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Cleanup Type</Label>
+              <Select
+                value={cleanupOptions.type}
+                onValueChange={(value) => setCleanupOptions(prev => ({ ...prev, type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cleanup</SelectItem>
+                  <SelectItem value="old_data">Old Data Only</SelectItem>
+                  <SelectItem value="duplicates">Duplicates Only</SelectItem>
+                  <SelectItem value="orphaned">Orphaned Records Only</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-500/10 rounded-lg">
-                <Server className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Connections</p>
-                <p className="text-xl font-bold">{stats.connections.active}/{stats.connections.max}</p>
-                <Progress 
-                  value={(stats.connections.active / stats.connections.max) * 100} 
-                  className="w-full h-1 mt-1"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Older Than (Days)</Label>
+              <Input
+                type="number"
+                value={cleanupOptions.olderThanDays}
+                onChange={(e) => setCleanupOptions(prev => ({ 
+                  ...prev, 
+                  olderThanDays: parseInt(e.target.value) || 365 
+                }))}
+                min="1"
+                max="3650"
+              />
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-500/10 rounded-lg">
-                <Zap className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Performance</p>
-                <p className="text-xl font-bold">{stats.performance.queriesPerSecond}/s</p>
-                <p className="text-xs text-muted-foreground">{stats.performance.avgResponseTime}ms avg</p>
-              </div>
+            <div className="space-y-2">
+              <Label>Mode</Label>
+              <Select
+                value={cleanupOptions.dryRun ? 'dry' : 'live'}
+                onValueChange={(value) => setCleanupOptions(prev => ({ 
+                  ...prev, 
+                  dryRun: value === 'dry' 
+                }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dry">Dry Run (Preview)</SelectItem>
+                  <SelectItem value="live">Live Cleanup</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="tables">Tables</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Storage Usage</CardTitle>
-                <CardDescription>Database storage allocation and usage</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Used Space</span>
-                    <span className="text-sm font-medium">{stats.storage.used} MB</span>
-                  </div>
-                  <Progress value={(stats.storage.used / stats.storage.total) * 100} />
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{stats.storage.available} MB available</span>
-                    <span>{stats.storage.total} MB total</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
-                <CardDescription>Real-time database performance indicators</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Queries/Second</span>
-                    <span className="text-sm font-medium">{stats.performance.queriesPerSecond}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Avg Response Time</span>
-                    <span className="text-sm font-medium">{stats.performance.avgResponseTime}ms</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Cache Hit Ratio</span>
-                    <span className="text-sm font-medium">{stats.performance.cacheHitRatio}%</span>
-                  </div>
-                  <Progress value={stats.performance.cacheHitRatio} />
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common database management tasks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
-                  <Activity className="w-6 h-6" />
-                  <span className="text-sm">Health Check</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-auto p-4 flex flex-col items-center space-y-2"
-                  onClick={optimizeDatabase}
-                  disabled={optimizing}
-                >
-                  <Settings className="w-6 h-6" />
-                  <span className="text-sm">
-                    {optimizing ? 'Optimizing...' : 'Optimize'}
-                  </span>
-                </Button>
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
-                  <Download className="w-6 h-6" />
-                  <span className="text-sm">Export</span>
-                </Button>
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-center space-y-2">
-                  <BarChart3 className="w-6 h-6" />
-                  <span className="text-sm">Analytics</span>
-                </Button>
+          <Button
+            onClick={handleCleanup}
+            disabled={isCleaning}
+            variant={cleanupOptions.dryRun ? "outline" : "destructive"}
+            className="w-full"
+          >
+            {isCleaning ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Cleaning...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4 mr-2" />
+                {cleanupOptions.dryRun ? 'Preview Cleanup' : 'Execute Cleanup'}
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Cleanup Results */}
+      {cleanupResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {cleanupResult.success ? (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              )}
+              Cleanup Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert className={cleanupResult.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+              <AlertDescription>
+                {cleanupResult.message}
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-sm">Processed: {cleanupResult.results.cleaned}</span>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tables Tab */}
-        <TabsContent value="tables" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Database Tables ({tables.length})</CardTitle>
-              <CardDescription>Overview of all database tables and their status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[500px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Table Name</TableHead>
-                      <TableHead>Rows</TableHead>
-                      <TableHead>Size</TableHead>
-                      <TableHead>Last Updated</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tables.map((table) => (
-                      <TableRow key={table.name}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Database className="w-4 h-4" />
-                            <code className="text-sm">{table.name}</code>
-                          </div>
-                        </TableCell>
-                        <TableCell>{table.rows.toLocaleString()}</TableCell>
-                        <TableCell>{table.size}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {table.lastUpdated}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={`${getStatusColor(table.status)} border-current`} variant="outline">
-                            <span className="flex items-center gap-1">
-                              {getStatusIcon(table.status)}
-                              {table.status}
-                            </span>
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Button size="sm" variant="ghost">
-                              <Play className="w-3 h-3" />
-                            </Button>
-                            <Button size="sm" variant="ghost">
-                              <Settings className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Performance Tab */}
-        <TabsContent value="performance" className="space-y-6">
-          <Alert>
-            <BarChart3 className="h-4 w-4" />
-            <AlertDescription>
-              Performance monitoring charts and detailed metrics will be available in the next update.
-            </AlertDescription>
-          </Alert>
-        </TabsContent>
-
-        {/* Maintenance Tab */}
-        <TabsContent value="maintenance" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Database Maintenance</CardTitle>
-              <CardDescription>Perform maintenance tasks to keep the database healthy</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="h-auto p-4 flex flex-col items-start space-y-2"
-                  onClick={optimizeDatabase}
-                  disabled={optimizing}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Settings className="w-4 h-4" />
-                    <span className="font-medium">Optimize Database</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-left">
-                    {optimizing ? 'Optimizing tables and indexes...' : 'Improve query performance and reduce storage'}
-                  </p>
-                </Button>
-                
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-start space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Activity className="w-4 h-4" />
-                    <span className="font-medium">Analyze Tables</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-left">
-                    Update table statistics for better query optimization
-                  </p>
-                </Button>
-                
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-start space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Trash2 className="w-4 h-4" />
-                    <span className="font-medium">Clean Logs</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-left">
-                    Remove old log entries to free up space
-                  </p>
-                </Button>
-                
-                <Button variant="outline" className="h-auto p-4 flex flex-col items-start space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="font-medium">Integrity Check</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-left">
-                    Verify database consistency and repair issues
-                  </p>
-                </Button>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="text-sm">Errors: {cleanupResult.results.errors}</span>
               </div>
+            </div>
 
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="font-medium text-destructive">Danger Zone</h4>
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    These actions can affect system availability. Use with caution.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="flex gap-2">
-                  <Button variant="destructive" size="sm">
-                    Reset Statistics
-                  </Button>
-                  <Button variant="destructive" size="sm">
-                    Force Restart
-                  </Button>
-                </div>
+            {/* Detailed Results */}
+            <div className="space-y-2">
+              <Label>Cleanup Details</Label>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {Object.entries(cleanupResult.results.details).map(([key, details]: [string, any]) => (
+                  <div key={key} className="flex items-center justify-between p-2 border rounded">
+                    <span className="font-medium">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                    {details.error ? (
+                      <Badge variant="destructive" className="text-xs">
+                        Error: {details.error}
+                      </Badge>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          Found: {details.found || 0}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Deleted: {details.deleted || 0}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Warning */}
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Warning:</strong> Database cleanup operations can permanently delete data. 
+          Always backup your database before performing cleanup operations. 
+          Use "Dry Run" mode first to preview what will be cleaned.
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }

@@ -91,7 +91,7 @@ export function ProductionListDataTable({ statusFilter = 'all' }: ProductionList
                 <TableHead>Style No</TableHead>
                 <TableHead>Buyer</TableHead>
                 <TableHead>Item</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
+                <TableHead className="text-center">Total Quantity</TableHead>
                 <TableHead className="text-right">Price</TableHead>
                 <TableHead className="text-right">%</TableHead>
                 <TableHead>Status</TableHead>

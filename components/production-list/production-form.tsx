@@ -92,14 +92,14 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
   return (
     <div className="min-h-screen sm:h-full flex flex-col bg-background">
       {/* Header - Fixed */}
-      <div className="flex-shrink-0 border-b bg-card p-4 sm:p-6">
+      <div className="flex-shrink-0 border-b bg-card p-2">
         <div className="flex items-center gap-3 mb-3">
           {mode === 'create' ? (
             <>
               <div className="p-2 bg-primary/10 rounded-lg">
                 <IconPlus className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Add New Production Item</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Create Production List</h2>
             </>
           ) : (
             <>
@@ -112,7 +112,7 @@ export function ProductionForm({ item, onSubmit, onCancel, mode }: ProductionFor
         </div>
         <p className="text-sm text-muted-foreground ml-11">
           {mode === 'create' 
-            ? 'Create a new production item with all required details'
+            ? ''
             : 'Update the production item information'
           }
         </p>

@@ -211,15 +211,13 @@ export default function ProductionManagementPage() {
             <DialogTrigger asChild>
               <Button>
                 <IconPlus className="h-4 w-4 mr-2" />
-                Add Production Item
+                Create Production List
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Add New Production Item</DialogTitle>
-                <DialogDescription>
-                  Create a new production item with all required details
-                </DialogDescription>
+                <DialogTitle>Create Production List</DialogTitle>
+
               </DialogHeader>
               {/* Production form will be imported here */}
               <div className="p-4 border rounded-lg">

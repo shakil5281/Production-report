@@ -84,7 +84,7 @@ export function ComprehensiveReportTable({
                 {row.baseTarget.toLocaleString()}
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center text-gray-700 bg-blue-50">
-                {row.hours}h
+                {row.totalHours}h
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-semibold text-blue-700 bg-blue-50">
                 {(row.totalTargets || 0).toLocaleString()}
@@ -99,7 +99,7 @@ export function ComprehensiveReportTable({
               
               {/* Totals */}
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-green-700 bg-green-50">
-                {(row.totalProduction || 0).toLocaleString()}
+                {row.totalProduction.toLocaleString()}
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-semibold text-green-700 bg-green-50">
                 {row.averageProductionPerHour.toFixed(0)}
@@ -119,7 +119,7 @@ export function ComprehensiveReportTable({
                 {data.reduce((sum, row) => sum + row.baseTarget, 0).toLocaleString()}
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-blue-800 bg-blue-100">
-                {data.reduce((sum, row) => sum + row.hours, 0)}h
+                {data.reduce((sum, row) => sum + row.totalHours, 0)}h
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-blue-800 bg-blue-100">
                 {data.reduce((sum, row) => sum + (row.totalTargets || 0), 0).toLocaleString()}
@@ -134,7 +134,7 @@ export function ComprehensiveReportTable({
               
               {/* Total Totals */}
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-green-800 bg-green-200">
-                {data.reduce((sum, row) => sum + (row.totalProduction || 0), 0).toLocaleString()}
+                {data.reduce((sum, row) => sum + row.totalProduction, 0).toLocaleString()}
               </td>
               <td className="border border-gray-300 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-center font-bold text-green-800 bg-green-200">
                 {data.length > 0 
