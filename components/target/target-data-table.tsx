@@ -127,15 +127,15 @@ export function TargetDataTable({
 
   return (
     <div className="w-full">
-      <div className="flex items-center py-4 gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center py-4 gap-4 overflow-x-auto">
         <div className="flex items-center gap-2">
           <IconCalendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Filter by Date:</span>
+          <span className="text-sm font-medium hidden md:inline-block">Filter by Date:</span>
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-[200px] justify-start text-left font-normal"
+                className="w-full md:w-[200px] justify-start text-left font-normal"
               >
                 {selectedDate ? (
                   format(selectedDate, 'PPP')
@@ -161,35 +161,35 @@ export function TargetDataTable({
         </div>
         
         {/* Line No Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Line No:</span>
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-1 min-w-0 md:min-w-[120px] w-full">
+          <span className="text-sm font-medium hidden md:inline-block">Line No:</span>
           <Input
             placeholder="Filter by line..."
             value={lineFilter}
             onChange={(e) => setLineFilter(e.target.value)}
-            className="w-[120px]"
+            className="w-full md:w-[120px]"
           />
         </div>
         
         {/* In Time Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">In Time:</span>
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-1 min-w-0 md:min-w-[120px] w-full">
+          <span className="text-sm font-medium hidden md:inline-block">In Time:</span>
           <Input
             placeholder="Filter by in time..."
             value={inTimeFilter}
             onChange={(e) => setInTimeFilter(e.target.value)}
-            className="w-[120px]"
+            className="w-full md:w-[120px]"
           />
         </div>
         
         {/* Out Time Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Out Time:</span>
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-1 min-w-0 md:min-w-[120px] w-full">
+          <span className="text-sm font-medium hidden md:inline-block">Out Time:</span>
           <Input
             placeholder="Filter by out time..."
             value={outTimeFilter}
             onChange={(e) => setOutTimeFilter(e.target.value)}
-            className="w-[120px]"
+            className="w-full md:w-[120px]"
           />
         </div>
         
@@ -198,6 +198,7 @@ export function TargetDataTable({
           <Button
             variant="outline"
             size="sm"
+            className="w-full md:w-auto"
             onClick={() => {
               setLineFilter('');
               setInTimeFilter('');
