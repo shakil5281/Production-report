@@ -18,7 +18,6 @@ import {
 interface SummaryCardsProps {
   data: {
     production: any;
-    target: any;
     cashbook: any;
     cutting: any;
     overview: any;
@@ -49,12 +48,11 @@ export function SummaryCards({ data }: SummaryCardsProps) {
     );
   }
 
-  let production, target, cashbook, cutting, overview;
+  let production, cashbook, cutting, overview;
   
   try {
     ({ 
       production = {}, 
-      target = {}, 
       cashbook = {}, 
       cutting = {}, 
       overview = {} 
@@ -129,14 +127,6 @@ export function SummaryCards({ data }: SummaryCardsProps) {
           <p className="text-xs text-muted-foreground">
             {overview?.totalProduction || 0} / {overview?.totalTarget || 0} units
           </p>
-          {target?.targetVsActual && (
-            <div className="mt-2 flex items-center gap-2">
-              {getTrendIcon(target.targetVsActual.variance)}
-              <span className={`text-xs ${getTrendColor(target.targetVsActual.variance)}`}>
-                {target.targetVsActual.variance > 0 ? '+' : ''}{target.targetVsActual.variance} units
-              </span>
-            </div>
-          )}
         </CardContent>
       </Card>
 

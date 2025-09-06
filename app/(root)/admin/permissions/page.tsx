@@ -292,12 +292,8 @@ export default function PermissionsPage() {
           <UserPermissionsDataTable
             data={users}
             loading={loading}
-            roleFilter={selectedRole}
-            statusFilter={statusFilter}
             onView={handleViewUser}
             onEdit={handleEditUser}
-            onRoleFilterChange={setSelectedRole}
-            onStatusFilterChange={setStatusFilter}
           />
         </CardContent>
       </Card>

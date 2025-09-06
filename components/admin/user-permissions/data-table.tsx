@@ -38,27 +38,20 @@ import { getRoleDisplayName } from './schema';
 import type { UserPermissionData } from './schema';
 import { MobileResponsivePagination } from '@/components/ui/mobile-responsive-pagination';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { UniversalFilterSheet, FilterField, UniversalFilterState } from '@/components/ui/universal-filter-sheet';
 
 interface UserPermissionsDataTableProps {
   data: UserPermissionData[];
   loading?: boolean;
-  roleFilter?: UserRole | 'all';
-  statusFilter?: 'all' | 'active' | 'inactive';
   onView: (user: UserPermissionData) => void;
   onEdit: (user: UserPermissionData) => void;
-  onRoleFilterChange?: (role: UserRole | 'all') => void;
-  onStatusFilterChange?: (status: 'all' | 'active' | 'inactive') => void;
 }
 
 export function UserPermissionsDataTable({ 
   data, 
   loading = false,
-  roleFilter = 'all',
-  statusFilter = 'all',
   onView, 
-  onEdit,
-  onRoleFilterChange,
-  onStatusFilterChange
+  onEdit
 }: UserPermissionsDataTableProps) {
   const isMobile = useIsMobile();
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -66,23 +59,65 @@ export function UserPermissionsDataTable({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
+  const [filters, setFilters] = useState<UniversalFilterState>({
+    role: 'all',
+    status: 'all'
+  });
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
+  // Filter fields configuration
+  const filterFields: FilterField[] = [
+    {
+      key: 'role',
+      label: 'Role',
+      type: 'select',
+      options: [
+        { value: 'SUPER_ADMIN', label: 'Super Admin' },
+        { value: 'ADMIN', label: 'Admin' },
+        { value: 'MANAGER', label: 'Manager' },
+        { value: 'USER', label: 'User' }
+      ]
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' }
+      ]
+    }
+  ];
 
   // Filter data based on role and status
   const filteredData = useMemo(() => {
     let filtered = data;
     
-    if (roleFilter !== 'all') {
-      filtered = filtered.filter(user => user.role === roleFilter);
+    if (filters.role !== 'all') {
+      filtered = filtered.filter(user => user.role === filters.role);
     }
     
-    if (statusFilter !== 'all') {
+    if (filters.status !== 'all') {
       filtered = filtered.filter(user => 
-        statusFilter === 'active' ? user.isActive : !user.isActive
+        filters.status === 'active' ? user.isActive : !user.isActive
       );
     }
     
     return filtered;
-  }, [data, roleFilter, statusFilter]);
+  }, [data, filters]);
+
+  // Filter handlers
+  const handleFiltersChange = (newFilters: UniversalFilterState) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters: UniversalFilterState = {
+      role: 'all',
+      status: 'all'
+    };
+    setFilters(clearedFilters);
+  };
 
   const table = useReactTable({
     data: filteredData,
@@ -142,32 +177,17 @@ export function UserPermissionsDataTable({
           </div>
         </div>
 
-        {/* Role Filter */}
-        <Select value={roleFilter} onValueChange={(value) => onRoleFilterChange?.(value as UserRole | 'all')}>
-          <SelectTrigger className="min-w-[160px]">
-            <SelectValue placeholder="Filter by role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            {Object.values(UserRole).map(role => (
-              <SelectItem key={role} value={role}>
-                {getRoleDisplayName(role)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Status Filter */}
-        <Select value={statusFilter} onValueChange={(value) => onStatusFilterChange?.(value as 'all' | 'active' | 'inactive')}>
-          <SelectTrigger className="min-w-[120px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Universal Filter Sheet */}
+        <UniversalFilterSheet
+          open={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onClearFilters={handleClearFilters}
+          fields={filterFields}
+          title="Filter Users"
+          description="Use the filters below to narrow down your users"
+        />
 
         {/* Column Visibility */}
         <DropdownMenu>
@@ -207,8 +227,8 @@ export function UserPermissionsDataTable({
         <IconUsersGroup className="w-4 h-4" />
         <span>
           Showing {table.getFilteredRowModel().rows.length} of {data.length} users
-          {roleFilter !== 'all' && ` with role ${getRoleDisplayName(roleFilter)}`}
-          {statusFilter !== 'all' && ` (${statusFilter})`}
+          {filters.role !== 'all' && ` with role ${getRoleDisplayName(filters.role as UserRole)}`}
+          {filters.status !== 'all' && ` (${filters.status})`}
         </span>
       </div>
 

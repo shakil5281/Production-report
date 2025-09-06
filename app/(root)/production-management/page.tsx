@@ -31,6 +31,7 @@ import {
   IconPackage,
   IconCurrencyDollar
 } from '@tabler/icons-react';
+import { UniversalFilterSheet, FilterField, UniversalFilterState } from '@/components/ui/universal-filter-sheet';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -72,7 +73,7 @@ export default function ProductionManagementPage() {
   const [stats, setStats] = useState<ProductionStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
-  const [filters, setFilters] = useState<Filters>({
+  const [filters, setFilters] = useState<UniversalFilterState>({
     status: 'all',
     search: '',
     buyer: '',
@@ -90,6 +91,44 @@ export default function ProductionManagementPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
+  // Filter fields configuration
+  const filterFields: FilterField[] = [
+    {
+      key: 'search',
+      label: 'Search',
+      type: 'text',
+      placeholder: 'Search by code, style, buyer...'
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'PENDING', label: 'Pending' },
+        { value: 'RUNNING', label: 'Running' },
+        { value: 'COMPLETE', label: 'Complete' },
+        { value: 'CANCELLED', label: 'Cancelled' }
+      ]
+    },
+    {
+      key: 'buyer',
+      label: 'Buyer',
+      type: 'text',
+      placeholder: 'Filter by buyer...'
+    },
+    {
+      key: 'dateFrom',
+      label: 'Date From',
+      type: 'date'
+    },
+    {
+      key: 'dateTo',
+      label: 'Date To',
+      type: 'date'
+    }
+  ];
 
   // Fetch production items
   const fetchItems = useCallback(async () => {
@@ -157,8 +196,25 @@ export default function ProductionManagementPage() {
   }, [fetchStats]);
 
   // Handle filter changes
-  const handleFilterChange = (key: keyof Filters, value: string) => {
+  const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page
+  };
+
+  const handleFiltersChange = (newFilters: UniversalFilterState) => {
+    setFilters(newFilters);
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters: UniversalFilterState = {
+      status: 'all',
+      search: '',
+      buyer: '',
+      dateFrom: '',
+      dateTo: ''
+    };
+    setFilters(clearedFilters);
     setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page
   };
 
@@ -303,130 +359,6 @@ export default function ProductionManagementPage() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Filters</CardTitle>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <IconFilter className="h-4 w-4 mr-2" />
-              {showFilters ? 'Hide' : 'Show'} Filters
-            </Button>
-          </div>
-        </CardHeader>
-        {showFilters && (
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="search">Search</Label>
-                <div className="relative">
-                  <IconSearch className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Search by code, style, buyer..."
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select 
-                  value={filters.status} 
-                  onValueChange={(value) => handleFilterChange('status', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="RUNNING">Running</SelectItem>
-                    <SelectItem value="COMPLETE">Complete</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="buyer">Buyer</Label>
-                <Input
-                  id="buyer"
-                  placeholder="Filter by buyer..."
-                  value={filters.buyer}
-                  onChange={(e) => handleFilterChange('buyer', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dateFrom">Date From</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <IconCalendar className="mr-2 h-4 w-4" />
-                      {filters.dateFrom ? format(new Date(filters.dateFrom + 'T00:00:00'), 'PPP') : 'Pick start date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={filters.dateFrom ? new Date(filters.dateFrom + 'T00:00:00') : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          handleFilterChange('dateFrom', date.toLocaleDateString('en-CA'));
-                        }
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dateTo">Date To</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <IconCalendar className="mr-2 h-4 w-4" />
-                      {filters.dateTo ? format(new Date(filters.dateTo + 'T00:00:00'), 'PPP') : 'Pick end date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={filters.dateTo ? new Date(filters.dateTo + 'T00:00:00') : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          handleFilterChange('dateTo', date.toLocaleDateString('en-CA'));
-                        }
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="flex items-end space-x-2">
-                <Button onClick={resetFilters} variant="outline" className="flex-1">
-                  Reset Filters
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        )}
-      </Card>
 
       {/* Production Items Table */}
       <Card>
@@ -439,6 +371,16 @@ export default function ProductionManagementPage() {
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
+              <UniversalFilterSheet
+                open={filterSheetOpen}
+                onOpenChange={setFilterSheetOpen}
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                onClearFilters={handleClearFilters}
+                fields={filterFields}
+                title="Filter Production Items"
+                description="Use the filters below to narrow down your production items"
+              />
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-40">
                   <SelectValue />

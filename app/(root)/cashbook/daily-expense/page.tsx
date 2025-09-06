@@ -36,6 +36,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import DailyExpenseForm from '@/components/cashbook/daily-expense-form';
+import { UniversalFilterSheet, FilterField, UniversalFilterState } from '@/components/ui/universal-filter-sheet';
 
 interface DailyExpenseEntry {
   id: string;
@@ -85,15 +86,16 @@ export default function DailyExpensePage() {
   });
 
   // Enhanced filter states
-  const [filters, setFilters] = useState({
-    period: 'today' as 'today' | 'current_month' | 'last_month' | 'custom' | 'all_time',
-    startDate: undefined as Date | undefined,
-    endDate: undefined as Date | undefined,
+  const [filters, setFilters] = useState<UniversalFilterState>({
+    period: 'today',
+    startDate: '',
+    endDate: '',
     minAmount: '',
     maxAmount: '',
     description: '',
     volumeNumber: ''
   });
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   // Summary
   const [summary, setSummary] = useState({
@@ -103,6 +105,77 @@ export default function DailyExpensePage() {
     highestAmount: 0,
     uniqueDescriptions: 0
   });
+
+  // Filter fields configuration
+  const filterFields: FilterField[] = [
+    {
+      key: 'period',
+      label: 'Period',
+      type: 'select',
+      options: [
+        { value: 'today', label: 'Today' },
+        { value: 'current_month', label: 'Current Month' },
+        { value: 'last_month', label: 'Last Month' },
+        { value: 'custom', label: 'Custom Range' },
+        { value: 'all_time', label: 'All Time' }
+      ],
+      placeholder: 'Select period...'
+    },
+    {
+      key: 'startDate',
+      label: 'Start Date',
+      type: 'date',
+      placeholder: 'Select start date...'
+    },
+    {
+      key: 'endDate',
+      label: 'End Date',
+      type: 'date',
+      placeholder: 'Select end date...'
+    },
+    {
+      key: 'description',
+      label: 'Description',
+      type: 'text',
+      placeholder: 'Search description...'
+    },
+    {
+      key: 'volumeNumber',
+      label: 'Volume Number',
+      type: 'text',
+      placeholder: 'Search volume number...'
+    },
+    {
+      key: 'minAmount',
+      label: 'Min Amount',
+      type: 'text',
+      placeholder: 'Minimum amount...'
+    },
+    {
+      key: 'maxAmount',
+      label: 'Max Amount',
+      type: 'text',
+      placeholder: 'Maximum amount...'
+    }
+  ];
+
+  // Filter handlers
+  const handleFiltersChange = (newFilters: UniversalFilterState) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters: UniversalFilterState = {
+      period: 'today',
+      startDate: '',
+      endDate: '',
+      minAmount: '',
+      maxAmount: '',
+      description: '',
+      volumeNumber: ''
+    };
+    setFilters(clearedFilters);
+  };
 
   const fetchEntries = useCallback(async () => {
     setLoading(true);
@@ -131,8 +204,8 @@ export default function DailyExpensePage() {
             setLoading(false);
             return;
           }
-          startDate = format(filters.startDate, 'yyyy-MM-dd');
-          endDate = format(filters.endDate, 'yyyy-MM-dd');
+          startDate = filters.startDate;
+          endDate = filters.endDate;
           break;
         case 'all_time':
           startDate = '2020-01-01';
@@ -462,17 +535,6 @@ export default function DailyExpensePage() {
     }
   };
 
-  const clearFilters = () => {
-    setFilters({
-      period: 'today',
-      startDate: undefined,
-      endDate: undefined,
-      minAmount: '',
-      maxAmount: '',
-      description: '',
-      volumeNumber: ''
-    });
-  };
 
   const openEditDialog = (entry: DailyExpenseEntry) => {
     setEditingEntry(entry);
@@ -553,183 +615,61 @@ export default function DailyExpensePage() {
         </Sheet>
       </div>
 
-      {/* Enhanced Filter Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IconFilter className="h-5 w-5" />
-            Filters & Export
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="space-y-2">
-              <Label>Period</Label>
-              <Select 
-                value={filters.period} 
-                onValueChange={(value: any) => setFilters({ ...filters, period: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="current_month">Current Month</SelectItem>
-                  <SelectItem value="last_month">Last Month</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                  <SelectItem value="all_time">All Time</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {filters.period === 'custom' && (
-              <>
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal text-sm",
-                          !filters.startDate && "text-muted-foreground"
-                        )}
-                      >
-                        <IconCalendar className="mr-2 h-4 w-4" />
-                        {filters.startDate ? format(filters.startDate, "MMM dd") : <span>Start</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={filters.startDate}
-                        onSelect={(date) => setFilters({ ...filters, startDate: date })}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal text-sm",
-                          !filters.endDate && "text-muted-foreground"
-                        )}
-                      >
-                        <IconCalendar className="mr-2 h-4 w-4" />
-                        {filters.endDate ? format(filters.endDate, "MMM dd") : <span>End</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={filters.endDate}
-                        onSelect={(date) => setFilters({ ...filters, endDate: date })}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </>
-            )}
-            
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Input
-                placeholder="Search description"
-                value={filters.description}
-                onChange={(e) => setFilters({ ...filters, description: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Volume #</Label>
-              <Input
-                placeholder="Volume number"
-                value={filters.volumeNumber}
-                onChange={(e) => setFilters({ ...filters, volumeNumber: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Min Amount</Label>
-              <Input
-                type="number"
-                placeholder="0.00"
-                value={filters.minAmount}
-                onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Max Amount</Label>
-              <Input
-                type="number"
-                placeholder="0.00"
-                value={filters.maxAmount}
-                onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
-              />
-            </div>
-          </div>
-          
-          <div className="flex flex-col space-y-2 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={fetchEntries}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                <IconRefresh className="h-4 w-4" />
-                <span className="hidden sm:inline">Apply Filters</span>
-                <span className="sm:hidden">Apply</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                className="flex items-center gap-2"
-              >
-                <IconX className="h-4 w-4" />
-                <span className="hidden sm:inline">Clear Filters</span>
-                <span className="sm:hidden">Clear</span>
-              </Button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                <IconCalendarStats className="h-3 w-3" />
-                <span className="hidden sm:inline">{getPeriodText()}</span>
-                <span className="sm:hidden">
-                  {filters.period === 'today' ? 'Today' :
-                   filters.period === 'current_month' ? 'Current' : 
-                   filters.period === 'last_month' ? 'Last' :
-                   filters.period === 'all_time' ? 'All' : 'Custom'}
-                </span>
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportToPDF}
-                disabled={exporting || entries.length === 0}
-                className="flex items-center gap-2"
-              >
-                <IconFileText className="h-4 w-4" />
-                <span className="hidden sm:inline">PDF</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportToExcel}
-                disabled={exporting || entries.length === 0}
-                className="flex items-center gap-2"
-              >
-                <IconFileSpreadsheet className="h-4 w-4" />
-                <span className="hidden sm:inline">Excel</span>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Universal Filter Section */}
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <UniversalFilterSheet
+            open={filterSheetOpen}
+            onOpenChange={setFilterSheetOpen}
+            fields={filterFields}
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            onClearFilters={handleClearFilters}
+          />
+          <Button
+            variant="outline"
+            onClick={fetchEntries}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <IconRefresh className="h-4 w-4" />
+            <span className="hidden sm:inline">Apply Filters</span>
+            <span className="sm:hidden">Apply</span>
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+            <IconCalendarStats className="h-3 w-3" />
+            <span className="hidden sm:inline">{getPeriodText()}</span>
+            <span className="sm:hidden">
+              {filters.period === 'today' ? 'Today' :
+               filters.period === 'current_month' ? 'Current' : 
+               filters.period === 'last_month' ? 'Last' :
+               filters.period === 'all_time' ? 'All' : 'Custom'}
+            </span>
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToPDF}
+            disabled={exporting || entries.length === 0}
+            className="flex items-center gap-2"
+          >
+            <IconFileText className="h-4 w-4" />
+            <span className="hidden sm:inline">PDF</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToExcel}
+            disabled={exporting || entries.length === 0}
+            className="flex items-center gap-2"
+          >
+            <IconFileSpreadsheet className="h-4 w-4" />
+            <span className="hidden sm:inline">Excel</span>
+          </Button>
+        </div>
+      </div>
 
       {/* Enhanced Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

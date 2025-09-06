@@ -3,7 +3,6 @@
 import { ProductionListTanStackDataTable } from '@/components/production-list/tanstack-data-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IconList, IconFilter, IconPlus, IconX } from '@tabler/icons-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ProductionForm } from '@/components/production-list/production-form';
@@ -20,7 +19,6 @@ import type { ProductionItem, ProductionFormData } from '@/components/production
 
 
 export default function ProductionListPage() {
-  const [statusFilter, setStatusFilter] = useState<'all' | 'RUNNING' | 'PENDING' | 'COMPLETE' | 'CANCELLED'>('RUNNING');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ProductionItem | null>(null);
   const [viewingItem, setViewingItem] = useState<ProductionItem | null>(null);
@@ -140,37 +138,6 @@ export default function ProductionListPage() {
         </Sheet>
       </div>
 
-      {/* Filters and Search - Mobile Responsive */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <IconFilter className="h-4 w-4 sm:h-5 sm:w-5" />
-            Status Filter
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Filter production items by status
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <label htmlFor="status" className="text-sm font-medium">
-              Status Filter
-            </label>
-            <Select value={statusFilter} onValueChange={(value: 'all' | 'RUNNING' | 'PENDING' | 'COMPLETE' | 'CANCELLED') => setStatusFilter(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="RUNNING">Running</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="COMPLETE">Complete</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Error Display */}
       {error && (
@@ -207,7 +174,6 @@ export default function ProductionListPage() {
         <CardContent className="px-3 sm:px-6">
           <ProductionListTanStackDataTable 
             data={productionItems} 
-            statusFilter={statusFilter}
             onView={handleViewItem}
             onEdit={handleEditItemOpen}
             onDelete={handleDeleteItem}

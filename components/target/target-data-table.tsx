@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { IconChevronLeft, IconChevronRight, IconCalendar, IconTrash } from '@tabler/icons-react';
+import { UniversalFilterSheet, FilterField, UniversalFilterState } from '@/components/ui/universal-filter-sheet';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -73,20 +74,109 @@ export function TargetDataTable({
   const [rowSelection, setRowSelection] = useState({});
   
   // Filter states
-  const [lineFilter, setLineFilter] = useState<string>('');
-  const [inTimeFilter, setInTimeFilter] = useState<string>('');
-  const [outTimeFilter, setOutTimeFilter] = useState<string>('');
+  const [filters, setFilters] = useState<UniversalFilterState>({
+    lineNo: '',
+    styleNo: '',
+    inTime: '',
+    outTime: '',
+    lineTargetMin: '',
+    lineTargetMax: '',
+    hourlyProductionMin: '',
+    hourlyProductionMax: ''
+  });
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
+  // Filter fields configuration
+  const filterFields: FilterField[] = [
+    {
+      key: 'lineNo',
+      label: 'Line No',
+      type: 'text',
+      placeholder: 'Filter by line number...'
+    },
+    {
+      key: 'styleNo',
+      label: 'Style No',
+      type: 'text',
+      placeholder: 'Filter by style number...'
+    },
+    {
+      key: 'inTime',
+      label: 'In Time',
+      type: 'text',
+      placeholder: 'Filter by in time...'
+    },
+    {
+      key: 'outTime',
+      label: 'Out Time',
+      type: 'text',
+      placeholder: 'Filter by out time...'
+    },
+    {
+      key: 'lineTargetMin',
+      label: 'Min Line Target',
+      type: 'text',
+      placeholder: 'Minimum line target...'
+    },
+    {
+      key: 'lineTargetMax',
+      label: 'Max Line Target',
+      type: 'text',
+      placeholder: 'Maximum line target...'
+    },
+    {
+      key: 'hourlyProductionMin',
+      label: 'Min Hourly Production',
+      type: 'text',
+      placeholder: 'Minimum hourly production...'
+    },
+    {
+      key: 'hourlyProductionMax',
+      label: 'Max Hourly Production',
+      type: 'text',
+      placeholder: 'Maximum hourly production...'
+    }
+  ];
 
   // Filter data based on filters
   const filteredData = useMemo(() => {
     return data.filter(item => {
-      const matchesLine = !lineFilter || item.lineNo.toLowerCase().includes(lineFilter.toLowerCase());
-      const matchesInTime = !inTimeFilter || item.inTime.includes(inTimeFilter);
-      const matchesOutTime = !outTimeFilter || item.outTime.includes(outTimeFilter);
+      // Text filters
+      const matchesLine = !filters.lineNo || item.lineNo.toLowerCase().includes(filters.lineNo.toLowerCase());
+      const matchesStyle = !filters.styleNo || item.styleNo.toLowerCase().includes(filters.styleNo.toLowerCase());
+      const matchesInTime = !filters.inTime || item.inTime.includes(filters.inTime);
+      const matchesOutTime = !filters.outTime || item.outTime.includes(filters.outTime);
       
-      return matchesLine && matchesInTime && matchesOutTime;
+      // Numeric range filters
+      const matchesLineTargetMin = !filters.lineTargetMin || item.lineTarget >= Number(filters.lineTargetMin);
+      const matchesLineTargetMax = !filters.lineTargetMax || item.lineTarget <= Number(filters.lineTargetMax);
+      const matchesHourlyProductionMin = !filters.hourlyProductionMin || item.hourlyProduction >= Number(filters.hourlyProductionMin);
+      const matchesHourlyProductionMax = !filters.hourlyProductionMax || item.hourlyProduction <= Number(filters.hourlyProductionMax);
+      
+      return matchesLine && matchesStyle && matchesInTime && matchesOutTime && 
+             matchesLineTargetMin && matchesLineTargetMax && 
+             matchesHourlyProductionMin && matchesHourlyProductionMax;
     });
-  }, [data, lineFilter, inTimeFilter, outTimeFilter]);
+  }, [data, filters]);
+
+  // Filter handlers
+  const handleFiltersChange = (newFilters: UniversalFilterState) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters: UniversalFilterState = {
+      lineNo: '',
+      styleNo: '',
+      inTime: '',
+      outTime: '',
+      lineTargetMin: '',
+      lineTargetMax: '',
+      hourlyProductionMin: '',
+      hourlyProductionMax: ''
+    };
+    setFilters(clearedFilters);
+  };
 
   const table = useReactTable({
     data: filteredData,
@@ -127,7 +217,7 @@ export function TargetDataTable({
 
   return (
     <div className="w-full">
-      <div className="flex flex-col md:flex-row items-start md:items-center py-4 gap-4 overflow-x-auto">
+      <div className="flex flex-row items-start md:items-center py-4 gap-4 overflow-x-auto">
         <div className="flex items-center gap-2">
           <IconCalendar className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium hidden md:inline-block">Filter by Date:</span>
@@ -160,54 +250,17 @@ export function TargetDataTable({
           </Popover>
         </div>
         
-        {/* Line No Filter */}
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-1 min-w-0 md:min-w-[120px] w-full">
-          <span className="text-sm font-medium hidden md:inline-block">Line No:</span>
-          <Input
-            placeholder="Filter by line..."
-            value={lineFilter}
-            onChange={(e) => setLineFilter(e.target.value)}
-            className="w-full md:w-[120px]"
-          />
-        </div>
-        
-        {/* In Time Filter */}
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-1 min-w-0 md:min-w-[120px] w-full">
-          <span className="text-sm font-medium hidden md:inline-block">In Time:</span>
-          <Input
-            placeholder="Filter by in time..."
-            value={inTimeFilter}
-            onChange={(e) => setInTimeFilter(e.target.value)}
-            className="w-full md:w-[120px]"
-          />
-        </div>
-        
-        {/* Out Time Filter */}
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-1 min-w-0 md:min-w-[120px] w-full">
-          <span className="text-sm font-medium hidden md:inline-block">Out Time:</span>
-          <Input
-            placeholder="Filter by out time..."
-            value={outTimeFilter}
-            onChange={(e) => setOutTimeFilter(e.target.value)}
-            className="w-full md:w-[120px]"
-          />
-        </div>
-        
-        {/* Clear Filters Button */}
-        {(lineFilter || inTimeFilter || outTimeFilter) && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full md:w-auto"
-            onClick={() => {
-              setLineFilter('');
-              setInTimeFilter('');
-              setOutTimeFilter('');
-            }}
-          >
-            Clear Filters
-          </Button>
-        )}
+        {/* Universal Filter Sheet */}
+        <UniversalFilterSheet
+          open={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onClearFilters={handleClearFilters}
+          fields={filterFields}
+          title="Filter Targets"
+          description="Use the filters below to narrow down your targets"
+        />
         
         {/* Bulk Delete Button */}
         {table.getFilteredSelectedRowModel().rows.length > 0 && (

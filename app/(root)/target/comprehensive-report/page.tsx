@@ -11,7 +11,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { IconCalendar, IconRefresh, IconDownload, IconFileText, IconPrinter } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { ComprehensiveDataTable } from '@/components/target/comprehensive-data-table';
-import { EmailActions } from '@/components/target/email-actions';
 import { ComprehensiveTargetData, SummaryData, ComprehensiveReportResponse } from '@/components/target/types';
 import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
 
@@ -472,18 +471,6 @@ export default function ComprehensiveTargetReportPage() {
         </div>
       )}
 
-      {/* Email Actions */}
-      {summary && reportData.length > 0 && (
-        <div className="no-print">
-          <EmailActions
-            date={date}
-            reportData={reportData}
-            summary={summary}
-            timeSlotHeaders={timeSlotHeaders}
-            timeSlotTotals={timeSlotTotals}
-          />
-        </div>
-      )}
 
       {/* Error Display */}
       {error && (

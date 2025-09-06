@@ -14,12 +14,24 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Invalid date format. Expected YYYY-MM-DD' 
+      }, { status: 400 });
+    }
+
     const dateString = date;
 
     // Fetch manpower records for the specified date
     const manpowerRecords = await prisma.manpowerSummary.findMany({
       where: {
-        date: dateString
+        date: {
+          gte: new Date(dateString + 'T00:00:00Z'),
+          lte: new Date(dateString + 'T23:59:59Z')
+        }
       },
       orderBy: [
         { section: 'asc' },
@@ -28,24 +40,63 @@ export async function GET(request: NextRequest) {
       ]
     });
 
-    if (manpowerRecords.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: [],
-        message: 'No manpower records found for the specified date'
-      });
-    }
+    // Process data to match frontend expectations
+    const recordsByDate: Record<string, any[]> = {};
+    recordsByDate[dateString] = manpowerRecords;
+
+    // Calculate summary statistics
+    const totalPresent = manpowerRecords.reduce((sum, record) => sum + record.present, 0);
+    const totalAbsent = manpowerRecords.reduce((sum, record) => sum + record.absent, 0);
+    const totalLeave = manpowerRecords.reduce((sum, record) => sum + record.leave, 0);
+    const totalOthers = manpowerRecords.reduce((sum, record) => sum + record.others, 0);
+    const grandTotal = manpowerRecords.reduce((sum, record) => sum + record.total, 0);
+    
+    const attendanceRate = grandTotal > 0 ? (totalPresent / grandTotal) * 100 : 0;
+
+    const summary = {
+      totalPresent,
+      totalAbsent,
+      totalLeave,
+      totalOthers,
+      grandTotal,
+      attendanceRate: Math.round(attendanceRate * 100) / 100,
+      dates: 1,
+      sections: new Set(manpowerRecords.map(r => r.section)).size
+    };
+
+    const responseData = {
+      records: recordsByDate,
+      summary
+    };
 
     return NextResponse.json({
       success: true,
-      data: manpowerRecords
+      data: responseData
     });
 
   } catch (error) {
     console.error('Error in attendance summary API:', error);
+    
+    // More specific error handling
+    if (error instanceof Error) {
+      if (error.message.includes('Invalid date')) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Invalid date provided' 
+        }, { status: 400 });
+      }
+      
+      if (error.message.includes('connection') || error.message.includes('timeout')) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Database connection error. Please try again later.' 
+        }, { status: 503 });
+      }
+    }
+    
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error' 
+      error: 'Internal server error. Please try again later.' 
     }, { status: 500 });
   }
 }

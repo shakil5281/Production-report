@@ -6,7 +6,6 @@ import {
   TrendingUp, 
   TrendingDown, 
   Package, 
-  Target, 
   DollarSign, 
   Scissors,
   BarChart3,
@@ -17,7 +16,6 @@ import {
 interface DetailedSummariesProps {
   data: {
     production: any;
-    target: any;
     cashbook: any;
     cutting: any;
     overview: any;
@@ -25,7 +23,7 @@ interface DetailedSummariesProps {
 }
 
 export function DetailedSummaries({ data }: DetailedSummariesProps) {
-  const { production, target, cashbook, cutting, overview } = data;
+  const { production, cashbook, cutting, overview } = data;
 
   const getEfficiencyColor = (efficiency: number) => {
     if (efficiency >= 90) return 'text-green-600';
@@ -114,66 +112,6 @@ export function DetailedSummaries({ data }: DetailedSummariesProps) {
         </CardContent>
       </Card>
 
-      {/* Target Summary Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-            <Target className="h-4 w-4 sm:h-5 sm:w-5" />
-            Target Summary Details
-          </CardTitle>
-          <CardDescription className="text-sm sm:text-base">
-            Target vs actual performance analysis
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            {/* Target vs Actual */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">Target vs Actual</h4>
-              {target?.targetVsActual && (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded">
-                    <span className="font-medium text-sm">Target</span>
-                    <span className="font-semibold text-blue-600">{target.targetVsActual.totalTarget}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-green-50 rounded">
-                    <span className="font-medium text-sm">Actual</span>
-                    <span className="font-semibold text-green-600">{target.targetVsActual.totalActual}</span>
-                  </div>
-                  <div className={`flex justify-between items-center p-3 rounded ${
-                    target.targetVsActual.variance >= 0 ? 'bg-green-50' : 'bg-red-50'
-                  }`}>
-                    <span className="font-medium text-sm">Variance</span>
-                    <span className={`font-semibold ${
-                      target.targetVsActual.variance >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {target.targetVsActual.variance > 0 ? '+' : ''}{target.targetVsActual.variance}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Top Performing Lines */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">Top Performing Lines</h4>
-              {target?.topPerformingLines?.map((line: any, index: number) => (
-                <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-                  <span className="font-medium">Line {line.lineNo || 'N/A'}</span>
-                  <div className="text-right">
-                    <div className={`font-semibold ${getEfficiencyColor(line.efficiency || 0)}`}>
-                      {line.efficiency || 0}%
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {line.totalProduction || 0} units
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Cashbook Summary Details */}
       <Card>

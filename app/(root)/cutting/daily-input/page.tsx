@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { CalendarIcon, PlusIcon, TrendingUpIcon, LayersIcon, ScissorsIcon, PackageIcon } from "lucide-react"
+import { UniversalFilterSheet, FilterField, UniversalFilterState } from '@/components/ui/universal-filter-sheet';
 import {
   Table,
   TableBody,
@@ -118,20 +119,70 @@ const cuttingLines = [
 export default function DailyInputPage() {
   const [inputData, setInputData] = useState<DailyInputEntry[]>(mockData)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [filterPriority, setFilterPriority] = useState("all")
+  const [filters, setFilters] = useState<UniversalFilterState>({
+    search: "",
+    status: "all",
+    priority: "all"
+  })
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false)
+
+  // Filter fields configuration
+  const filterFields: FilterField[] = [
+    {
+      key: 'search',
+      label: 'Search',
+      type: 'text',
+      placeholder: 'Search by batch, style, color, or operator...'
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'received', label: 'Received' },
+        { value: 'in-cutting', label: 'In Cutting' },
+        { value: 'completed', label: 'Completed' }
+      ]
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      type: 'select',
+      options: [
+        { value: 'high', label: 'High' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'low', label: 'Low' }
+      ]
+    }
+  ]
 
   // Filter data based on search and filters
   const filteredData = inputData.filter(entry => {
-    const matchesSearch = entry.styleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.color.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.operator.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = filterStatus === "all" || entry.status === filterStatus
-    const matchesPriority = filterPriority === "all" || entry.priority === filterPriority
+    const matchesSearch = !filters.search || 
+                         entry.styleNumber.toLowerCase().includes(filters.search.toLowerCase()) ||
+                         entry.batchNumber.toLowerCase().includes(filters.search.toLowerCase()) ||
+                         entry.color.toLowerCase().includes(filters.search.toLowerCase()) ||
+                         entry.operator.toLowerCase().includes(filters.search.toLowerCase())
+    
+    const matchesStatus = filters.status === "all" || entry.status === filters.status
+    const matchesPriority = filters.priority === "all" || entry.priority === filters.priority
+    
     return matchesSearch && matchesStatus && matchesPriority
   })
+
+  // Filter handlers
+  const handleFiltersChange = (newFilters: UniversalFilterState) => {
+    setFilters(newFilters)
+  }
+
+  const handleClearFilters = () => {
+    const clearedFilters: UniversalFilterState = {
+      search: "",
+      status: "all",
+      priority: "all"
+    }
+    setFilters(clearedFilters)
+  }
 
   // Calculate summary statistics
   const totalQuantity = filteredData.reduce((sum, entry) => sum + entry.quantity, 0)
@@ -376,37 +427,27 @@ export default function DailyInputPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
             <div className="flex-1">
               <Input
                 placeholder="Search by batch, style, color, or operator..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                 className="w-full"
               />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full sm:w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="received">Received</SelectItem>
-                <SelectItem value="in-cutting">In Cutting</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterPriority} onValueChange={setFilterPriority}>
-              <SelectTrigger className="w-full sm:w-[130px]">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center space-x-2">
+              <UniversalFilterSheet
+                open={filterSheetOpen}
+                onOpenChange={setFilterSheetOpen}
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                onClearFilters={handleClearFilters}
+                fields={filterFields}
+                title="Filter Input Records"
+                description="Use the filters below to narrow down your input records"
+              />
+            </div>
           </div>
 
           <div className="rounded-md border overflow-x-auto">
