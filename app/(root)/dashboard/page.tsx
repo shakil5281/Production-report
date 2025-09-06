@@ -17,7 +17,6 @@ import Link from 'next/link';
 interface DashboardSummary {
   date: string;
   production: any;
-  target: any;
   cashbook: any;
   cutting: any;
   overview: {

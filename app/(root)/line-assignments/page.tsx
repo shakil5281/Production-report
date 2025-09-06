@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { IconPlus, IconCalendar, IconUsers, IconList, IconFilter, IconRefresh, IconX } from '@tabler/icons-react';
+import { UniversalFilterSheet, FilterField, UniversalFilterState } from '@/components/ui/universal-filter-sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
@@ -37,9 +38,47 @@ export default function LineAssignmentsPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   
   // Filters
-  const [filterLine, setFilterLine] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [filters, setFilters] = useState<UniversalFilterState>({
+    lineId: 'all',
+    status: 'all',
+    activeOnly: 'false'
+  });
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
+  // Filter fields configuration
+  const filterFields: FilterField[] = [
+    {
+      key: 'lineId',
+      label: 'Production Line',
+      type: 'select',
+      options: [
+        ...lines.map(line => ({
+          value: line.id,
+          label: `${line.name} (${line.code})`
+        }))
+      ]
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'PENDING', label: 'Pending' },
+        { value: 'RUNNING', label: 'Running' },
+        { value: 'COMPLETE', label: 'Complete' },
+        { value: 'CANCELLED', label: 'Cancelled' }
+      ]
+    },
+    {
+      key: 'activeOnly',
+      label: 'Show Active Only',
+      type: 'select',
+      options: [
+        { value: 'false', label: 'Show All' },
+        { value: 'true', label: 'Active Only' }
+      ]
+    }
+  ];
 
   // Fetch assignments and related data
   const fetchData = useCallback(async () => {
@@ -48,9 +87,9 @@ export default function LineAssignmentsPage() {
     
     try {
       const params = new URLSearchParams();
-      if (filterLine !== 'all') params.set('lineId', filterLine);
-      if (filterStatus !== 'all') params.set('status', filterStatus);
-      if (showActiveOnly) params.set('activeOnly', 'true');
+      if (filters.lineId !== 'all') params.set('lineId', filters.lineId);
+      if (filters.status !== 'all') params.set('status', filters.status);
+      if (filters.activeOnly === 'true') params.set('activeOnly', 'true');
       
       const response = await fetch(`/api/line-assignments?${params.toString()}`);
       const result = await response.json();
@@ -69,7 +108,21 @@ export default function LineAssignmentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterLine, filterStatus, showActiveOnly]);
+  }, [filters]);
+
+  // Filter handlers
+  const handleFiltersChange = (newFilters: UniversalFilterState) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters: UniversalFilterState = {
+      lineId: 'all',
+      status: 'all',
+      activeOnly: 'false'
+    };
+    setFilters(clearedFilters);
+  };
 
   // Create new assignment
   const handleCreateAssignment = useCallback(async (formData: LineAssignmentFormData): Promise<boolean> => {
@@ -225,62 +278,6 @@ export default function LineAssignmentsPage() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IconFilter className="h-4 w-4" />
-            Filters
-          </CardTitle>
-          <CardDescription>Filter assignments by line and active state</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="line-filter" className="text-sm font-medium">Production Line</label>
-              <Select value={filterLine} onValueChange={setFilterLine}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select line" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Lines</SelectItem>
-                  {lines.map(line => (
-                    <SelectItem key={line.id} value={line.id}>
-                      {line.name} ({line.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="status-filter" className="text-sm font-medium">Status</label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="RUNNING">Running</SelectItem>
-                  <SelectItem value="COMPLETE">Complete</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-end">
-              <Button
-                variant={showActiveOnly ? "default" : "outline"}
-                onClick={() => setShowActiveOnly(!showActiveOnly)}
-                className="w-full"
-              >
-                {showActiveOnly ? "Show All" : "Active Only"}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Error Display */}
       {error && (
@@ -304,10 +301,30 @@ export default function LineAssignmentsPage() {
       {/* Assignments Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Line Assignments</CardTitle>
-          <CardDescription>
-            Current assignments of running production styles to manufacturing lines
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle>Line Assignments</CardTitle>
+              <CardDescription>
+                Current assignments of running production styles to manufacturing lines
+              </CardDescription>
+            </div>
+            <div className="flex items-center space-x-2">
+              <UniversalFilterSheet
+                open={filterSheetOpen}
+                onOpenChange={setFilterSheetOpen}
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                onClearFilters={handleClearFilters}
+                fields={filterFields}
+                title="Filter Line Assignments"
+                description="Use the filters below to narrow down your line assignments"
+              />
+              <Button variant="outline" onClick={fetchData} disabled={loading}>
+                <IconRefresh className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <AssignmentTable

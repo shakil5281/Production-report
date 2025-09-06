@@ -131,6 +131,7 @@ export default function AttendanceSummaryPage() {
   const [detailedData, setDetailedData] = useState<DetailedData | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     fetchSummaryData();
@@ -146,21 +147,45 @@ export default function AttendanceSummaryPage() {
       const response = await fetch(`/api/attendance/summary?date=${formattedDate}`);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch summary data');
+        const errorText = await response.text();
+        let errorMessage = 'Failed to fetch summary data';
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
       if (result.success) {
         setSummaryData(result.data);
+        setError(null);
       } else {
         throw new Error(result.error || 'Failed to fetch summary data');
       }
     } catch (err) {
       console.error('Error fetching summary:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
+      
+      // Only show toast for first attempt or specific errors
+      if (retryCount === 0 || errorMessage.includes('Database connection')) {
+        toast.error(`Failed to load data: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    setError(null);
+    fetchSummaryData();
   };
 
   const fetchAvailableDates = async () => {
@@ -479,8 +504,21 @@ export default function AttendanceSummaryPage() {
           ) : error ? (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Error loading data: {error}
+              <AlertDescription className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Error loading data</p>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRetry}
+                  disabled={loading}
+                  className="ml-4"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Retry
+                </Button>
               </AlertDescription>
             </Alert>
           ) : !hasDataForSelectedDate ? (

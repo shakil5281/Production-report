@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconChevronsRight, IconFilter, IconSearch } from '@tabler/icons-react';
+import { FilterSheet, FilterState } from './filter-sheet';
 import { columns } from './table-columns';
 import type { ProductionItem } from './schema';
 import { QuantityCell } from './quantity-cell';
@@ -30,7 +31,6 @@ import { MobileResponsivePagination } from '@/components/ui/mobile-responsive-pa
 
 interface ProductionListTanStackDataTableProps {
   data: ProductionItem[];
-  statusFilter?: 'all' | 'RUNNING' | 'PENDING' | 'COMPLETE' | 'CANCELLED';
   onView: (item: ProductionItem) => void;
   onEdit: (item: ProductionItem) => void;
   onDelete: (item: ProductionItem) => void;
@@ -40,12 +40,20 @@ interface ProductionListTanStackDataTableProps {
 
 
 
-export function ProductionListTanStackDataTable({ data, statusFilter = 'all', onView, onEdit, onDelete }: ProductionListTanStackDataTableProps) {
+export function ProductionListTanStackDataTable({ data, onView, onEdit, onDelete }: ProductionListTanStackDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
+  const [filters, setFilters] = useState<FilterState>({
+    status: 'all',
+    search: '',
+    programCode: '',
+    buyer: '',
+    item: '',
+  });
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const isMobile = useIsMobile();
 
   // Mobile-optimized column visibility - show only essential columns
@@ -65,11 +73,65 @@ export function ProductionListTanStackDataTable({ data, statusFilter = 'all', on
     }
   }, [isMobile]);
 
-  // Filter data based on status
+  // Filter data based on all filters
   const filteredData = useMemo(() => {
-    if (statusFilter === 'all') return data;
-    return data.filter(item => item.status === statusFilter);
-  }, [data, statusFilter]);
+    return data.filter(item => {
+      // Status filter
+      if (filters.status !== 'all' && item.status !== filters.status) {
+        return false;
+      }
+      
+      // Search filter (global search)
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        const searchableFields = [
+          item.programCode,
+          item.buyer,
+          item.item,
+          item.styleNo,
+          item.status,
+        ].join(' ').toLowerCase();
+        if (!searchableFields.includes(searchTerm)) {
+          return false;
+        }
+      }
+      
+      // Program code filter
+      if (filters.programCode && !item.programCode.toLowerCase().includes(filters.programCode.toLowerCase())) {
+        return false;
+      }
+      
+      // Buyer filter
+      if (filters.buyer && !item.buyer.toLowerCase().includes(filters.buyer.toLowerCase())) {
+        return false;
+      }
+      
+      // Item filter
+      if (filters.item && !item.item.toLowerCase().includes(filters.item.toLowerCase())) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [data, filters]);
+
+  const handleFiltersChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    // Update global filter to match search filter
+    setGlobalFilter(newFilters.search);
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters: FilterState = {
+      status: 'all',
+      search: '',
+      programCode: '',
+      buyer: '',
+      item: '',
+    };
+    setFilters(clearedFilters);
+    setGlobalFilter('');
+  };
 
   const table = useReactTable({
     data: filteredData,
@@ -115,25 +177,24 @@ export function ProductionListTanStackDataTable({ data, statusFilter = 'all', on
             <Input
               placeholder="Search all columns..."
               value={globalFilter ?? ''}
-              onChange={(event) => setGlobalFilter(event.target.value)}
+              onChange={(event) => {
+                setGlobalFilter(event.target.value);
+                setFilters(prev => ({ ...prev, search: event.target.value }));
+              }}
               className="pl-9 h-9 bg-background border-border/50 focus:border-primary"
             />
           </div>
-          {!isMobile && (
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Filter program code..."
-                value={(table.getColumn('programCode')?.getFilterValue() as string) ?? ''}
-                onChange={(event) =>
-                  table.getColumn('programCode')?.setFilterValue(event.target.value)
-                }
-                className="h-9 w-32 sm:w-40 bg-background border-border/50 focus:border-primary"
-              />
-            </div>
-          )}
         </div>
         
-
+        <div className="flex items-center space-x-2">
+          <FilterSheet
+            open={filterSheetOpen}
+            onOpenChange={setFilterSheetOpen}
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            onClearFilters={handleClearFilters}
+          />
+        </div>
       </div>
 
       {/* Responsive Table Layout */}

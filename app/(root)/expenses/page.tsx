@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Plus, Edit, Trash2, AlertCircle, DollarSign, Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { UniversalFilterSheet, FilterField, UniversalFilterState } from '@/components/ui/universal-filter-sheet';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -57,12 +58,53 @@ export default function ExpensesPage() {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<UniversalFilterState>({
     date: '',
     lineId: 'all',
     categoryId: 'all',
     paymentMethod: 'all'
   });
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
+  // Filter fields configuration
+  const filterFields: FilterField[] = [
+    {
+      key: 'date',
+      label: 'Date',
+      type: 'date'
+    },
+    {
+      key: 'lineId',
+      label: 'Production Line',
+      type: 'select',
+      options: [
+        ...lines.map(line => ({
+          value: line.id,
+          label: `${line.name} (${line.code})`
+        }))
+      ]
+    },
+    {
+      key: 'categoryId',
+      label: 'Category',
+      type: 'select',
+      options: categories.map(category => ({
+        value: category.id,
+        label: category.name
+      }))
+    },
+    {
+      key: 'paymentMethod',
+      label: 'Payment Method',
+      type: 'select',
+      options: [
+        { value: 'CASH', label: 'Cash' },
+        { value: 'MFS', label: 'MFS' },
+        { value: 'BANK', label: 'Bank Transfer' },
+        { value: 'OTHER', label: 'Other' }
+      ]
+    }
+  ];
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [formData, setFormData] = useState({
@@ -106,6 +148,21 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Filter handlers
+  const handleFiltersChange = (newFilters: UniversalFilterState) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters: UniversalFilterState = {
+      date: '',
+      lineId: 'all',
+      categoryId: 'all',
+      paymentMethod: 'all'
+    };
+    setFilters(clearedFilters);
   };
 
   const fetchMasterData = async () => {
@@ -435,109 +492,30 @@ export default function ExpensesPage() {
         </CardContent>
       </Card>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label htmlFor="filterDate">Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {filters.date ? format(new Date(filters.date + 'T00:00:00'), 'PPP') : 'Pick a date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={filters.date ? new Date(filters.date + 'T00:00:00') : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        setFilters({ ...filters, date: date.toLocaleDateString('en-CA') });
-                      }
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div>
-              <Label htmlFor="filterLineId">Production Line</Label>
-              <Select
-                value={filters.lineId}
-                onValueChange={(value) => setFilters({ ...filters, lineId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All lines" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All lines</SelectItem>
-                  {lines?.map((line) => (
-                    <SelectItem key={line.id} value={line.id}>
-                      {line.name} ({line.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="filterCategoryId">Category</Label>
-              <Select
-                value={filters.categoryId}
-                onValueChange={(value) => setFilters({ ...filters, categoryId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="filterPaymentMethod">Payment Method</Label>
-              <Select
-                value={filters.paymentMethod}
-                onValueChange={(value) => setFilters({ ...filters, paymentMethod: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All methods" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All methods</SelectItem>
-                  <SelectItem value="CASH">Cash</SelectItem>
-                  <SelectItem value="MFS">MFS</SelectItem>
-                  <SelectItem value="BANK">Bank Transfer</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Expenses Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Expense Records</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {expenses.length} expenses found
-          </p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle>Expense Records</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {expenses.length} expenses found
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <UniversalFilterSheet
+                open={filterSheetOpen}
+                onOpenChange={setFilterSheetOpen}
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                onClearFilters={handleClearFilters}
+                fields={filterFields}
+                title="Filter Expenses"
+                description="Use the filters below to narrow down your expense records"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
