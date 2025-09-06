@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { useCalendarAutoClose } from '@/hooks/use-calendar-auto-close';
+// Removed manual calendar control; using uncontrolled Popover
 
 interface SalaryRecord {
   section: string;
@@ -41,7 +41,7 @@ interface OvertimeRecord {
 
 
 export default function DailySalaryPage() {
-  const { isCalendarOpen, setIsCalendarOpen } = useCalendarAutoClose();
+  // Uncontrolled Popover for calendar picker
   
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [salaryData, setSalaryData] = useState<SalaryRecord[]>([]);
@@ -511,8 +511,7 @@ export default function DailySalaryPage() {
       {/* Date Selection - Full Width */}
       <Card className="w-full">
         <CardHeader className="pb-2 sm:pb-3">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+          <CardTitle className="text-base sm:text-lg">
             Select Date & Controls
           </CardTitle>
         </CardHeader>
@@ -521,16 +520,14 @@ export default function DailySalaryPage() {
             {/* Date Picker */}
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium">Date</Label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={`w-full justify-start text-left font-normal h-10 ${
                       !selectedDate ? "text-muted-foreground" : ""
                     }`}
-                    onClick={() => setIsCalendarOpen(true)}
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
                     <span className="truncate">
                       {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Pick a date"}
                     </span>
@@ -543,7 +540,6 @@ export default function DailySalaryPage() {
                     onSelect={(newDate) => {
                       if (newDate) {
                         setSelectedDate(newDate);
-                        setIsCalendarOpen(false);
                       }
                     }}
                     initialFocus
