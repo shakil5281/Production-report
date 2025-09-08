@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
           profitMargin: profitMargin,
           breakdown: {
             monthlyExpenses: totalMonthlyExpenses,
-            dailyEquivalentMonthlyExpenses: totalMonthlyExpenses / 30,
+            dailyEquivalentMonthlyExpenses: totalMonthlyExpenses / 26,
             dailyCashExpenses: totalDailyCashExpenses,
             dailySalary: totalSalary
           }
@@ -162,7 +162,7 @@ function createDailyBreakdown(dailyProduction: any[], monthlyExpenses: any[], da
   const totalMonthlyExpenses = monthlyExpenses.length > 0 ? monthlyExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
   
   // Calculate daily equivalent of monthly expenses (Total Monthly Expense / 30)
-  const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 30;
+  const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 26;
 
   // Add production data
   dailyProduction.forEach(item => {
@@ -261,7 +261,7 @@ function createSectionBreakdown(dailyProduction: any[], monthlyExpenses: any[]) 
   const totalMonthlyExpenses = monthlyExpenses.length > 0 ? monthlyExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
   
   // Calculate daily equivalent of monthly expenses (Total Monthly Expense / 30)
-  const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 30;
+  const dailyEquivalentMonthlyExpenses = totalMonthlyExpenses / 26;
 
   // Add production by section (using line numbers)
   dailyProduction.forEach(item => {

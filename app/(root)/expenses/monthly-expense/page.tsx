@@ -65,7 +65,8 @@ const defaultExpenseCategories = [
   'Profit bank Term loan',
   'Celling and Distribution',
   'Dericiation',
-  'Miscellaneous'
+  'Miscellaneous',
+  'Friday Salary'
 ];
 
 const months = [

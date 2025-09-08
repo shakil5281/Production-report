@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   IconTrendingUp, IconTrendingDown, IconCurrencyTaka, IconReceiptTax,
@@ -113,7 +113,7 @@ export default function ProfitLossPage() {
   // Safe number formatting with fallback to 0
   const formatNumber = (value: number | undefined | null): string => {
     const num = Number(value) || 0;
-    return num.toLocaleString();
+    return Math.round(num).toLocaleString();
   };
 
   if (loading) {
@@ -355,6 +355,26 @@ export default function ProfitLossPage() {
                       </TableRow>
                     )}
                   </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TableCell className="font-semibold">Total</TableCell>
+                      <TableCell className="text-right text-green-700 font-semibold">
+                        ৳{formatNumber(data.dailyBreakdown?.reduce((sum, day) => sum + (day.earnings || 0), 0))}
+                      </TableCell>
+                      <TableCell className="text-right text-purple-700 font-semibold">
+                        ৳{formatNumber(data.dailyBreakdown?.reduce((sum, day) => sum + (day.dailySalary || 0), 0))}
+                      </TableCell>
+                      <TableCell className="text-right text-red-700 font-semibold">
+                        ৳{formatNumber(data.dailyBreakdown?.reduce((sum, day) => sum + (day.dailyCashExpenses || 0), 0))}
+                      </TableCell>
+                      <TableCell className="text-right text-orange-700 font-semibold">
+                        ৳{formatNumber(data.dailyBreakdown?.reduce((sum, day) => sum + (day.monthlyExpenses || 0), 0))}
+                      </TableCell>
+                      <TableCell className={`text-right font-bold ${getNetProfitColor(data.dailyBreakdown?.reduce((sum, day) => sum + (day.netProfit || 0), 0))}`}>
+                        ৳{formatNumber(data.dailyBreakdown?.reduce((sum, day) => sum + (day.netProfit || 0), 0))}
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
                 </Table>
               </div>
 

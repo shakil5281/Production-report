@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
+
     // Also include default categories that might not have expenses yet
     const defaultCategories = [
       'Insurance',
@@ -33,7 +34,8 @@ export async function GET(request: NextRequest) {
       'Salary Administration',
       'Profit bank Term loan',
       'Celling and Distribution',
-      'Dericiation'
+      'Dericiation',
+      'Friday Salary'
     ];
 
     // Combine and deduplicate categories
